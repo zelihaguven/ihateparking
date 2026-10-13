@@ -1,0 +1,19 @@
+{
+  "benchmark": "pedestrian_dynamic_obstacle_stress_test",
+  "scenario_id": "parallel_reverse_002026",
+  "scenario_kind": "parallel_reverse",
+  "pedestrian_count": 4,
+  "frames": 91,
+  "ground_truth_pedestrian_frames": 91,
+  "neural_dynamic_detection_frames": 91,
+  "safety_action_counts": {
+    "brake": 90
+  },
+  "first_replan_frame": null,
+  "first_brake_frame": 0,
+  "replan_count": 0,
+  "minimum_predicted_clearance_m": -2.5894720177132005,
+  "contact_events": 0,
+  "final_speed_mps": 0.0,
+  "ground_truth_source": "GroundTruthBackend"
+}

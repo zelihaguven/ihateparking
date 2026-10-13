@@ -11,6 +11,7 @@ from __future__ import annotations
 from dataclasses import asdict
 import argparse
 import json
+import os
 from pathlib import Path
 import socket
 import socketserver
@@ -66,7 +67,8 @@ class MockCarlaWorld:
         self.collisions = 0
         self._collision_active = False
         self._ground_truth_model = NeuralPerceptionAdapter(backend_for_scenario(self.scenario))
-        checkpoint = self.output_dir / "lightweight_perception_model_v2.npz"
+        configured_checkpoint = os.environ.get("IHATEPARKING_MODEL_CHECKPOINT")
+        checkpoint = Path(configured_checkpoint) if configured_checkpoint else self.output_dir / "lightweight_perception_model_v2.npz"
         self._neural_model = NeuralPerceptionAdapter(NumpyMLPPerceptionBackend(load_or_train(checkpoint)))
         return self.snapshot()
 

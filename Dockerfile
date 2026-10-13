@@ -4,7 +4,8 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
     PORT=8010 \
-    IHATEPARKING_OUTPUT_DIR=/tmp/ihateparking-runtime
+    IHATEPARKING_OUTPUT_DIR=/tmp/ihateparking-runtime \
+    IHATEPARKING_MODEL_CHECKPOINT=/app/deployment/export/perception_model_numpy_mlp_v2.npz
 
 WORKDIR /app
 
