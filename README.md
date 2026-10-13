@@ -74,6 +74,8 @@ world.py       Scenario, vehicle dimensions, slot and collision queries
 scenario_generator.py Seeded multi-scenario contract for CARLA/replay
 carla_adapter.py Optional CARLA runtime boundary
 ai_perception.py Model-independent AI perception interface and validation
+ground_truth_benchmark.py Replayable sensor stream and benchmark runner
+mock_carla_server.py GPU-free JSON-lines server and pipeline smoke test
 stack_contracts.py Sensor, perception, trajectory, control and safety messages
 geometry.py    Pose, oriented rectangles, polygon intersection
 planner.py     Hybrid A* search with kinematic motion primitives
@@ -129,6 +131,20 @@ with CarlaScenarioAdapter() as adapter:
 ```
 
 The current sandbox does not contain CARLA, so the spawn path is validated through a serializable `CarlaSpawnPlan` and an explicit missing-runtime error rather than a fake live run.
+
+### Local mock CARLA server
+
+For a GPU-free end-to-end contract test, start the local JSON-lines mock server:
+
+```bash
+# Terminal A
+python3 -m ihateparking.mock_carla_server --mode server --port 2100
+
+# Terminal B: reset, stream synthetic sensors, run Hybrid A*, and step controls
+python3 -m ihateparking.mock_carla_server --mode smoke-test --frames 8
+```
+
+The smoke test uses the same request boundary as a remote server and writes synthetic `.npy` RGB/depth/LiDAR artifacts. The mock image is explicitly a top-down debug representation, not a photorealistic camera. Supported operations are `health`, `reset`, `sensor_frame`, `plan`, `step`, `spawn_plan` and `shutdown`.
 
 ## Initial experiment protocol
 
