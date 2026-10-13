@@ -111,7 +111,7 @@ function updateReadout(pose) {
 }
 function setPlaying(next) {
   playing = next;
-  playButton.innerHTML = playing ? '<span class="play-icon">Ⅱ</span> Duraklat' : '<span class="play-icon">▶</span> Başlat';
+  playButton.innerHTML = playing ? '<span class="play-icon">Ⅱ</span> Pause' : '<span class="play-icon">▶</span> Start';
   runStatus.textContent = playing ? 'REPLAY RUNNING' : (frame >= data.trace.length - 1 ? 'RUN COMPLETE' : 'READY TO REPLAY');
   if (playing) { lastTimestamp = performance.now(); animationHandle = requestAnimationFrame(tick); }
   else if (animationHandle) cancelAnimationFrame(animationHandle);
