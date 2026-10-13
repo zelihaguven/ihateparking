@@ -74,6 +74,7 @@ world.py       Scenario, vehicle dimensions, slot and collision queries
 scenario_generator.py Seeded multi-scenario contract for CARLA/replay
 carla_adapter.py Optional CARLA runtime boundary
 ai_perception.py Model-independent AI perception interface and validation
+lightweight_perception.py NumPy MLP detector for slots and dynamic obstacles
 ground_truth_benchmark.py Replayable sensor stream and benchmark runner
 mock_carla_server.py GPU-free JSON-lines server and pipeline smoke test
 stack_contracts.py Sensor, perception, trajectory, control and safety messages
@@ -115,6 +116,19 @@ python3 -m ihateparking.ground_truth_benchmark --count 4 --frames 5
 ```
 
 This exercises `ScenarioSpec -> SensorFrame stream -> GroundTruthBackend -> NeuralPerceptionAdapter -> PerceptionFrame` and writes `artifacts/ground_truth_benchmark.json`.
+
+### Lightweight neural perception
+
+`lightweight_perception.py` contains a small fully connected neural network implemented with NumPy. Color/geometry candidate proposals are extracted from the synthetic BEV RGB artifact, fused with depth and LiDAR features, and classified as `slot`, `static_obstacle` or `dynamic_obstacle`. The result is converted to the same `RawPerceptionOutput` contract used by future ONNX/TensorRT backends.
+
+Train the model without PyTorch or a GPU:
+
+```bash
+python3 -m ihateparking.lightweight_perception \
+  --checkpoint artifacts/lightweight_perception_model.npz
+```
+
+The mock server trains or loads its own versioned checkpoint automatically. Its `reset` request accepts `dynamic_actor_count`; dynamic vehicles, pedestrians and shopping carts move along deterministic paths, appear in the GroundTruthBackend stream, and are rendered in the synthetic artifacts for neural detection.
 
 ### CARLA connection and spawning
 

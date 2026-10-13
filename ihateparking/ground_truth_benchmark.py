@@ -10,7 +10,7 @@ from dataclasses import asdict, dataclass
 import argparse
 import json
 from pathlib import Path
-from typing import Iterable, Iterator
+from typing import Iterable, Iterator, Mapping
 
 from .ai_perception import GroundTruthBackend, NeuralPerceptionAdapter, RawObstacle, RawSlot
 from .geometry import Pose
@@ -39,7 +39,8 @@ class GroundTruthSensorStream:
             )
 
 
-def backend_for_scenario(scenario: ScenarioSpec) -> GroundTruthBackend:
+def backend_for_scenario(scenario: ScenarioSpec, dynamic_poses: Mapping[str, Pose] | None = None) -> GroundTruthBackend:
+    dynamic_poses = dynamic_poses or {}
     slots = (RawSlot(
         slot_id=f"{scenario.scenario_id}:target",
         pose=scenario.target_slot.goal_pose(scenario.vehicle),
@@ -60,7 +61,7 @@ def backend_for_scenario(scenario: ScenarioSpec) -> GroundTruthBackend:
     obstacles.extend(RawObstacle(
         track_id=actor.actor_id,
         kind=actor.kind,
-        pose=actor.start_pose,
+        pose=dynamic_poses.get(actor.actor_id, actor.start_pose),
         length_m=4.5 if actor.kind == "vehicle" else 0.7,
         width_m=2.0 if actor.kind == "vehicle" else 0.7,
         confidence=1.0,

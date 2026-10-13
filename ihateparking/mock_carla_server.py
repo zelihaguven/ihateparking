@@ -20,8 +20,9 @@ from typing import Any
 import numpy as np
 
 from .ai_perception import NeuralPerceptionAdapter
-from .geometry import Pose
+from .geometry import Pose, oriented_box
 from .ground_truth_benchmark import backend_for_scenario
+from .lightweight_perception import NumpyMLPPerceptionBackend, load_or_train
 from .planner import HybridAStar
 from .scenario_generator import ScenarioConfig, ScenarioGenerator, ScenarioKind, ScenarioSpec
 from .stack_contracts import Gear, SensorFrame
@@ -46,14 +47,15 @@ class MockCarlaWorld:
         self.frame = 0
         self.timestamp_s = 0.0
         self.collisions = 0
-        self._perception_model: NeuralPerceptionAdapter | None = None
+        self._ground_truth_model: NeuralPerceptionAdapter | None = None
+        self._neural_model: NeuralPerceptionAdapter | None = None
 
-    def reset(self, seed: int = 100, kind: str = ScenarioKind.PERPENDICULAR_REVERSE.value) -> dict[str, Any]:
+    def reset(self, seed: int = 100, kind: str = ScenarioKind.PERPENDICULAR_REVERSE.value, dynamic_actor_count: int = 2) -> dict[str, Any]:
         try:
             scenario_kind = ScenarioKind(kind)
         except ValueError as exc:
             raise ValueError(f"unknown scenario kind: {kind}") from exc
-        self.scenario = self.generator.generate(ScenarioConfig(seed=seed, kind=scenario_kind))
+        self.scenario = self.generator.generate(ScenarioConfig(seed=seed, kind=scenario_kind, dynamic_actor_count=dynamic_actor_count))
         self.pose = self.scenario.start_pose
         self.speed_mps = 0.0
         self.steering_angle_rad = 0.0
@@ -61,7 +63,9 @@ class MockCarlaWorld:
         self.frame = 0
         self.timestamp_s = 0.0
         self.collisions = 0
-        self._perception_model = NeuralPerceptionAdapter(backend_for_scenario(self.scenario))
+        self._ground_truth_model = NeuralPerceptionAdapter(backend_for_scenario(self.scenario))
+        checkpoint = self.output_dir / "lightweight_perception_model_v2.npz"
+        self._neural_model = NeuralPerceptionAdapter(NumpyMLPPerceptionBackend(load_or_train(checkpoint)))
         return self.snapshot()
 
     def step(self, speed_mps: float, steering_angle_rad: float, gear: str, dt: float = 0.05) -> dict[str, Any]:
@@ -110,9 +114,12 @@ class MockCarlaWorld:
 
     def snapshot(self) -> dict[str, Any]:
         self._require_reset()
-        sensor = self._sensor_frame()
-        perception = self._perception_model.infer(sensor)
         sensor_files = self._write_sensor_artifacts()
+        sensor = self._sensor_frame()
+        dynamic_poses = self._dynamic_actor_poses()
+        ground_truth_model = NeuralPerceptionAdapter(backend_for_scenario(self.scenario, dynamic_poses))
+        ground_truth = ground_truth_model.infer(sensor)
+        perception = self._neural_model.infer(sensor)
         return {
             "scenario_id": self.scenario.scenario_id,
             "frame": self.frame,
@@ -127,7 +134,10 @@ class MockCarlaWorld:
             "sensor_frame": asdict(sensor),
             "sensor_files": sensor_files,
             "perception": self._serialize_perception(perception),
+            "ground_truth": self._serialize_perception(ground_truth),
             "ground_truth_source": "GroundTruthBackend",
+            "dynamic_actor_count": len(self.scenario.dynamic_actors),
+            "dynamic_actor_poses": {actor_id: asdict(pose) for actor_id, pose in dynamic_poses.items()},
         }
 
     def spawn_plan(self) -> dict[str, Any]:
@@ -141,7 +151,7 @@ class MockCarlaWorld:
         if operation == "health":
             return {"ok": True, "service": "mock_carla", "carla_compatible": False}
         if operation == "reset":
-            return {"ok": True, "snapshot": self.reset(int(request.get("seed", 100)), str(request.get("kind", ScenarioKind.PERPENDICULAR_REVERSE.value)))}
+            return {"ok": True, "snapshot": self.reset(int(request.get("seed", 100)), str(request.get("kind", ScenarioKind.PERPENDICULAR_REVERSE.value)), int(request.get("dynamic_actor_count", 2)))}
         if operation == "sensor_frame":
             return {"ok": True, "snapshot": self.snapshot()}
         if operation == "plan":
@@ -153,6 +163,29 @@ class MockCarlaWorld:
         if operation == "shutdown":
             return {"ok": True, "shutdown": True}
         raise ValueError(f"unknown operation: {operation}")
+
+    def _dynamic_actor_poses(self) -> dict[str, Pose]:
+        poses: dict[str, Pose] = {}
+        if self.scenario is None:
+            return poses
+        for actor in self.scenario.dynamic_actors:
+            elapsed = max(0.0, self.timestamp_s - actor.spawn_time_s)
+            distance = actor.velocity_mps * elapsed
+            if actor.path == "cross_lane":
+                x = actor.start_pose.x + distance
+                if x > 18.0:
+                    x = 3.5 + (x - 18.0) % 12.0
+                pose = Pose(x, actor.start_pose.y, actor.start_pose.yaw)
+            elif actor.path == "cross_slot_aisle":
+                y = actor.start_pose.y + distance
+                if y > 13.0:
+                    y = 1.0 + (y - 13.0) % 10.0
+                pose = Pose(actor.start_pose.x, y, actor.start_pose.yaw + np.pi / 2.0)
+            else:
+                phase_distance = actor.velocity_mps * max(0.0, elapsed - 1.0)
+                pose = Pose(actor.start_pose.x + phase_distance, actor.start_pose.y, actor.start_pose.yaw)
+            poses[actor.actor_id] = pose
+        return poses
 
     def _sensor_frame(self) -> SensorFrame:
         files = self._artifact_paths()
@@ -184,17 +217,32 @@ class MockCarlaWorld:
         lidar = self._mock_lidar_points()
         if cv2 is not None:
             cv2.rectangle(rgb, (30, 20), (480, 235), (215, 229, 226), 2)
-            scale = 22.0
-            origin = np.array([50.0, 205.0])
+            scale = 14.0
+            origin = np.array([110.0, 230.0])
             for obstacle in self.scenario.static_obstacles:
                 center = (int(origin[0] + obstacle.center[0] * scale), int(origin[1] - obstacle.center[1] * scale))
                 size = (max(2, int(obstacle.length * scale / 2)), max(2, int(obstacle.width * scale / 2)))
                 cv2.rectangle(rgb, (center[0] - size[0], center[1] - size[1]), (center[0] + size[0], center[1] + size[1]), (70, 85, 98), -1)
+            for actor in self.scenario.dynamic_actors:
+                actor_pose = self._dynamic_actor_poses().get(actor.actor_id, actor.start_pose)
+                length, width = ((4.5, 2.0) if actor.kind == "vehicle" else (.7, .7))
+                polygon = oriented_box((actor_pose.x, actor_pose.y), length, width, actor_pose.yaw)
+                polygon[:, 0] = origin[0] + polygon[:, 0] * scale
+                polygon[:, 1] = origin[1] - polygon[:, 1] * scale
+                polygon = polygon.astype(np.int32)
+                cv2.fillPoly(rgb, [polygon], (70, 90, 210))
             slot = self.scenario.target_slot.center
             slot_center = (int(origin[0] + slot[0] * scale), int(origin[1] - slot[1] * scale))
             cv2.circle(rgb, slot_center, 14, (70, 160, 110), 2)
             ego = (int(origin[0] + self.pose.x * scale), int(origin[1] - self.pose.y * scale))
             cv2.circle(rgb, ego, 9, (50, 150, 195), -1)
+            for actor in self.scenario.dynamic_actors:
+                actor_pose = self._dynamic_actor_poses().get(actor.actor_id, actor.start_pose)
+                length, width = ((4.5, 2.0) if actor.kind == "vehicle" else (.7, .7))
+                polygon = oriented_box((actor_pose.x, actor_pose.y), length, width, actor_pose.yaw)
+                polygon[:, 0] = origin[0] + polygon[:, 0] * scale
+                polygon[:, 1] = origin[1] - polygon[:, 1] * scale
+                cv2.fillPoly(rgb, [polygon.astype(np.int32)], (70, 90, 210))
             cv2.putText(rgb, "MOCK BEV / NOT A REAL CAMERA", (35, 250), cv2.FONT_HERSHEY_SIMPLEX, .45, (25, 55, 68), 1, cv2.LINE_AA)
         np.save(paths["rgb_front"], rgb)
         np.save(paths["depth_front"], depth)
@@ -211,6 +259,11 @@ class MockCarlaWorld:
                 continue
             points.append([dx, dy, 0.0, 1.0])
             points.append([dx, dy, 1.0, 1.0])
+        for actor_pose in self._dynamic_actor_poses().values():
+            dx = actor_pose.x - self.pose.x
+            dy = actor_pose.y - self.pose.y
+            if float(np.hypot(dx, dy)) <= 30:
+                points.append([dx, dy, 0.5, 1.0])
         if not points:
             points.append([0.0, 0.0, 0.0, 0.0])
         return np.asarray(points, dtype=np.float32)
@@ -225,10 +278,11 @@ class MockCarlaWorld:
             "out_of_distribution_score": perception.out_of_distribution_score,
             "slots": [asdict(item) for item in perception.slots],
             "obstacles": [asdict(item) for item in perception.obstacles],
+            "extra": dict(perception.extra),
         }
 
     def _require_reset(self) -> None:
-        if self.scenario is None or self._perception_model is None:
+        if self.scenario is None or self._ground_truth_model is None or self._neural_model is None:
             raise RuntimeError("mock world must be reset before this operation")
 
 
@@ -289,7 +343,7 @@ def run_smoke_test(output: str | Path = "artifacts/mock_carla_smoke_test.json", 
     client = MockCarlaClient(server.host, server.port)
     try:
         health = client.request("health")
-        reset = client.request("reset", seed=100, kind=ScenarioKind.PERPENDICULAR_REVERSE.value)
+        reset = client.request("reset", seed=100, kind=ScenarioKind.PERPENDICULAR_REVERSE.value, dynamic_actor_count=2)
         plan = client.request("plan")["plan"]
         snapshots = [reset["snapshot"]]
         for index in range(frames):
@@ -305,6 +359,10 @@ def run_smoke_test(output: str | Path = "artifacts/mock_carla_smoke_test.json", 
             "sensor_snapshots": len(snapshots),
             "sensor_frame_ids": [item["sensor_frame"]["frame_id"] for item in snapshots],
             "perception_models": sorted({item["perception"]["model_name"] for item in snapshots}),
+            "neural_slot_frames": sum(bool(item["perception"]["slots"]) for item in snapshots),
+            "neural_obstacle_frames": sum(bool(item["perception"]["obstacles"]) for item in snapshots),
+            "neural_dynamic_obstacle_frames": sum(any(obstacle.get("dynamic", False) for obstacle in snapshot["perception"]["obstacles"]) for snapshot in snapshots),
+            "dynamic_obstacle_frames": sum(any(obstacle.get("dynamic", False) for obstacle in snapshot["ground_truth"]["obstacles"]) for snapshot in snapshots),
             "all_have_ground_truth": all(item["ground_truth_source"] == "GroundTruthBackend" for item in snapshots),
             "collision_count": snapshots[-1]["state"]["collisions"],
             "spawn_sensor_names": [item["name"] for item in spawn_plan["sensors"]],
@@ -343,7 +401,7 @@ def main() -> int:
             server.shutdown()
         return 0
     report = run_smoke_test(args.output, frames=args.frames)
-    print(json.dumps({key: report[key] for key in ("scenario_id", "plan_success", "sensor_snapshots", "all_have_ground_truth", "collision_count")}))
+    print(json.dumps({key: report[key] for key in ("scenario_id", "plan_success", "sensor_snapshots", "neural_slot_frames", "neural_obstacle_frames", "neural_dynamic_obstacle_frames", "dynamic_obstacle_frames", "collision_count")}))
     return 0
 
 

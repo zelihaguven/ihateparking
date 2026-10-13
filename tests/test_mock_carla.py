@@ -17,7 +17,10 @@ class MockCarlaTests(unittest.TestCase):
             self.assertTrue(plan["success"])
             stepped = world.step(.4, 0.0, "drive", .05)
             self.assertEqual(stepped["frame"], 1)
-            self.assertEqual(stepped["perception"]["model_name"], "ground_truth_replay:0")
+            self.assertEqual(stepped["perception"]["model_name"], "numpy_mlp_perception:0.1")
+            self.assertEqual(stepped["ground_truth"]["model_name"], "ground_truth_replay:0")
+            self.assertTrue(stepped["perception"]["slots"])
+            self.assertTrue(any(item["dynamic"] for item in stepped["ground_truth"]["obstacles"]))
             self.assertTrue(Path(stepped["sensor_files"]["rgb_front"]).exists())
 
     def test_smoke_test_exercises_network_boundary(self):
@@ -27,6 +30,10 @@ class MockCarlaTests(unittest.TestCase):
             self.assertTrue(report["plan_success"])
             self.assertTrue(report["all_have_ground_truth"])
             self.assertEqual(report["sensor_snapshots"], 3)
+            self.assertEqual(report["neural_slot_frames"], 3)
+            self.assertEqual(report["neural_obstacle_frames"], 3)
+            self.assertEqual(report["neural_dynamic_obstacle_frames"], 3)
+            self.assertEqual(report["dynamic_obstacle_frames"], 3)
             self.assertIn("lidar", report["spawn_sensor_names"])
 
 
