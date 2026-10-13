@@ -5,9 +5,11 @@ from dataclasses import asdict
 import argparse
 import math
 from pathlib import Path
+import threading
 from typing import Any
 
 from fastapi import FastAPI, Request
+from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
@@ -28,58 +30,75 @@ class DashboardSession:
         self.output_dir = Path(output_dir)
         self.world = MockCarlaWorld(self.output_dir / "mock_carla")
         self.safety = DynamicReplanner(
-            planner_config=PlannerConfig(max_expansions=20_000),
+            planner_config=PlannerConfig(
+                xy_resolution=.8,
+                yaw_bins=12,
+                primitive_length=.6,
+                primitive_sample=.3,
+                steering_samples=3,
+                goal_position_tolerance=.7,
+                goal_yaw_tolerance=math.radians(28.0),
+                max_expansions=80,
+            ),
             safety_config=SafetyConfig(),
         )
         self.current_plan: PlanResult | None = None
+        self._lock = threading.RLock()
         self.last_safety = SafetyDecision(SafetyAction.PROCEED, True, "waiting for reset", 999.0, 0.45, None)
         self.event_log: list[dict[str, Any]] = []
         self.last_action = "proceed"
         self.reset()
 
     def reset(self, seed: int = 100, kind: str = "perpendicular_reverse", dynamic_actor_count: int = 2) -> dict[str, Any]:
-        snapshot = self.world.reset(seed, kind, dynamic_actor_count)
-        self.current_plan = HybridAStar(self.world.scenario.to_world(), PlannerConfig(max_expansions=20_000)).plan(start=self.world.pose)
-        self.safety.replan_count = 0
-        self.last_safety = SafetyDecision(SafetyAction.PROCEED, True, "initial plan ready", 999.0, .45, None)
-        self.event_log = [{"frame": snapshot["frame"], "time_s": snapshot["timestamp_s"], "level": "info", "message": "scenario reset and initial plan generated"}]
-        self.last_action = "proceed"
-        return self.state(snapshot)
+        with self._lock:
+            snapshot = self.world.reset(seed, kind, dynamic_actor_count)
+            self.current_plan = HybridAStar(self.world.scenario.to_world(), self.safety.planner_config).plan(start=self.world.pose)
+            self.safety.replan_count = 0
+            self.last_safety = SafetyDecision(SafetyAction.PROCEED, True, "initial plan ready", 999.0, .45, None)
+            self.event_log = [{"frame": snapshot["frame"], "time_s": snapshot["timestamp_s"], "level": "info", "message": "scenario reset and initial plan generated"}]
+            self.last_action = "proceed"
+            return self.state(snapshot)
 
     def tick(self, dt: float = .10) -> dict[str, Any]:
-        snapshot = self.world.snapshot()
-        perception = self._perception_from_dict(snapshot["perception"])
-        assessment = self.safety.assess_and_replan(
-            self.world.scenario.to_world(),
-            self.world.pose,
-            abs(self.world.speed_mps),
-            self.world.gear,
-            perception,
-            self.current_plan,
-        )
-        self.last_safety = assessment.decision
-        if assessment.replanned and assessment.plan is not None:
-            self.current_plan = assessment.plan
-            self._event("replan", assessment.plan.message)
-        if assessment.decision.action is SafetyAction.BRAKE:
-            self.world.step(0.0, 0.0, Gear.PARK.value, dt)
-            self._event("brake", assessment.decision.reason)
-        else:
-            gear, steering, speed = self._control_from_plan()
-            self.world.step(speed, steering, gear.value, dt)
-            if assessment.decision.action is SafetyAction.REPLAN:
-                self._event("replan", assessment.decision.reason)
-        return self.state(self.world.snapshot())
+        with self._lock:
+            snapshot = self.world.snapshot()
+            perception = self._perception_from_dict(snapshot["perception"])
+            assessment = self.safety.assess_and_replan(
+                self.world.scenario.to_world(),
+                self.world.pose,
+                abs(self.world.speed_mps),
+                self.world.gear,
+                perception,
+                self.current_plan,
+            )
+            self.last_safety = assessment.decision
+            if assessment.replanned and assessment.plan is not None:
+                self.current_plan = assessment.plan
+                self._event("replan", assessment.plan.message)
+            if assessment.decision.action is SafetyAction.BRAKE:
+                self.world.step(0.0, 0.0, Gear.PARK.value, dt)
+                self._event("brake", assessment.decision.reason)
+            else:
+                gear, steering, speed = self._control_from_plan()
+                self.world.step(speed, steering, gear.value, dt)
+                if assessment.decision.action is SafetyAction.REPLAN:
+                    self._event("replan", assessment.decision.reason)
+            return self.state(self.world.snapshot())
 
     def manual_step(self, speed_mps: float, steering_angle_rad: float, gear: str, dt: float = .10) -> dict[str, Any]:
-        snapshot = self.world.snapshot()
-        perception = self._perception_from_dict(snapshot["perception"])
-        self.last_safety = self.safety.monitor.evaluate(self.world.scenario.to_world(), self.world.pose, abs(self.world.speed_mps), self.world.gear, perception)
-        if self.last_safety.should_brake:
-            speed_mps, steering_angle_rad, gear = 0.0, 0.0, Gear.PARK.value
-            self._event("brake", self.last_safety.reason)
-        self.world.step(speed_mps, steering_angle_rad, gear, dt)
-        return self.state(self.world.snapshot())
+        with self._lock:
+            snapshot = self.world.snapshot()
+            perception = self._perception_from_dict(snapshot["perception"])
+            self.last_safety = self.safety.monitor.evaluate(self.world.scenario.to_world(), self.world.pose, abs(self.world.speed_mps), self.world.gear, perception)
+            if self.last_safety.should_brake:
+                speed_mps, steering_angle_rad, gear = 0.0, 0.0, Gear.PARK.value
+                self._event("brake", self.last_safety.reason)
+            self.world.step(speed_mps, steering_angle_rad, gear, dt)
+            return self.state(self.world.snapshot())
+
+    def current_state(self) -> dict[str, Any]:
+        with self._lock:
+            return self.state(self.world.snapshot())
 
     def state(self, snapshot: dict[str, Any]) -> dict[str, Any]:
         scenario = self.world.scenario
@@ -163,25 +182,25 @@ def health() -> dict[str, Any]:
 
 @app.get("/api/state")
 def get_state() -> dict[str, Any]:
-    return session.state(session.world.snapshot())
+    return session.current_state()
 
 
 @app.post("/api/reset")
 async def reset(request: Request) -> dict[str, Any]:
     body = await request.json()
-    return session.reset(int(body.get("seed", 100)), str(body.get("kind", "perpendicular_reverse")), int(body.get("dynamic_actor_count", 2)))
+    return await run_in_threadpool(session.reset, int(body.get("seed", 100)), str(body.get("kind", "perpendicular_reverse")), int(body.get("dynamic_actor_count", 2)))
 
 
 @app.post("/api/tick")
 async def tick(request: Request) -> dict[str, Any]:
     body = await request.json()
-    return session.tick(float(body.get("dt", .10)))
+    return await run_in_threadpool(session.tick, float(body.get("dt", .10)))
 
 
 @app.post("/api/step")
 async def step(request: Request) -> dict[str, Any]:
     body = await request.json()
-    return session.manual_step(float(body.get("speed_mps", .35)), float(body.get("steering_angle_rad", 0.0)), str(body.get("gear", "drive")), float(body.get("dt", .10)))
+    return await run_in_threadpool(session.manual_step, float(body.get("speed_mps", .35)), float(body.get("steering_angle_rad", 0.0)), str(body.get("gear", "drive")), float(body.get("dt", .10)))
 
 
 def main() -> int:

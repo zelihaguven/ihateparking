@@ -184,7 +184,7 @@ python3 -m pip install -r requirements-dashboard.txt
 python3 -m ihateparking.dashboard --host 0.0.0.0 --port 8010
 ```
 
-Open `http://localhost:8010`. The dashboard shows the mock world, planned path, neural slot/obstacle detections, dynamic actor tracks, clearance, braking distance, time-to-collision, replanning events and safety-stop events. `POST /api/tick` advances one perception/control cycle; `POST /api/reset` changes the seed, scenario kind and dynamic actor count.
+Open `http://localhost:8010`. The dashboard shows the mock world, planned path, neural slot/obstacle detections, dynamic actor tracks, clearance, braking distance, time-to-collision, replanning events and safety-stop events. The color code is **cyan = ego vehicle**, **red = moving actor/hazard**, **orange = target slot**, and **gray = parked/static obstacle**. A `BRAKE` state holds the vehicle at zero speed but does not stop the telemetry loop; frames continue advancing so the supervisor can observe the hazard clear. `POST /api/tick` advances one perception/control cycle; `POST /api/reset` changes the seed, scenario kind and dynamic actor count.
 
 ## Initial experiment protocol
 

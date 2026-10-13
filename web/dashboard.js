@@ -2,6 +2,7 @@ const $ = (id) => document.getElementById(id);
 let state = null;
 let running = false;
 let timer = null;
+let tickInFlight = false;
 
 const canvas = $("world-canvas");
 const ctx = canvas.getContext("2d");
@@ -91,7 +92,7 @@ function drawWorld(data) {
 
   // Neural detections as rings around the estimated boxes.
   (data.snapshot.perception?.obstacles || []).forEach((obstacle) => {
-    const color = obstacle.dynamic ? "#ff786d" : "#75a9ff";
+    const color = obstacle.dynamic ? "#ff786d" : "#c49bff";
     const points = boxPoints([obstacle.pose.x, obstacle.pose.y], obstacle.length_m, obstacle.width_m, obstacle.pose.yaw, bounds, width, height);
     drawPolygon(points, null, color, 1);
   });
@@ -152,15 +153,18 @@ async function refresh() {
 }
 
 async function tick() {
+  if (tickInFlight) return;
+  tickInFlight = true;
   try { render(await request("/api/tick", { method: "POST", body: JSON.stringify({ dt: .10 }) })); setConnection(true); }
   catch (error) { setConnection(false, "API OFFLINE"); stop(); console.error(error); }
+  finally { tickInFlight = false; }
 }
 
 function start() {
   if (running) return;
   running = true;
   $("run-button").textContent = "Pause loop";
-  timer = setInterval(tick, 260);
+  timer = setInterval(tick, 360);
 }
 function stop() {
   running = false;

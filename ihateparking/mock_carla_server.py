@@ -47,6 +47,7 @@ class MockCarlaWorld:
         self.frame = 0
         self.timestamp_s = 0.0
         self.collisions = 0
+        self._collision_active = False
         self._ground_truth_model: NeuralPerceptionAdapter | None = None
         self._neural_model: NeuralPerceptionAdapter | None = None
 
@@ -63,6 +64,7 @@ class MockCarlaWorld:
         self.frame = 0
         self.timestamp_s = 0.0
         self.collisions = 0
+        self._collision_active = False
         self._ground_truth_model = NeuralPerceptionAdapter(backend_for_scenario(self.scenario))
         checkpoint = self.output_dir / "lightweight_perception_model_v2.npz"
         self._neural_model = NeuralPerceptionAdapter(NumpyMLPPerceptionBackend(load_or_train(checkpoint)))
@@ -98,8 +100,11 @@ class MockCarlaWorld:
                     collision = True
                     break
         if collision:
-            self.collisions += 1
+            if not self._collision_active:
+                self.collisions += 1
+            self._collision_active = True
         else:
+            self._collision_active = False
             self.pose = next_pose
         self.speed_mps = signed_speed
         self.steering_angle_rad = steering

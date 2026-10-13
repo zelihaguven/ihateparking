@@ -30,14 +30,14 @@
     <section class="layout">
       <div class="panel visual-panel">
         <div class="panel-heading"><div><p class="eyebrow">TOP-DOWN DEBUG VIEW</p><h3>Mock CARLA world</h3></div><span id="mode-badge" class="badge neutral">EXECUTE</span></div>
-        <div class="canvas-wrap"><canvas id="world-canvas"></canvas><div class="canvas-caption">synthetic BEV / not a photorealistic camera</div></div>
-        <div class="legend"><span><i class="key ego"></i>ego</span><span><i class="key plan"></i>plan</span><span><i class="key static"></i>static</span><span><i class="key dynamic"></i>dynamic</span><span><i class="key slot"></i>slot</span></div>
+        <div class="canvas-wrap"><canvas id="world-canvas"></canvas><div class="canvas-caption">cyan = ego vehicle · red = moving actor / hazard · orange = target slot</div></div>
+        <div class="legend"><span><i class="key ego"></i>ego vehicle</span><span><i class="key plan"></i>planned path</span><span><i class="key static"></i>parked/static</span><span><i class="key dynamic"></i>moving actor / hazard</span><span><i class="key slot"></i>target slot</span><span><i class="key nn" style="background:#c49bff"></i>neural box</span></div>
       </div>
 
       <aside class="right-column">
         <section class="panel safety-card"><div class="panel-heading"><div><p class="eyebrow">SUPERVISOR</p><h3 id="safety-action">PROCEED</h3></div><span id="safety-icon" class="safety-icon">✓</span></div><p id="safety-reason" class="reason">Waiting for telemetry.</p><div class="safety-grid"><div><span>clearance</span><strong id="clearance">—</strong></div><div><span>braking distance</span><strong id="braking-distance">—</strong></div><div><span>time to collision</span><strong id="ttc">—</strong></div><div><span>replans</span><strong id="replans">0</strong></div></div></section>
         <section class="panel metric-card"><div class="panel-heading"><div><p class="eyebrow">PERCEPTION</p><h3 id="model-name">—</h3></div><span id="frame-id" class="mono">—</span></div><div class="metric-row"><span>slots</span><strong id="slot-count">0</strong></div><div class="metric-row"><span>obstacles</span><strong id="obstacle-count">0</strong></div><div class="metric-row"><span>dynamic tracks</span><strong id="dynamic-count-readout">0</strong></div><div class="metric-row"><span>out-of-distribution</span><strong id="ood-score">—</strong></div></section>
-        <section class="panel metric-card"><div class="panel-heading"><div><p class="eyebrow">VEHICLE STATE</p><h3 id="gear">PARK</h3></div><span id="frame-number" class="mono">frame 0</span></div><div class="metric-row"><span>position</span><strong id="position">—</strong></div><div class="metric-row"><span>speed</span><strong id="speed">—</strong></div><div class="metric-row"><span>steering</span><strong id="steering">—</strong></div><div class="metric-row"><span>collisions</span><strong id="collisions">0</strong></div></section>
+        <section class="panel metric-card"><div class="panel-heading"><div><p class="eyebrow">VEHICLE STATE</p><h3 id="gear">PARK</h3></div><span id="frame-number" class="mono">frame 0</span></div><div class="metric-row"><span>position</span><strong id="position">—</strong></div><div class="metric-row"><span>speed</span><strong id="speed">—</strong></div><div class="metric-row"><span>steering</span><strong id="steering">—</strong></div><div class="metric-row"><span>contact events</span><strong id="collisions">0</strong></div></section>
       </aside>
     </section>
 
