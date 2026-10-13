@@ -49,7 +49,7 @@ class DashboardSession:
         self.last_action = "proceed"
         self.reset()
 
-    def reset(self, seed: int = 100, kind: str = "perpendicular_reverse", dynamic_actor_count: int = 2) -> dict[str, Any]:
+    def reset(self, seed: int = 100, kind: str = "perpendicular_reverse", dynamic_actor_count: int = 0) -> dict[str, Any]:
         with self._lock:
             snapshot = self.world.reset(seed, kind, dynamic_actor_count)
             self.current_plan = HybridAStar(self.world.scenario.to_world(), self.safety.planner_config).plan(start=self.world.pose)
@@ -188,7 +188,7 @@ def get_state() -> dict[str, Any]:
 @app.post("/api/reset")
 async def reset(request: Request) -> dict[str, Any]:
     body = await request.json()
-    return await run_in_threadpool(session.reset, int(body.get("seed", 100)), str(body.get("kind", "perpendicular_reverse")), int(body.get("dynamic_actor_count", 2)))
+    return await run_in_threadpool(session.reset, int(body.get("seed", 100)), str(body.get("kind", "perpendicular_reverse")), int(body.get("dynamic_actor_count", 0)))
 
 
 @app.post("/api/tick")
