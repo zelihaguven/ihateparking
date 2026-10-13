@@ -2,7 +2,9 @@
 
 > A closed-loop autonomous parking research prototype.
 
-`ihateparking` is an independent project from RoadLens. RoadLens focuses on perception reliability; this repository focuses on **motion planning, vehicle kinematics, collision-aware manoeuvres, and closed-loop control**.
+`ihateparking` is an independent project from RoadLens. RoadLens focuses on perception reliability; this repository is becoming an **AI-assisted, safety-supervised autonomous parking stack** for simulation first and vehicle integration later.
+
+The generated tutorial video is an explanatory artifact only. It is not the autonomy core and must not be treated as a realistic sensor or actuator demo.
 
 ## v1 goal
 
@@ -78,6 +80,8 @@ video_assist.py OpenCV-based footage perception and English guidance signals
  tutorial_video.py Self-generated instructional parking animation
 web/           Static browser replay dashboard
 assets/        Research footage used by the Video Assist demo
+
+The target real-system architecture is documented in [`docs/real-system-architecture.md`](docs/real-system-architecture.md). The first transport-independent message contracts live in `stack_contracts.py`; they are designed to map to ROS2 messages later without importing ROS2 into the core planner.
 ```
 
 ## Initial experiment protocol
