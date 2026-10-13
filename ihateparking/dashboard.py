@@ -26,6 +26,9 @@ WEB_DIR = ROOT / "web"
 
 
 class DashboardSession:
+    GOAL_POSITION_TOLERANCE_M = .25
+    GOAL_YAW_TOLERANCE_RAD = math.radians(7.0)
+
     def __init__(self, output_dir: str | Path = "artifacts/dashboard"):
         self.output_dir = Path(output_dir)
         self.world = MockCarlaWorld(self.output_dir / "mock_carla")
@@ -74,7 +77,7 @@ class DashboardSession:
     def tick(self, dt: float = .10) -> dict[str, Any]:
         with self._lock:
             snapshot = self.world.snapshot()
-            if self.completed or self.world.scenario.to_world().at_goal(self.world.pose):
+            if self.completed or self.world.scenario.to_world().at_goal(self.world.pose, self.GOAL_POSITION_TOLERANCE_M, self.GOAL_YAW_TOLERANCE_RAD):
                 self.completed = True
                 self.world.speed_mps = 0.0
                 self.world.gear = Gear.PARK
