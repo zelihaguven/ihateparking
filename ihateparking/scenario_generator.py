@@ -21,8 +21,10 @@ from .world import ParkingSlot, ParkingWorld, RectangleObstacle, VehicleSpec
 class ScenarioKind(str, Enum):
     PERPENDICULAR_FORWARD = "perpendicular_forward"
     PERPENDICULAR_REVERSE = "perpendicular_reverse"
+    PARALLEL_FORWARD = "parallel_forward"
     PARALLEL_REVERSE = "parallel_reverse"
     ANGLED_FORWARD = "angled_forward"
+    ANGLED_REVERSE = "angled_reverse"
 
 
 @dataclass(frozen=True)
@@ -78,6 +80,7 @@ class ScenarioConfig:
     weather: WeatherSpec = WeatherSpec()
     sensors: SensorSuiteSpec = SensorSuiteSpec()
     dynamic_actor_count: int = 0
+    dynamic_actor_kinds: tuple[str, ...] = ()
     occlusion_level: float = 0.0
     calibration_error_m: float = 0.0
     calibration_error_deg: float = 0.0
@@ -162,17 +165,23 @@ class ScenarioGenerator:
             else:
                 start = Pose(3.0 + lateral_offset, lane_y, 0.0)
                 gear_sequence = ("drive",)
-        elif config.kind is ScenarioKind.PARALLEL_REVERSE:
+        elif config.kind in (ScenarioKind.PARALLEL_FORWARD, ScenarioKind.PARALLEL_REVERSE):
             slot_center = (10.0 + lateral_offset, 5.5)
             slot_yaw = 0.0
-            slot = ParkingSlot(slot_center, length=5.0, width=2.35, yaw=slot_yaw)
+            # A drivable parallel slot needs maneuvering clearance beyond the
+            # vehicle's footprint; a 6 m slot is a realistic v1 baseline.
+            slot = ParkingSlot(slot_center, length=6.0, width=2.55, yaw=slot_yaw)
             static = (
-                RectangleObstacle("parked_front", (14.7 + lateral_offset, 5.5), 4.6, 2.1, 0.0),
-                RectangleObstacle("parked_rear", (5.3 + lateral_offset, 5.5), 4.6, 2.1, 0.0),
+                RectangleObstacle("parked_front", (15.3 + lateral_offset, 5.5), 4.6, 2.1, 0.0),
+                RectangleObstacle("parked_rear", (4.7 + lateral_offset, 5.5), 4.6, 2.1, 0.0),
                 RectangleObstacle("curb", (10.0 + lateral_offset, 7.1), 16.0, 0.22, 0.0),
             )
-            start = Pose(16.8 + lateral_offset, 3.0 + rng.uniform(-.2, .2), math.pi)
-            gear_sequence = ("drive", "reverse", "drive", "reverse", "drive")
+            if config.kind is ScenarioKind.PARALLEL_REVERSE:
+                start = Pose(16.8 + lateral_offset, 3.0 + rng.uniform(-.2, .2), math.pi)
+                gear_sequence = ("drive", "reverse", "drive", "reverse", "drive")
+            else:
+                start = Pose(3.0 + lateral_offset, 3.0 + rng.uniform(-.2, .2), 0.0)
+                gear_sequence = ("drive", "reverse", "drive")
         else:
             slot_center = (10.0 + lateral_offset, 10.0)
             slot_yaw = math.radians(rng.choice([45.0, 55.0, 65.0]))
@@ -184,8 +193,11 @@ class ScenarioGenerator:
                 RectangleObstacle("parked_right", (slot_center[0] + normal_x * 5.0, slot_center[1] + normal_y * 5.0), 4.8, 2.0, slot_yaw),
                 RectangleObstacle("back_curb", (slot_center[0] + direction_x * 4.6, slot_center[1] + direction_y * 4.6), 13.0, .25, slot_yaw + math.pi / 2.0),
             )
-            start = Pose(3.0 + lateral_offset, lane_y, 0.0)
-            gear_sequence = ("drive", "reverse" if config.kind is ScenarioKind.ANGLED_FORWARD else "drive")
+            if config.kind is ScenarioKind.ANGLED_REVERSE:
+                start = Pose(16.5 + lateral_offset, lane_y, math.pi)
+            else:
+                start = Pose(3.0 + lateral_offset, lane_y, 0.0)
+            gear_sequence = ("drive", "reverse")
 
         start = self._perturb_pose(start, config, rng)
         return ScenarioSpec(
@@ -233,10 +245,14 @@ class ScenarioGenerator:
     @staticmethod
     def _dynamic_actors(config: ScenarioConfig, rng: random.Random) -> tuple[DynamicActorSpec, ...]:
         actors = []
+        actor_kinds = config.dynamic_actor_kinds or ("pedestrian", "shopping_cart", "vehicle")
+        invalid_kinds = set(actor_kinds) - {"pedestrian", "shopping_cart", "vehicle"}
+        if invalid_kinds:
+            raise ValueError(f"unsupported dynamic actor kinds: {sorted(invalid_kinds)}")
         for index in range(config.dynamic_actor_count):
             actors.append(DynamicActorSpec(
                 actor_id=f"dynamic_{index:02d}",
-                kind=rng.choice(["pedestrian", "shopping_cart", "vehicle"]),
+                kind=rng.choice(actor_kinds),
                 start_pose=Pose(rng.uniform(4.0, 16.0), rng.uniform(1.0, 12.0), rng.uniform(-math.pi, math.pi)),
                 velocity_mps=rng.uniform(.4, 1.8),
                 path=rng.choice(["cross_lane", "cross_slot_aisle", "pause_then_cross"]),

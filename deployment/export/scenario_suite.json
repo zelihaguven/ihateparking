@@ -1,0 +1,2274 @@
+[
+  {
+    "scenario_id": "perpendicular_forward_000100",
+    "seed": 100,
+    "kind": "perpendicular_forward",
+    "map_name": "Town04",
+    "bounds": [
+      0.0,
+      20.0,
+      0.0,
+      16.0
+    ],
+    "vehicle": {
+      "length": 4.4,
+      "width": 1.9,
+      "wheelbase": 2.7,
+      "rear_overhang": 0.7,
+      "max_steering": 0.5585053606381855
+    },
+    "start_pose": {
+      "x": 2.9594343040626194,
+      "y": 3.770783805659022,
+      "yaw": 0.0
+    },
+    "target_slot": {
+      "center": [
+        9.959434304062619,
+        10.0
+      ],
+      "length": 5.0,
+      "width": 2.5082677020416524,
+      "yaw": 1.5707963267948966
+    },
+    "static_obstacles": [
+      {
+        "name": "parked_left",
+        "center": [
+          4.959434304062619,
+          10.0
+        ],
+        "length": 4.8,
+        "width": 2.0,
+        "yaw": 1.5707963267948966
+      },
+      {
+        "name": "parked_right",
+        "center": [
+          14.959434304062619,
+          10.0
+        ],
+        "length": 4.8,
+        "width": 2.0,
+        "yaw": 1.5707963267948966
+      },
+      {
+        "name": "back_curb",
+        "center": [
+          9.959434304062619,
+          13.8
+        ],
+        "length": 16.0,
+        "width": 0.28,
+        "yaw": 0.0
+      }
+    ],
+    "dynamic_actors": [],
+    "weather": {
+      "preset": "clear_noon",
+      "rain": 0.0,
+      "fog": 0.0,
+      "wetness": 0.0,
+      "sun_altitude_deg": 55.0
+    },
+    "sensors": {
+      "rgb_front": true,
+      "rgb_rear": true,
+      "depth_front": true,
+      "lidar": true,
+      "imu": true,
+      "wheel_odometry": true,
+      "camera_width": 1280,
+      "camera_height": 720,
+      "camera_fov_deg": 100.0,
+      "perception_hz": 12.0,
+      "dropout_probability": 0.0,
+      "pixel_noise_std": 0.0
+    },
+    "occlusion_level": 0.0,
+    "calibration_error_m": 0.0,
+    "calibration_error_deg": 0.0,
+    "expected_gear_sequence": [
+      "drive"
+    ]
+  },
+  {
+    "scenario_id": "perpendicular_reverse_000101",
+    "seed": 101,
+    "kind": "perpendicular_reverse",
+    "map_name": "Town04",
+    "bounds": [
+      0.0,
+      20.0,
+      0.0,
+      16.0
+    ],
+    "vehicle": {
+      "length": 4.4,
+      "width": 1.9,
+      "wheelbase": 2.7,
+      "rear_overhang": 0.7,
+      "max_steering": 0.5585053606381855
+    },
+    "start_pose": {
+      "x": 16.225279045980724,
+      "y": 3.9652511070611114,
+      "yaw": 3.141592653589793
+    },
+    "target_slot": {
+      "center": [
+        9.725279045980724,
+        10.0
+      ],
+      "length": 5.0,
+      "width": 2.682460853001826,
+      "yaw": 1.5707963267948966
+    },
+    "static_obstacles": [
+      {
+        "name": "parked_left",
+        "center": [
+          4.725279045980723,
+          10.0
+        ],
+        "length": 4.8,
+        "width": 2.0,
+        "yaw": 1.5707963267948966
+      },
+      {
+        "name": "parked_right",
+        "center": [
+          14.725279045980724,
+          10.0
+        ],
+        "length": 4.8,
+        "width": 2.0,
+        "yaw": 1.5707963267948966
+      },
+      {
+        "name": "back_curb",
+        "center": [
+          9.725279045980724,
+          13.8
+        ],
+        "length": 16.0,
+        "width": 0.28,
+        "yaw": 0.0
+      }
+    ],
+    "dynamic_actors": [],
+    "weather": {
+      "preset": "clear_noon",
+      "rain": 0.0,
+      "fog": 0.0,
+      "wetness": 0.0,
+      "sun_altitude_deg": 55.0
+    },
+    "sensors": {
+      "rgb_front": true,
+      "rgb_rear": true,
+      "depth_front": true,
+      "lidar": true,
+      "imu": true,
+      "wheel_odometry": true,
+      "camera_width": 1280,
+      "camera_height": 720,
+      "camera_fov_deg": 100.0,
+      "perception_hz": 12.0,
+      "dropout_probability": 0.0,
+      "pixel_noise_std": 0.0
+    },
+    "occlusion_level": 0.0,
+    "calibration_error_m": 0.0,
+    "calibration_error_deg": 0.0,
+    "expected_gear_sequence": [
+      "drive",
+      "reverse",
+      "drive"
+    ]
+  },
+  {
+    "scenario_id": "parallel_forward_000102",
+    "seed": 102,
+    "kind": "parallel_forward",
+    "map_name": "Town04",
+    "bounds": [
+      0.0,
+      20.0,
+      0.0,
+      16.0
+    ],
+    "vehicle": {
+      "length": 4.4,
+      "width": 1.9,
+      "wheelbase": 2.7,
+      "rear_overhang": 0.7,
+      "max_steering": 0.5585053606381855
+    },
+    "start_pose": {
+      "x": 3.1043687583686013,
+      "y": 3.085002778950083,
+      "yaw": 0.0
+    },
+    "target_slot": {
+      "center": [
+        10.1043687583686,
+        5.5
+      ],
+      "length": 6.0,
+      "width": 2.55,
+      "yaw": 0.0
+    },
+    "static_obstacles": [
+      {
+        "name": "parked_front",
+        "center": [
+          15.404368758368602,
+          5.5
+        ],
+        "length": 4.6,
+        "width": 2.1,
+        "yaw": 0.0
+      },
+      {
+        "name": "parked_rear",
+        "center": [
+          4.804368758368601,
+          5.5
+        ],
+        "length": 4.6,
+        "width": 2.1,
+        "yaw": 0.0
+      },
+      {
+        "name": "curb",
+        "center": [
+          10.1043687583686,
+          7.1
+        ],
+        "length": 16.0,
+        "width": 0.22,
+        "yaw": 0.0
+      }
+    ],
+    "dynamic_actors": [],
+    "weather": {
+      "preset": "clear_noon",
+      "rain": 0.0,
+      "fog": 0.0,
+      "wetness": 0.0,
+      "sun_altitude_deg": 55.0
+    },
+    "sensors": {
+      "rgb_front": true,
+      "rgb_rear": true,
+      "depth_front": true,
+      "lidar": true,
+      "imu": true,
+      "wheel_odometry": true,
+      "camera_width": 1280,
+      "camera_height": 720,
+      "camera_fov_deg": 100.0,
+      "perception_hz": 12.0,
+      "dropout_probability": 0.0,
+      "pixel_noise_std": 0.0
+    },
+    "occlusion_level": 0.0,
+    "calibration_error_m": 0.0,
+    "calibration_error_deg": 0.0,
+    "expected_gear_sequence": [
+      "drive",
+      "reverse",
+      "drive"
+    ]
+  },
+  {
+    "scenario_id": "parallel_reverse_000103",
+    "seed": 103,
+    "kind": "parallel_reverse",
+    "map_name": "Town04",
+    "bounds": [
+      0.0,
+      20.0,
+      0.0,
+      16.0
+    ],
+    "vehicle": {
+      "length": 4.4,
+      "width": 1.9,
+      "wheelbase": 2.7,
+      "rear_overhang": 0.7,
+      "max_steering": 0.5585053606381855
+    },
+    "start_pose": {
+      "x": 16.760668448662663,
+      "y": 3.0939544970341357,
+      "yaw": 3.141592653589793
+    },
+    "target_slot": {
+      "center": [
+        9.960668448662663,
+        5.5
+      ],
+      "length": 6.0,
+      "width": 2.55,
+      "yaw": 0.0
+    },
+    "static_obstacles": [
+      {
+        "name": "parked_front",
+        "center": [
+          15.260668448662663,
+          5.5
+        ],
+        "length": 4.6,
+        "width": 2.1,
+        "yaw": 0.0
+      },
+      {
+        "name": "parked_rear",
+        "center": [
+          4.660668448662664,
+          5.5
+        ],
+        "length": 4.6,
+        "width": 2.1,
+        "yaw": 0.0
+      },
+      {
+        "name": "curb",
+        "center": [
+          9.960668448662663,
+          7.1
+        ],
+        "length": 16.0,
+        "width": 0.22,
+        "yaw": 0.0
+      }
+    ],
+    "dynamic_actors": [],
+    "weather": {
+      "preset": "clear_noon",
+      "rain": 0.0,
+      "fog": 0.0,
+      "wetness": 0.0,
+      "sun_altitude_deg": 55.0
+    },
+    "sensors": {
+      "rgb_front": true,
+      "rgb_rear": true,
+      "depth_front": true,
+      "lidar": true,
+      "imu": true,
+      "wheel_odometry": true,
+      "camera_width": 1280,
+      "camera_height": 720,
+      "camera_fov_deg": 100.0,
+      "perception_hz": 12.0,
+      "dropout_probability": 0.0,
+      "pixel_noise_std": 0.0
+    },
+    "occlusion_level": 0.0,
+    "calibration_error_m": 0.0,
+    "calibration_error_deg": 0.0,
+    "expected_gear_sequence": [
+      "drive",
+      "reverse",
+      "drive",
+      "reverse",
+      "drive"
+    ]
+  },
+  {
+    "scenario_id": "angled_forward_000104",
+    "seed": 104,
+    "kind": "angled_forward",
+    "map_name": "Town04",
+    "bounds": [
+      0.0,
+      20.0,
+      0.0,
+      16.0
+    ],
+    "vehicle": {
+      "length": 4.4,
+      "width": 1.9,
+      "wheelbase": 2.7,
+      "rear_overhang": 0.7,
+      "max_steering": 0.5585053606381855
+    },
+    "start_pose": {
+      "x": 3.3346773183203156,
+      "y": 3.7319052947366838,
+      "yaw": 0.0
+    },
+    "target_slot": {
+      "center": [
+        10.334677318320315,
+        10.0
+      ],
+      "length": 5.0,
+      "width": 2.8339843720779823,
+      "yaw": 0.7853981633974483
+    },
+    "static_obstacles": [
+      {
+        "name": "parked_left",
+        "center": [
+          13.870211224253053,
+          6.464466094067262
+        ],
+        "length": 4.8,
+        "width": 2.0,
+        "yaw": 0.7853981633974483
+      },
+      {
+        "name": "parked_right",
+        "center": [
+          6.799143412387577,
+          13.535533905932738
+        ],
+        "length": 4.8,
+        "width": 2.0,
+        "yaw": 0.7853981633974483
+      },
+      {
+        "name": "back_curb",
+        "center": [
+          13.587368511778433,
+          13.252691193458118
+        ],
+        "length": 13.0,
+        "width": 0.25,
+        "yaw": 2.356194490192345
+      }
+    ],
+    "dynamic_actors": [],
+    "weather": {
+      "preset": "clear_noon",
+      "rain": 0.0,
+      "fog": 0.0,
+      "wetness": 0.0,
+      "sun_altitude_deg": 55.0
+    },
+    "sensors": {
+      "rgb_front": true,
+      "rgb_rear": true,
+      "depth_front": true,
+      "lidar": true,
+      "imu": true,
+      "wheel_odometry": true,
+      "camera_width": 1280,
+      "camera_height": 720,
+      "camera_fov_deg": 100.0,
+      "perception_hz": 12.0,
+      "dropout_probability": 0.0,
+      "pixel_noise_std": 0.0
+    },
+    "occlusion_level": 0.0,
+    "calibration_error_m": 0.0,
+    "calibration_error_deg": 0.0,
+    "expected_gear_sequence": [
+      "drive",
+      "reverse"
+    ]
+  },
+  {
+    "scenario_id": "angled_reverse_000105",
+    "seed": 105,
+    "kind": "angled_reverse",
+    "map_name": "Town04",
+    "bounds": [
+      0.0,
+      20.0,
+      0.0,
+      16.0
+    ],
+    "vehicle": {
+      "length": 4.4,
+      "width": 1.9,
+      "wheelbase": 2.7,
+      "rear_overhang": 0.7,
+      "max_steering": 0.5585053606381855
+    },
+    "start_pose": {
+      "x": 16.364206782152134,
+      "y": 3.7907236599059972,
+      "yaw": 3.141592653589793
+    },
+    "target_slot": {
+      "center": [
+        9.864206782152133,
+        10.0
+      ],
+      "length": 5.0,
+      "width": 2.801239739630597,
+      "yaw": 0.7853981633974483
+    },
+    "static_obstacles": [
+      {
+        "name": "parked_left",
+        "center": [
+          13.39974068808487,
+          6.464466094067262
+        ],
+        "length": 4.8,
+        "width": 2.0,
+        "yaw": 0.7853981633974483
+      },
+      {
+        "name": "parked_right",
+        "center": [
+          6.328672876219395,
+          13.535533905932738
+        ],
+        "length": 4.8,
+        "width": 2.0,
+        "yaw": 0.7853981633974483
+      },
+      {
+        "name": "back_curb",
+        "center": [
+          13.11689797561025,
+          13.252691193458118
+        ],
+        "length": 13.0,
+        "width": 0.25,
+        "yaw": 2.356194490192345
+      }
+    ],
+    "dynamic_actors": [],
+    "weather": {
+      "preset": "clear_noon",
+      "rain": 0.0,
+      "fog": 0.0,
+      "wetness": 0.0,
+      "sun_altitude_deg": 55.0
+    },
+    "sensors": {
+      "rgb_front": true,
+      "rgb_rear": true,
+      "depth_front": true,
+      "lidar": true,
+      "imu": true,
+      "wheel_odometry": true,
+      "camera_width": 1280,
+      "camera_height": 720,
+      "camera_fov_deg": 100.0,
+      "perception_hz": 12.0,
+      "dropout_probability": 0.0,
+      "pixel_noise_std": 0.0
+    },
+    "occlusion_level": 0.0,
+    "calibration_error_m": 0.0,
+    "calibration_error_deg": 0.0,
+    "expected_gear_sequence": [
+      "drive",
+      "reverse"
+    ]
+  },
+  {
+    "scenario_id": "perpendicular_forward_000106",
+    "seed": 106,
+    "kind": "perpendicular_forward",
+    "map_name": "Town04",
+    "bounds": [
+      0.0,
+      20.0,
+      0.0,
+      16.0
+    ],
+    "vehicle": {
+      "length": 4.4,
+      "width": 1.9,
+      "wheelbase": 2.7,
+      "rear_overhang": 0.7,
+      "max_steering": 0.5585053606381855
+    },
+    "start_pose": {
+      "x": 3.360996804619679,
+      "y": 3.016763676370652,
+      "yaw": 0.0
+    },
+    "target_slot": {
+      "center": [
+        10.36099680461968,
+        10.0
+      ],
+      "length": 5.0,
+      "width": 2.7342734932249972,
+      "yaw": 1.5707963267948966
+    },
+    "static_obstacles": [
+      {
+        "name": "parked_left",
+        "center": [
+          5.360996804619679,
+          10.0
+        ],
+        "length": 4.8,
+        "width": 2.0,
+        "yaw": 1.5707963267948966
+      },
+      {
+        "name": "parked_right",
+        "center": [
+          15.36099680461968,
+          10.0
+        ],
+        "length": 4.8,
+        "width": 2.0,
+        "yaw": 1.5707963267948966
+      },
+      {
+        "name": "back_curb",
+        "center": [
+          10.36099680461968,
+          13.8
+        ],
+        "length": 16.0,
+        "width": 0.28,
+        "yaw": 0.0
+      }
+    ],
+    "dynamic_actors": [],
+    "weather": {
+      "preset": "clear_noon",
+      "rain": 0.0,
+      "fog": 0.0,
+      "wetness": 0.0,
+      "sun_altitude_deg": 55.0
+    },
+    "sensors": {
+      "rgb_front": true,
+      "rgb_rear": true,
+      "depth_front": true,
+      "lidar": true,
+      "imu": true,
+      "wheel_odometry": true,
+      "camera_width": 1280,
+      "camera_height": 720,
+      "camera_fov_deg": 100.0,
+      "perception_hz": 12.0,
+      "dropout_probability": 0.0,
+      "pixel_noise_std": 0.0
+    },
+    "occlusion_level": 0.0,
+    "calibration_error_m": 0.0,
+    "calibration_error_deg": 0.0,
+    "expected_gear_sequence": [
+      "drive"
+    ]
+  },
+  {
+    "scenario_id": "perpendicular_reverse_000107",
+    "seed": 107,
+    "kind": "perpendicular_reverse",
+    "map_name": "Town04",
+    "bounds": [
+      0.0,
+      20.0,
+      0.0,
+      16.0
+    ],
+    "vehicle": {
+      "length": 4.4,
+      "width": 1.9,
+      "wheelbase": 2.7,
+      "rear_overhang": 0.7,
+      "max_steering": 0.5585053606381855
+    },
+    "start_pose": {
+      "x": 16.5731609373517,
+      "y": 3.972281006925651,
+      "yaw": 3.141592653589793
+    },
+    "target_slot": {
+      "center": [
+        10.073160937351702,
+        10.0
+      ],
+      "length": 5.0,
+      "width": 2.5485927838677433,
+      "yaw": 1.5707963267948966
+    },
+    "static_obstacles": [
+      {
+        "name": "parked_left",
+        "center": [
+          5.073160937351702,
+          10.0
+        ],
+        "length": 4.8,
+        "width": 2.0,
+        "yaw": 1.5707963267948966
+      },
+      {
+        "name": "parked_right",
+        "center": [
+          15.073160937351702,
+          10.0
+        ],
+        "length": 4.8,
+        "width": 2.0,
+        "yaw": 1.5707963267948966
+      },
+      {
+        "name": "back_curb",
+        "center": [
+          10.073160937351702,
+          13.8
+        ],
+        "length": 16.0,
+        "width": 0.28,
+        "yaw": 0.0
+      }
+    ],
+    "dynamic_actors": [],
+    "weather": {
+      "preset": "clear_noon",
+      "rain": 0.0,
+      "fog": 0.0,
+      "wetness": 0.0,
+      "sun_altitude_deg": 55.0
+    },
+    "sensors": {
+      "rgb_front": true,
+      "rgb_rear": true,
+      "depth_front": true,
+      "lidar": true,
+      "imu": true,
+      "wheel_odometry": true,
+      "camera_width": 1280,
+      "camera_height": 720,
+      "camera_fov_deg": 100.0,
+      "perception_hz": 12.0,
+      "dropout_probability": 0.0,
+      "pixel_noise_std": 0.0
+    },
+    "occlusion_level": 0.0,
+    "calibration_error_m": 0.0,
+    "calibration_error_deg": 0.0,
+    "expected_gear_sequence": [
+      "drive",
+      "reverse",
+      "drive"
+    ]
+  },
+  {
+    "scenario_id": "parallel_forward_000108",
+    "seed": 108,
+    "kind": "parallel_forward",
+    "map_name": "Town04",
+    "bounds": [
+      0.0,
+      20.0,
+      0.0,
+      16.0
+    ],
+    "vehicle": {
+      "length": 4.4,
+      "width": 1.9,
+      "wheelbase": 2.7,
+      "rear_overhang": 0.7,
+      "max_steering": 0.5585053606381855
+    },
+    "start_pose": {
+      "x": 3.2840709267292643,
+      "y": 2.954036899591311,
+      "yaw": 0.0
+    },
+    "target_slot": {
+      "center": [
+        10.284070926729264,
+        5.5
+      ],
+      "length": 6.0,
+      "width": 2.55,
+      "yaw": 0.0
+    },
+    "static_obstacles": [
+      {
+        "name": "parked_front",
+        "center": [
+          15.584070926729265,
+          5.5
+        ],
+        "length": 4.6,
+        "width": 2.1,
+        "yaw": 0.0
+      },
+      {
+        "name": "parked_rear",
+        "center": [
+          4.984070926729264,
+          5.5
+        ],
+        "length": 4.6,
+        "width": 2.1,
+        "yaw": 0.0
+      },
+      {
+        "name": "curb",
+        "center": [
+          10.284070926729264,
+          7.1
+        ],
+        "length": 16.0,
+        "width": 0.22,
+        "yaw": 0.0
+      }
+    ],
+    "dynamic_actors": [],
+    "weather": {
+      "preset": "clear_noon",
+      "rain": 0.0,
+      "fog": 0.0,
+      "wetness": 0.0,
+      "sun_altitude_deg": 55.0
+    },
+    "sensors": {
+      "rgb_front": true,
+      "rgb_rear": true,
+      "depth_front": true,
+      "lidar": true,
+      "imu": true,
+      "wheel_odometry": true,
+      "camera_width": 1280,
+      "camera_height": 720,
+      "camera_fov_deg": 100.0,
+      "perception_hz": 12.0,
+      "dropout_probability": 0.0,
+      "pixel_noise_std": 0.0
+    },
+    "occlusion_level": 0.0,
+    "calibration_error_m": 0.0,
+    "calibration_error_deg": 0.0,
+    "expected_gear_sequence": [
+      "drive",
+      "reverse",
+      "drive"
+    ]
+  },
+  {
+    "scenario_id": "parallel_reverse_000109",
+    "seed": 109,
+    "kind": "parallel_reverse",
+    "map_name": "Town04",
+    "bounds": [
+      0.0,
+      20.0,
+      0.0,
+      16.0
+    ],
+    "vehicle": {
+      "length": 4.4,
+      "width": 1.9,
+      "wheelbase": 2.7,
+      "rear_overhang": 0.7,
+      "max_steering": 0.5585053606381855
+    },
+    "start_pose": {
+      "x": 16.7633510768789,
+      "y": 2.840600234948572,
+      "yaw": 3.141592653589793
+    },
+    "target_slot": {
+      "center": [
+        9.9633510768789,
+        5.5
+      ],
+      "length": 6.0,
+      "width": 2.55,
+      "yaw": 0.0
+    },
+    "static_obstacles": [
+      {
+        "name": "parked_front",
+        "center": [
+          15.263351076878902,
+          5.5
+        ],
+        "length": 4.6,
+        "width": 2.1,
+        "yaw": 0.0
+      },
+      {
+        "name": "parked_rear",
+        "center": [
+          4.663351076878901,
+          5.5
+        ],
+        "length": 4.6,
+        "width": 2.1,
+        "yaw": 0.0
+      },
+      {
+        "name": "curb",
+        "center": [
+          9.9633510768789,
+          7.1
+        ],
+        "length": 16.0,
+        "width": 0.22,
+        "yaw": 0.0
+      }
+    ],
+    "dynamic_actors": [],
+    "weather": {
+      "preset": "clear_noon",
+      "rain": 0.0,
+      "fog": 0.0,
+      "wetness": 0.0,
+      "sun_altitude_deg": 55.0
+    },
+    "sensors": {
+      "rgb_front": true,
+      "rgb_rear": true,
+      "depth_front": true,
+      "lidar": true,
+      "imu": true,
+      "wheel_odometry": true,
+      "camera_width": 1280,
+      "camera_height": 720,
+      "camera_fov_deg": 100.0,
+      "perception_hz": 12.0,
+      "dropout_probability": 0.0,
+      "pixel_noise_std": 0.0
+    },
+    "occlusion_level": 0.0,
+    "calibration_error_m": 0.0,
+    "calibration_error_deg": 0.0,
+    "expected_gear_sequence": [
+      "drive",
+      "reverse",
+      "drive",
+      "reverse",
+      "drive"
+    ]
+  },
+  {
+    "scenario_id": "angled_forward_000110",
+    "seed": 110,
+    "kind": "angled_forward",
+    "map_name": "Town04",
+    "bounds": [
+      0.0,
+      20.0,
+      0.0,
+      16.0
+    ],
+    "vehicle": {
+      "length": 4.4,
+      "width": 1.9,
+      "wheelbase": 2.7,
+      "rear_overhang": 0.7,
+      "max_steering": 0.5585053606381855
+    },
+    "start_pose": {
+      "x": 2.8992312566577176,
+      "y": 3.821641196311672,
+      "yaw": 0.0
+    },
+    "target_slot": {
+      "center": [
+        9.899231256657718,
+        10.0
+      ],
+      "length": 5.0,
+      "width": 2.8237047850815893,
+      "yaw": 0.7853981633974483
+    },
+    "static_obstacles": [
+      {
+        "name": "parked_left",
+        "center": [
+          13.434765162590455,
+          6.464466094067262
+        ],
+        "length": 4.8,
+        "width": 2.0,
+        "yaw": 0.7853981633974483
+      },
+      {
+        "name": "parked_right",
+        "center": [
+          6.36369735072498,
+          13.535533905932738
+        ],
+        "length": 4.8,
+        "width": 2.0,
+        "yaw": 0.7853981633974483
+      },
+      {
+        "name": "back_curb",
+        "center": [
+          13.151922450115837,
+          13.252691193458118
+        ],
+        "length": 13.0,
+        "width": 0.25,
+        "yaw": 2.356194490192345
+      }
+    ],
+    "dynamic_actors": [],
+    "weather": {
+      "preset": "clear_noon",
+      "rain": 0.0,
+      "fog": 0.0,
+      "wetness": 0.0,
+      "sun_altitude_deg": 55.0
+    },
+    "sensors": {
+      "rgb_front": true,
+      "rgb_rear": true,
+      "depth_front": true,
+      "lidar": true,
+      "imu": true,
+      "wheel_odometry": true,
+      "camera_width": 1280,
+      "camera_height": 720,
+      "camera_fov_deg": 100.0,
+      "perception_hz": 12.0,
+      "dropout_probability": 0.0,
+      "pixel_noise_std": 0.0
+    },
+    "occlusion_level": 0.0,
+    "calibration_error_m": 0.0,
+    "calibration_error_deg": 0.0,
+    "expected_gear_sequence": [
+      "drive",
+      "reverse"
+    ]
+  },
+  {
+    "scenario_id": "angled_reverse_000111",
+    "seed": 111,
+    "kind": "angled_reverse",
+    "map_name": "Town04",
+    "bounds": [
+      0.0,
+      20.0,
+      0.0,
+      16.0
+    ],
+    "vehicle": {
+      "length": 4.4,
+      "width": 1.9,
+      "wheelbase": 2.7,
+      "rear_overhang": 0.7,
+      "max_steering": 0.5585053606381855
+    },
+    "start_pose": {
+      "x": 16.241486803658557,
+      "y": 3.9425194436011797,
+      "yaw": 3.141592653589793
+    },
+    "target_slot": {
+      "center": [
+        9.741486803658555,
+        10.0
+      ],
+      "length": 5.0,
+      "width": 2.7808682261369255,
+      "yaw": 0.9599310885968813
+    },
+    "static_obstacles": [
+      {
+        "name": "parked_left",
+        "center": [
+          13.837247025103514,
+          7.132117818244769
+        ],
+        "length": 4.8,
+        "width": 2.0,
+        "yaw": 0.9599310885968813
+      },
+      {
+        "name": "parked_right",
+        "center": [
+          5.645726582213596,
+          12.867882181755231
+        ],
+        "length": 4.8,
+        "width": 2.0,
+        "yaw": 0.9599310885968813
+      },
+      {
+        "name": "back_curb",
+        "center": [
+          12.379938410873367,
+          13.768099403729362
+        ],
+        "length": 13.0,
+        "width": 0.25,
+        "yaw": 2.5307274153917776
+      }
+    ],
+    "dynamic_actors": [],
+    "weather": {
+      "preset": "clear_noon",
+      "rain": 0.0,
+      "fog": 0.0,
+      "wetness": 0.0,
+      "sun_altitude_deg": 55.0
+    },
+    "sensors": {
+      "rgb_front": true,
+      "rgb_rear": true,
+      "depth_front": true,
+      "lidar": true,
+      "imu": true,
+      "wheel_odometry": true,
+      "camera_width": 1280,
+      "camera_height": 720,
+      "camera_fov_deg": 100.0,
+      "perception_hz": 12.0,
+      "dropout_probability": 0.0,
+      "pixel_noise_std": 0.0
+    },
+    "occlusion_level": 0.0,
+    "calibration_error_m": 0.0,
+    "calibration_error_deg": 0.0,
+    "expected_gear_sequence": [
+      "drive",
+      "reverse"
+    ]
+  },
+  {
+    "scenario_id": "perpendicular_forward_000112",
+    "seed": 112,
+    "kind": "perpendicular_forward",
+    "map_name": "Town04",
+    "bounds": [
+      0.0,
+      20.0,
+      0.0,
+      16.0
+    ],
+    "vehicle": {
+      "length": 4.4,
+      "width": 1.9,
+      "wheelbase": 2.7,
+      "rear_overhang": 0.7,
+      "max_steering": 0.5585053606381855
+    },
+    "start_pose": {
+      "x": 3.1494788015024437,
+      "y": 3.6198336951349463,
+      "yaw": 0.0
+    },
+    "target_slot": {
+      "center": [
+        10.149478801502443,
+        10.0
+      ],
+      "length": 5.0,
+      "width": 2.6424986536293233,
+      "yaw": 1.5707963267948966
+    },
+    "static_obstacles": [
+      {
+        "name": "parked_left",
+        "center": [
+          5.149478801502444,
+          10.0
+        ],
+        "length": 4.8,
+        "width": 2.0,
+        "yaw": 1.5707963267948966
+      },
+      {
+        "name": "parked_right",
+        "center": [
+          15.149478801502443,
+          10.0
+        ],
+        "length": 4.8,
+        "width": 2.0,
+        "yaw": 1.5707963267948966
+      },
+      {
+        "name": "back_curb",
+        "center": [
+          10.149478801502443,
+          13.8
+        ],
+        "length": 16.0,
+        "width": 0.28,
+        "yaw": 0.0
+      }
+    ],
+    "dynamic_actors": [],
+    "weather": {
+      "preset": "clear_noon",
+      "rain": 0.0,
+      "fog": 0.0,
+      "wetness": 0.0,
+      "sun_altitude_deg": 55.0
+    },
+    "sensors": {
+      "rgb_front": true,
+      "rgb_rear": true,
+      "depth_front": true,
+      "lidar": true,
+      "imu": true,
+      "wheel_odometry": true,
+      "camera_width": 1280,
+      "camera_height": 720,
+      "camera_fov_deg": 100.0,
+      "perception_hz": 12.0,
+      "dropout_probability": 0.0,
+      "pixel_noise_std": 0.0
+    },
+    "occlusion_level": 0.0,
+    "calibration_error_m": 0.0,
+    "calibration_error_deg": 0.0,
+    "expected_gear_sequence": [
+      "drive"
+    ]
+  },
+  {
+    "scenario_id": "perpendicular_reverse_000113",
+    "seed": 113,
+    "kind": "perpendicular_reverse",
+    "map_name": "Town04",
+    "bounds": [
+      0.0,
+      20.0,
+      0.0,
+      16.0
+    ],
+    "vehicle": {
+      "length": 4.4,
+      "width": 1.9,
+      "wheelbase": 2.7,
+      "rear_overhang": 0.7,
+      "max_steering": 0.5585053606381855
+    },
+    "start_pose": {
+      "x": 16.83085623406402,
+      "y": 3.722076008279989,
+      "yaw": 3.141592653589793
+    },
+    "target_slot": {
+      "center": [
+        10.330856234064019,
+        10.0
+      ],
+      "length": 5.0,
+      "width": 2.46222212807495,
+      "yaw": 1.5707963267948966
+    },
+    "static_obstacles": [
+      {
+        "name": "parked_left",
+        "center": [
+          5.3308562340640195,
+          10.0
+        ],
+        "length": 4.8,
+        "width": 2.0,
+        "yaw": 1.5707963267948966
+      },
+      {
+        "name": "parked_right",
+        "center": [
+          15.330856234064019,
+          10.0
+        ],
+        "length": 4.8,
+        "width": 2.0,
+        "yaw": 1.5707963267948966
+      },
+      {
+        "name": "back_curb",
+        "center": [
+          10.330856234064019,
+          13.8
+        ],
+        "length": 16.0,
+        "width": 0.28,
+        "yaw": 0.0
+      }
+    ],
+    "dynamic_actors": [],
+    "weather": {
+      "preset": "clear_noon",
+      "rain": 0.0,
+      "fog": 0.0,
+      "wetness": 0.0,
+      "sun_altitude_deg": 55.0
+    },
+    "sensors": {
+      "rgb_front": true,
+      "rgb_rear": true,
+      "depth_front": true,
+      "lidar": true,
+      "imu": true,
+      "wheel_odometry": true,
+      "camera_width": 1280,
+      "camera_height": 720,
+      "camera_fov_deg": 100.0,
+      "perception_hz": 12.0,
+      "dropout_probability": 0.0,
+      "pixel_noise_std": 0.0
+    },
+    "occlusion_level": 0.0,
+    "calibration_error_m": 0.0,
+    "calibration_error_deg": 0.0,
+    "expected_gear_sequence": [
+      "drive",
+      "reverse",
+      "drive"
+    ]
+  },
+  {
+    "scenario_id": "parallel_forward_000114",
+    "seed": 114,
+    "kind": "parallel_forward",
+    "map_name": "Town04",
+    "bounds": [
+      0.0,
+      20.0,
+      0.0,
+      16.0
+    ],
+    "vehicle": {
+      "length": 4.4,
+      "width": 1.9,
+      "wheelbase": 2.7,
+      "rear_overhang": 0.7,
+      "max_steering": 0.5585053606381855
+    },
+    "start_pose": {
+      "x": 2.638098505159583,
+      "y": 2.8973896522113325,
+      "yaw": 0.0
+    },
+    "target_slot": {
+      "center": [
+        9.638098505159583,
+        5.5
+      ],
+      "length": 6.0,
+      "width": 2.55,
+      "yaw": 0.0
+    },
+    "static_obstacles": [
+      {
+        "name": "parked_front",
+        "center": [
+          14.938098505159584,
+          5.5
+        ],
+        "length": 4.6,
+        "width": 2.1,
+        "yaw": 0.0
+      },
+      {
+        "name": "parked_rear",
+        "center": [
+          4.338098505159583,
+          5.5
+        ],
+        "length": 4.6,
+        "width": 2.1,
+        "yaw": 0.0
+      },
+      {
+        "name": "curb",
+        "center": [
+          9.638098505159583,
+          7.1
+        ],
+        "length": 16.0,
+        "width": 0.22,
+        "yaw": 0.0
+      }
+    ],
+    "dynamic_actors": [],
+    "weather": {
+      "preset": "clear_noon",
+      "rain": 0.0,
+      "fog": 0.0,
+      "wetness": 0.0,
+      "sun_altitude_deg": 55.0
+    },
+    "sensors": {
+      "rgb_front": true,
+      "rgb_rear": true,
+      "depth_front": true,
+      "lidar": true,
+      "imu": true,
+      "wheel_odometry": true,
+      "camera_width": 1280,
+      "camera_height": 720,
+      "camera_fov_deg": 100.0,
+      "perception_hz": 12.0,
+      "dropout_probability": 0.0,
+      "pixel_noise_std": 0.0
+    },
+    "occlusion_level": 0.0,
+    "calibration_error_m": 0.0,
+    "calibration_error_deg": 0.0,
+    "expected_gear_sequence": [
+      "drive",
+      "reverse",
+      "drive"
+    ]
+  },
+  {
+    "scenario_id": "parallel_reverse_000115",
+    "seed": 115,
+    "kind": "parallel_reverse",
+    "map_name": "Town04",
+    "bounds": [
+      0.0,
+      20.0,
+      0.0,
+      16.0
+    ],
+    "vehicle": {
+      "length": 4.4,
+      "width": 1.9,
+      "wheelbase": 2.7,
+      "rear_overhang": 0.7,
+      "max_steering": 0.5585053606381855
+    },
+    "start_pose": {
+      "x": 16.527241496739133,
+      "y": 2.8448962638810764,
+      "yaw": 3.141592653589793
+    },
+    "target_slot": {
+      "center": [
+        9.727241496739131,
+        5.5
+      ],
+      "length": 6.0,
+      "width": 2.55,
+      "yaw": 0.0
+    },
+    "static_obstacles": [
+      {
+        "name": "parked_front",
+        "center": [
+          15.027241496739132,
+          5.5
+        ],
+        "length": 4.6,
+        "width": 2.1,
+        "yaw": 0.0
+      },
+      {
+        "name": "parked_rear",
+        "center": [
+          4.427241496739132,
+          5.5
+        ],
+        "length": 4.6,
+        "width": 2.1,
+        "yaw": 0.0
+      },
+      {
+        "name": "curb",
+        "center": [
+          9.727241496739131,
+          7.1
+        ],
+        "length": 16.0,
+        "width": 0.22,
+        "yaw": 0.0
+      }
+    ],
+    "dynamic_actors": [],
+    "weather": {
+      "preset": "clear_noon",
+      "rain": 0.0,
+      "fog": 0.0,
+      "wetness": 0.0,
+      "sun_altitude_deg": 55.0
+    },
+    "sensors": {
+      "rgb_front": true,
+      "rgb_rear": true,
+      "depth_front": true,
+      "lidar": true,
+      "imu": true,
+      "wheel_odometry": true,
+      "camera_width": 1280,
+      "camera_height": 720,
+      "camera_fov_deg": 100.0,
+      "perception_hz": 12.0,
+      "dropout_probability": 0.0,
+      "pixel_noise_std": 0.0
+    },
+    "occlusion_level": 0.0,
+    "calibration_error_m": 0.0,
+    "calibration_error_deg": 0.0,
+    "expected_gear_sequence": [
+      "drive",
+      "reverse",
+      "drive",
+      "reverse",
+      "drive"
+    ]
+  },
+  {
+    "scenario_id": "angled_forward_000116",
+    "seed": 116,
+    "kind": "angled_forward",
+    "map_name": "Town04",
+    "bounds": [
+      0.0,
+      20.0,
+      0.0,
+      16.0
+    ],
+    "vehicle": {
+      "length": 4.4,
+      "width": 1.9,
+      "wheelbase": 2.7,
+      "rear_overhang": 0.7,
+      "max_steering": 0.5585053606381855
+    },
+    "start_pose": {
+      "x": 3.089824662294993,
+      "y": 3.7221340410273207,
+      "yaw": 0.0
+    },
+    "target_slot": {
+      "center": [
+        10.089824662294994,
+        10.0
+      ],
+      "length": 5.0,
+      "width": 2.778543012575836,
+      "yaw": 0.7853981633974483
+    },
+    "static_obstacles": [
+      {
+        "name": "parked_left",
+        "center": [
+          13.625358568227732,
+          6.464466094067262
+        ],
+        "length": 4.8,
+        "width": 2.0,
+        "yaw": 0.7853981633974483
+      },
+      {
+        "name": "parked_right",
+        "center": [
+          6.554290756362256,
+          13.535533905932738
+        ],
+        "length": 4.8,
+        "width": 2.0,
+        "yaw": 0.7853981633974483
+      },
+      {
+        "name": "back_curb",
+        "center": [
+          13.342515855753113,
+          13.252691193458118
+        ],
+        "length": 13.0,
+        "width": 0.25,
+        "yaw": 2.356194490192345
+      }
+    ],
+    "dynamic_actors": [],
+    "weather": {
+      "preset": "clear_noon",
+      "rain": 0.0,
+      "fog": 0.0,
+      "wetness": 0.0,
+      "sun_altitude_deg": 55.0
+    },
+    "sensors": {
+      "rgb_front": true,
+      "rgb_rear": true,
+      "depth_front": true,
+      "lidar": true,
+      "imu": true,
+      "wheel_odometry": true,
+      "camera_width": 1280,
+      "camera_height": 720,
+      "camera_fov_deg": 100.0,
+      "perception_hz": 12.0,
+      "dropout_probability": 0.0,
+      "pixel_noise_std": 0.0
+    },
+    "occlusion_level": 0.0,
+    "calibration_error_m": 0.0,
+    "calibration_error_deg": 0.0,
+    "expected_gear_sequence": [
+      "drive",
+      "reverse"
+    ]
+  },
+  {
+    "scenario_id": "angled_reverse_000117",
+    "seed": 117,
+    "kind": "angled_reverse",
+    "map_name": "Town04",
+    "bounds": [
+      0.0,
+      20.0,
+      0.0,
+      16.0
+    ],
+    "vehicle": {
+      "length": 4.4,
+      "width": 1.9,
+      "wheelbase": 2.7,
+      "rear_overhang": 0.7,
+      "max_steering": 0.5585053606381855
+    },
+    "start_pose": {
+      "x": 16.19796220428353,
+      "y": 3.399848310970446,
+      "yaw": 3.141592653589793
+    },
+    "target_slot": {
+      "center": [
+        9.697962204283531,
+        10.0
+      ],
+      "length": 5.0,
+      "width": 2.546041212026503,
+      "yaw": 0.7853981633974483
+    },
+    "static_obstacles": [
+      {
+        "name": "parked_left",
+        "center": [
+          13.233496110216269,
+          6.464466094067262
+        ],
+        "length": 4.8,
+        "width": 2.0,
+        "yaw": 0.7853981633974483
+      },
+      {
+        "name": "parked_right",
+        "center": [
+          6.162428298350793,
+          13.535533905932738
+        ],
+        "length": 4.8,
+        "width": 2.0,
+        "yaw": 0.7853981633974483
+      },
+      {
+        "name": "back_curb",
+        "center": [
+          12.95065339774165,
+          13.252691193458118
+        ],
+        "length": 13.0,
+        "width": 0.25,
+        "yaw": 2.356194490192345
+      }
+    ],
+    "dynamic_actors": [],
+    "weather": {
+      "preset": "clear_noon",
+      "rain": 0.0,
+      "fog": 0.0,
+      "wetness": 0.0,
+      "sun_altitude_deg": 55.0
+    },
+    "sensors": {
+      "rgb_front": true,
+      "rgb_rear": true,
+      "depth_front": true,
+      "lidar": true,
+      "imu": true,
+      "wheel_odometry": true,
+      "camera_width": 1280,
+      "camera_height": 720,
+      "camera_fov_deg": 100.0,
+      "perception_hz": 12.0,
+      "dropout_probability": 0.0,
+      "pixel_noise_std": 0.0
+    },
+    "occlusion_level": 0.0,
+    "calibration_error_m": 0.0,
+    "calibration_error_deg": 0.0,
+    "expected_gear_sequence": [
+      "drive",
+      "reverse"
+    ]
+  },
+  {
+    "scenario_id": "perpendicular_forward_000118",
+    "seed": 118,
+    "kind": "perpendicular_forward",
+    "map_name": "Town04",
+    "bounds": [
+      0.0,
+      20.0,
+      0.0,
+      16.0
+    ],
+    "vehicle": {
+      "length": 4.4,
+      "width": 1.9,
+      "wheelbase": 2.7,
+      "rear_overhang": 0.7,
+      "max_steering": 0.5585053606381855
+    },
+    "start_pose": {
+      "x": 2.714284700758409,
+      "y": 3.099015710522382,
+      "yaw": 0.0
+    },
+    "target_slot": {
+      "center": [
+        9.714284700758409,
+        10.0
+      ],
+      "length": 5.0,
+      "width": 2.734392907118514,
+      "yaw": 1.5707963267948966
+    },
+    "static_obstacles": [
+      {
+        "name": "parked_left",
+        "center": [
+          4.71428470075841,
+          10.0
+        ],
+        "length": 4.8,
+        "width": 2.0,
+        "yaw": 1.5707963267948966
+      },
+      {
+        "name": "parked_right",
+        "center": [
+          14.714284700758409,
+          10.0
+        ],
+        "length": 4.8,
+        "width": 2.0,
+        "yaw": 1.5707963267948966
+      },
+      {
+        "name": "back_curb",
+        "center": [
+          9.714284700758409,
+          13.8
+        ],
+        "length": 16.0,
+        "width": 0.28,
+        "yaw": 0.0
+      }
+    ],
+    "dynamic_actors": [],
+    "weather": {
+      "preset": "clear_noon",
+      "rain": 0.0,
+      "fog": 0.0,
+      "wetness": 0.0,
+      "sun_altitude_deg": 55.0
+    },
+    "sensors": {
+      "rgb_front": true,
+      "rgb_rear": true,
+      "depth_front": true,
+      "lidar": true,
+      "imu": true,
+      "wheel_odometry": true,
+      "camera_width": 1280,
+      "camera_height": 720,
+      "camera_fov_deg": 100.0,
+      "perception_hz": 12.0,
+      "dropout_probability": 0.0,
+      "pixel_noise_std": 0.0
+    },
+    "occlusion_level": 0.0,
+    "calibration_error_m": 0.0,
+    "calibration_error_deg": 0.0,
+    "expected_gear_sequence": [
+      "drive"
+    ]
+  },
+  {
+    "scenario_id": "perpendicular_reverse_000119",
+    "seed": 119,
+    "kind": "perpendicular_reverse",
+    "map_name": "Town04",
+    "bounds": [
+      0.0,
+      20.0,
+      0.0,
+      16.0
+    ],
+    "vehicle": {
+      "length": 4.4,
+      "width": 1.9,
+      "wheelbase": 2.7,
+      "rear_overhang": 0.7,
+      "max_steering": 0.5585053606381855
+    },
+    "start_pose": {
+      "x": 16.211837053780783,
+      "y": 3.784089087929847,
+      "yaw": 3.141592653589793
+    },
+    "target_slot": {
+      "center": [
+        9.711837053780785,
+        10.0
+      ],
+      "length": 5.0,
+      "width": 2.8205251434028056,
+      "yaw": 1.5707963267948966
+    },
+    "static_obstacles": [
+      {
+        "name": "parked_left",
+        "center": [
+          4.711837053780784,
+          10.0
+        ],
+        "length": 4.8,
+        "width": 2.0,
+        "yaw": 1.5707963267948966
+      },
+      {
+        "name": "parked_right",
+        "center": [
+          14.711837053780785,
+          10.0
+        ],
+        "length": 4.8,
+        "width": 2.0,
+        "yaw": 1.5707963267948966
+      },
+      {
+        "name": "back_curb",
+        "center": [
+          9.711837053780785,
+          13.8
+        ],
+        "length": 16.0,
+        "width": 0.28,
+        "yaw": 0.0
+      }
+    ],
+    "dynamic_actors": [],
+    "weather": {
+      "preset": "clear_noon",
+      "rain": 0.0,
+      "fog": 0.0,
+      "wetness": 0.0,
+      "sun_altitude_deg": 55.0
+    },
+    "sensors": {
+      "rgb_front": true,
+      "rgb_rear": true,
+      "depth_front": true,
+      "lidar": true,
+      "imu": true,
+      "wheel_odometry": true,
+      "camera_width": 1280,
+      "camera_height": 720,
+      "camera_fov_deg": 100.0,
+      "perception_hz": 12.0,
+      "dropout_probability": 0.0,
+      "pixel_noise_std": 0.0
+    },
+    "occlusion_level": 0.0,
+    "calibration_error_m": 0.0,
+    "calibration_error_deg": 0.0,
+    "expected_gear_sequence": [
+      "drive",
+      "reverse",
+      "drive"
+    ]
+  },
+  {
+    "scenario_id": "parallel_forward_000120",
+    "seed": 120,
+    "kind": "parallel_forward",
+    "map_name": "Town04",
+    "bounds": [
+      0.0,
+      20.0,
+      0.0,
+      16.0
+    ],
+    "vehicle": {
+      "length": 4.4,
+      "width": 1.9,
+      "wheelbase": 2.7,
+      "rear_overhang": 0.7,
+      "max_steering": 0.5585053606381855
+    },
+    "start_pose": {
+      "x": 2.7197833541838383,
+      "y": 3.0541076324399135,
+      "yaw": 0.0
+    },
+    "target_slot": {
+      "center": [
+        9.719783354183837,
+        5.5
+      ],
+      "length": 6.0,
+      "width": 2.55,
+      "yaw": 0.0
+    },
+    "static_obstacles": [
+      {
+        "name": "parked_front",
+        "center": [
+          15.019783354183838,
+          5.5
+        ],
+        "length": 4.6,
+        "width": 2.1,
+        "yaw": 0.0
+      },
+      {
+        "name": "parked_rear",
+        "center": [
+          4.4197833541838385,
+          5.5
+        ],
+        "length": 4.6,
+        "width": 2.1,
+        "yaw": 0.0
+      },
+      {
+        "name": "curb",
+        "center": [
+          9.719783354183837,
+          7.1
+        ],
+        "length": 16.0,
+        "width": 0.22,
+        "yaw": 0.0
+      }
+    ],
+    "dynamic_actors": [],
+    "weather": {
+      "preset": "clear_noon",
+      "rain": 0.0,
+      "fog": 0.0,
+      "wetness": 0.0,
+      "sun_altitude_deg": 55.0
+    },
+    "sensors": {
+      "rgb_front": true,
+      "rgb_rear": true,
+      "depth_front": true,
+      "lidar": true,
+      "imu": true,
+      "wheel_odometry": true,
+      "camera_width": 1280,
+      "camera_height": 720,
+      "camera_fov_deg": 100.0,
+      "perception_hz": 12.0,
+      "dropout_probability": 0.0,
+      "pixel_noise_std": 0.0
+    },
+    "occlusion_level": 0.0,
+    "calibration_error_m": 0.0,
+    "calibration_error_deg": 0.0,
+    "expected_gear_sequence": [
+      "drive",
+      "reverse",
+      "drive"
+    ]
+  },
+  {
+    "scenario_id": "parallel_reverse_000121",
+    "seed": 121,
+    "kind": "parallel_reverse",
+    "map_name": "Town04",
+    "bounds": [
+      0.0,
+      20.0,
+      0.0,
+      16.0
+    ],
+    "vehicle": {
+      "length": 4.4,
+      "width": 1.9,
+      "wheelbase": 2.7,
+      "rear_overhang": 0.7,
+      "max_steering": 0.5585053606381855
+    },
+    "start_pose": {
+      "x": 16.875427277282057,
+      "y": 3.165864342976956,
+      "yaw": 3.141592653589793
+    },
+    "target_slot": {
+      "center": [
+        10.075427277282056,
+        5.5
+      ],
+      "length": 6.0,
+      "width": 2.55,
+      "yaw": 0.0
+    },
+    "static_obstacles": [
+      {
+        "name": "parked_front",
+        "center": [
+          15.375427277282057,
+          5.5
+        ],
+        "length": 4.6,
+        "width": 2.1,
+        "yaw": 0.0
+      },
+      {
+        "name": "parked_rear",
+        "center": [
+          4.775427277282057,
+          5.5
+        ],
+        "length": 4.6,
+        "width": 2.1,
+        "yaw": 0.0
+      },
+      {
+        "name": "curb",
+        "center": [
+          10.075427277282056,
+          7.1
+        ],
+        "length": 16.0,
+        "width": 0.22,
+        "yaw": 0.0
+      }
+    ],
+    "dynamic_actors": [],
+    "weather": {
+      "preset": "clear_noon",
+      "rain": 0.0,
+      "fog": 0.0,
+      "wetness": 0.0,
+      "sun_altitude_deg": 55.0
+    },
+    "sensors": {
+      "rgb_front": true,
+      "rgb_rear": true,
+      "depth_front": true,
+      "lidar": true,
+      "imu": true,
+      "wheel_odometry": true,
+      "camera_width": 1280,
+      "camera_height": 720,
+      "camera_fov_deg": 100.0,
+      "perception_hz": 12.0,
+      "dropout_probability": 0.0,
+      "pixel_noise_std": 0.0
+    },
+    "occlusion_level": 0.0,
+    "calibration_error_m": 0.0,
+    "calibration_error_deg": 0.0,
+    "expected_gear_sequence": [
+      "drive",
+      "reverse",
+      "drive",
+      "reverse",
+      "drive"
+    ]
+  },
+  {
+    "scenario_id": "angled_forward_000122",
+    "seed": 122,
+    "kind": "angled_forward",
+    "map_name": "Town04",
+    "bounds": [
+      0.0,
+      20.0,
+      0.0,
+      16.0
+    ],
+    "vehicle": {
+      "length": 4.4,
+      "width": 1.9,
+      "wheelbase": 2.7,
+      "rear_overhang": 0.7,
+      "max_steering": 0.5585053606381855
+    },
+    "start_pose": {
+      "x": 3.0872982783968212,
+      "y": 3.3022981875355706,
+      "yaw": 0.0
+    },
+    "target_slot": {
+      "center": [
+        10.08729827839682,
+        10.0
+      ],
+      "length": 5.0,
+      "width": 2.654007402697392,
+      "yaw": 0.7853981633974483
+    },
+    "static_obstacles": [
+      {
+        "name": "parked_left",
+        "center": [
+          13.622832184329559,
+          6.464466094067262
+        ],
+        "length": 4.8,
+        "width": 2.0,
+        "yaw": 0.7853981633974483
+      },
+      {
+        "name": "parked_right",
+        "center": [
+          6.551764372464083,
+          13.535533905932738
+        ],
+        "length": 4.8,
+        "width": 2.0,
+        "yaw": 0.7853981633974483
+      },
+      {
+        "name": "back_curb",
+        "center": [
+          13.339989471854938,
+          13.252691193458118
+        ],
+        "length": 13.0,
+        "width": 0.25,
+        "yaw": 2.356194490192345
+      }
+    ],
+    "dynamic_actors": [],
+    "weather": {
+      "preset": "clear_noon",
+      "rain": 0.0,
+      "fog": 0.0,
+      "wetness": 0.0,
+      "sun_altitude_deg": 55.0
+    },
+    "sensors": {
+      "rgb_front": true,
+      "rgb_rear": true,
+      "depth_front": true,
+      "lidar": true,
+      "imu": true,
+      "wheel_odometry": true,
+      "camera_width": 1280,
+      "camera_height": 720,
+      "camera_fov_deg": 100.0,
+      "perception_hz": 12.0,
+      "dropout_probability": 0.0,
+      "pixel_noise_std": 0.0
+    },
+    "occlusion_level": 0.0,
+    "calibration_error_m": 0.0,
+    "calibration_error_deg": 0.0,
+    "expected_gear_sequence": [
+      "drive",
+      "reverse"
+    ]
+  },
+  {
+    "scenario_id": "angled_reverse_000123",
+    "seed": 123,
+    "kind": "angled_reverse",
+    "map_name": "Town04",
+    "bounds": [
+      0.0,
+      20.0,
+      0.0,
+      16.0
+    ],
+    "vehicle": {
+      "length": 4.4,
+      "width": 1.9,
+      "wheelbase": 2.7,
+      "rear_overhang": 0.7,
+      "max_steering": 0.5585053606381855
+    },
+    "start_pose": {
+      "x": 16.12846800977037,
+      "y": 3.4072417636703984,
+      "yaw": 3.141592653589793
+    },
+    "target_slot": {
+      "center": [
+        9.62846800977037,
+        10.0
+      ],
+      "length": 5.0,
+      "width": 2.470945439540378,
+      "yaw": 0.7853981633974483
+    },
+    "static_obstacles": [
+      {
+        "name": "parked_left",
+        "center": [
+          13.164001915703107,
+          6.464466094067262
+        ],
+        "length": 4.8,
+        "width": 2.0,
+        "yaw": 0.7853981633974483
+      },
+      {
+        "name": "parked_right",
+        "center": [
+          6.0929341038376315,
+          13.535533905932738
+        ],
+        "length": 4.8,
+        "width": 2.0,
+        "yaw": 0.7853981633974483
+      },
+      {
+        "name": "back_curb",
+        "center": [
+          12.881159203228489,
+          13.252691193458118
+        ],
+        "length": 13.0,
+        "width": 0.25,
+        "yaw": 2.356194490192345
+      }
+    ],
+    "dynamic_actors": [],
+    "weather": {
+      "preset": "clear_noon",
+      "rain": 0.0,
+      "fog": 0.0,
+      "wetness": 0.0,
+      "sun_altitude_deg": 55.0
+    },
+    "sensors": {
+      "rgb_front": true,
+      "rgb_rear": true,
+      "depth_front": true,
+      "lidar": true,
+      "imu": true,
+      "wheel_odometry": true,
+      "camera_width": 1280,
+      "camera_height": 720,
+      "camera_fov_deg": 100.0,
+      "perception_hz": 12.0,
+      "dropout_probability": 0.0,
+      "pixel_noise_std": 0.0
+    },
+    "occlusion_level": 0.0,
+    "calibration_error_m": 0.0,
+    "calibration_error_deg": 0.0,
+    "expected_gear_sequence": [
+      "drive",
+      "reverse"
+    ]
+  }
+]

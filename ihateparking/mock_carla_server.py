@@ -51,12 +51,12 @@ class MockCarlaWorld:
         self._ground_truth_model: NeuralPerceptionAdapter | None = None
         self._neural_model: NeuralPerceptionAdapter | None = None
 
-    def reset(self, seed: int = 100, kind: str = ScenarioKind.PERPENDICULAR_REVERSE.value, dynamic_actor_count: int = 2) -> dict[str, Any]:
+    def reset(self, seed: int = 100, kind: str = ScenarioKind.PERPENDICULAR_REVERSE.value, dynamic_actor_count: int = 2, dynamic_actor_kinds: tuple[str, ...] = ()) -> dict[str, Any]:
         try:
             scenario_kind = ScenarioKind(kind)
         except ValueError as exc:
             raise ValueError(f"unknown scenario kind: {kind}") from exc
-        self.scenario = self.generator.generate(ScenarioConfig(seed=seed, kind=scenario_kind, dynamic_actor_count=dynamic_actor_count))
+        self.scenario = self.generator.generate(ScenarioConfig(seed=seed, kind=scenario_kind, dynamic_actor_count=dynamic_actor_count, dynamic_actor_kinds=dynamic_actor_kinds))
         self.pose = self.scenario.start_pose
         self.speed_mps = 0.0
         self.steering_angle_rad = 0.0
@@ -166,7 +166,8 @@ class MockCarlaWorld:
         if operation == "health":
             return {"ok": True, "service": "mock_carla", "carla_compatible": False}
         if operation == "reset":
-            return {"ok": True, "snapshot": self.reset(int(request.get("seed", 100)), str(request.get("kind", ScenarioKind.PERPENDICULAR_REVERSE.value)), int(request.get("dynamic_actor_count", 2)))}
+            kinds = tuple(str(item) for item in request.get("dynamic_actor_kinds", ()))
+            return {"ok": True, "snapshot": self.reset(int(request.get("seed", 100)), str(request.get("kind", ScenarioKind.PERPENDICULAR_REVERSE.value)), int(request.get("dynamic_actor_count", 2)), kinds)}
         if operation == "sensor_frame":
             return {"ok": True, "snapshot": self.snapshot()}
         if operation == "plan":

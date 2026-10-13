@@ -1,0 +1,15 @@
+.git
+.gitignore
+__pycache__
+*.py[cod]
+.pytest_cache
+.mypy_cache
+.venv
+.env
+assets
+artifacts
+build
+dist
+*.egg-info
+tests
+web/*.mp4

@@ -1,0 +1,11 @@
+services:
+  ihateparking:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "${IHATEPARKING_PORT:-8010}:8010"
+    environment:
+      PORT: 8010
+      IHATEPARKING_OUTPUT_DIR: /tmp/ihateparking-runtime
+    restart: unless-stopped

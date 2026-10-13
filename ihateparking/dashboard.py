@@ -33,6 +33,16 @@ class DashboardSession:
         self.output_dir = Path(output_dir)
         self.world = MockCarlaWorld(self.output_dir / "mock_carla")
         self.initial_planner_config = PlannerConfig(
+            xy_resolution=.8,
+            yaw_bins=16,
+            primitive_length=1.2,
+            primitive_sample=.4,
+            steering_samples=5,
+            goal_position_tolerance=.7,
+            goal_yaw_tolerance=math.radians(28.0),
+            max_expansions=30_000,
+        )
+        self.capture_planner_config = PlannerConfig(
             xy_resolution=.65,
             yaw_bins=16,
             primitive_length=.75,
@@ -66,7 +76,8 @@ class DashboardSession:
     def reset(self, seed: int = 100, kind: str = "perpendicular_reverse", dynamic_actor_count: int = 0) -> dict[str, Any]:
         with self._lock:
             snapshot = self.world.reset(seed, kind, dynamic_actor_count)
-            self.current_plan = HybridAStar(self.world.scenario.to_world(), self.initial_planner_config).plan(start=self.world.pose)
+            planner_config = self.capture_planner_config if kind == "perpendicular_reverse" else self.initial_planner_config
+            self.current_plan = HybridAStar(self.world.scenario.to_world(), planner_config).plan(start=self.world.pose)
             self.safety.replan_count = 0
             self.completed = False
             self.last_safety = SafetyDecision(SafetyAction.PROCEED, True, "initial plan ready", 999.0, .45, None)

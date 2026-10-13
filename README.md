@@ -77,6 +77,7 @@ ai_perception.py Model-independent AI perception interface and validation
 lightweight_perception.py NumPy MLP detector for slots and dynamic obstacles
 dynamic_safety.py Time-indexed prediction, replanning and emergency braking
 ground_truth_benchmark.py Replayable sensor stream and benchmark runner
+pedestrian_stress_test.py Deterministic pedestrian crossing safety benchmark
 mock_carla_server.py GPU-free JSON-lines server and pipeline smoke test
 dashboard.py FastAPI real-time dynamic safety visualization API
 stack_contracts.py Sensor, perception, trajectory, control and safety messages
@@ -105,7 +106,7 @@ print(path)
 PY
 ```
 
-The suite covers perpendicular forward/reverse, parallel reverse and angled parking, with weather, sensor, calibration, occlusion and dynamic-actor metadata. `carla_adapter.py` is intentionally optional and raises a clear error instead of pretending that the CARLA runtime is available.
+The suite covers perpendicular forward/reverse, parallel forward/reverse and angled forward/reverse parking, with weather, sensor, calibration, occlusion and dynamic-actor metadata. `carla_adapter.py` is intentionally optional and raises a clear error instead of pretending that the CARLA runtime is available.
 
 Phase 2 exposes `ai_perception.py`: a PyTorch/ONNX/TensorRT backend only needs to implement `predict(SensorFrame) -> RawPerceptionOutput`. `NeuralPerceptionAdapter` validates confidence and geometry, then returns the stable `PerceptionFrame` consumed by planning. `GroundTruthBackend` exists only for offline benchmark/replay and is explicitly marked as not for vehicle control.
 
@@ -185,6 +186,62 @@ python3 -m ihateparking.dashboard --host 0.0.0.0 --port 8010
 ```
 
 Open `http://localhost:8010`. The default dashboard starts with **zero dynamic actors** so the basic parking demo is clean and does not manufacture a collision. Set `Dynamic actors` above zero when you explicitly want the moving-actor stress test. The dashboard shows the mock world, planned path, neural slot/obstacle detections, dynamic actor tracks, clearance, braking distance, time-to-collision, replanning events and safety-stop events. The color code is **cyan = ego vehicle**, **red = moving actor/hazard**, **orange = target slot**, and **gray = parked/static obstacle**. A `BRAKE` state holds the vehicle at zero speed but does not stop the telemetry loop; frames continue advancing so the supervisor can observe the hazard clear. `POST /api/tick` advances one perception/control cycle; `POST /api/reset` changes the seed, scenario kind and dynamic actor count.
+
+## Expanded parking scenario coverage
+
+`ScenarioKind` now exposes six deterministic manoeuvre variants:
+
+- `perpendicular_forward`
+- `perpendicular_reverse`
+- `parallel_forward`
+- `parallel_reverse`
+- `angled_forward`
+- `angled_reverse`
+
+The parallel baseline uses a 6 m manoeuvring slot rather than a barely
+vehicle-length gap. This keeps the scenario physically plausible while still
+testing tight clearance around parked vehicles.
+
+## Deployment export and Docker
+
+Export the NumPy perception checkpoint, algorithmic planner profiles, all six
+scenario kinds and SHA-256 manifest:
+
+```bash
+python3 scripts/export_pipeline.py --output-dir deployment/export --scenario-count 24 --seed 100
+```
+
+The Hybrid A* planner has **no learned weights**; `planning_profiles.json`
+exports its search/safety parameters. The exported NumPy checkpoint is a
+baseline artifact for the mock pipeline, not a production-certified vehicle
+perception model.
+
+Build and run the clean deployment image on a host with Docker:
+
+```bash
+docker build -t ihateparking:deployment .
+docker run --rm -p 8010:8010 ihateparking:deployment
+```
+
+The image is a transport-independent runtime skeleton. Real hardware still
+needs validated camera/LiDAR/CAN or ROS2 adapters and a production perception
+backend.
+
+## Pedestrian safety stress test
+
+Run a deterministic four-pedestrian crossing scenario. The pedestrians are
+placed just outside the ego footprint so a safety stop can be evaluated without
+manufacturing a collision:
+
+```bash
+python3 -m ihateparking.pedestrian_stress_test \
+  --output artifacts/pedestrian_stress.json \
+  --frames 90 --pedestrians 4
+```
+
+The report includes ground-truth pedestrian visibility, neural dynamic-track
+visibility, PROCEED/REPLAN/BRAKE counts, first brake frame, minimum predicted
+clearance and contact events.
 
 ## Initial experiment protocol
 

@@ -1,0 +1,62 @@
+{
+  "planner": {
+    "name": "HybridAStar",
+    "algorithmic": true,
+    "weights": null,
+    "note": "The planner has no learned weights; these are reproducible search parameters.",
+    "config": {
+      "xy_resolution": 0.45,
+      "yaw_bins": 24,
+      "primitive_length": 0.75,
+      "primitive_sample": 0.15,
+      "steering_samples": 5,
+      "reverse_penalty": 0.35,
+      "gear_switch_penalty": 1.8,
+      "steering_change_penalty": 0.08,
+      "goal_position_tolerance": 0.35,
+      "goal_yaw_tolerance": 0.20943951023931956,
+      "max_expansions": 100000
+    }
+  },
+  "dashboard_robust_profile": {
+    "config": {
+      "xy_resolution": 0.8,
+      "yaw_bins": 16,
+      "primitive_length": 1.2,
+      "primitive_sample": 0.4,
+      "steering_samples": 5,
+      "reverse_penalty": 0.35,
+      "gear_switch_penalty": 1.8,
+      "steering_change_penalty": 0.08,
+      "goal_position_tolerance": 0.7,
+      "goal_yaw_tolerance": 0.48869,
+      "max_expansions": 30000
+    }
+  },
+  "dashboard_capture_profile": {
+    "config": {
+      "xy_resolution": 0.65,
+      "yaw_bins": 16,
+      "primitive_length": 0.75,
+      "primitive_sample": 0.25,
+      "steering_samples": 5,
+      "reverse_penalty": 0.35,
+      "gear_switch_penalty": 1.8,
+      "steering_change_penalty": 0.08,
+      "goal_position_tolerance": 0.35,
+      "goal_yaw_tolerance": 0.20944,
+      "max_expansions": 180
+    }
+  },
+  "dynamic_safety": {
+    "reaction_time_s": 0.35,
+    "braking_deceleration_mps2": 2.8,
+    "safety_margin_m": 0.45,
+    "prediction_horizon_s": 2.0,
+    "prediction_step_s": 0.1,
+    "emergency_ttc_s": 0.75,
+    "replan_ttc_s": 1.75,
+    "dynamic_confidence_floor": 0.35,
+    "max_obstacle_speed_mps": 3.5
+  }
+}
