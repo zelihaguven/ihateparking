@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ihateparking — autonomous parking lab</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <main class="app-shell">
+    <header class="topbar">
+      <div class="brand-lockup">
+        <div class="brand-mark" aria-hidden="true"><span></span><span></span><span></span></div>
+        <div>
+          <p class="eyebrow">AUTONOMOUS PARKING LAB / V1</p>
+          <h1>ihateparking</h1>
+        </div>
+      </div>
+      <div class="run-state"><span class="status-dot"></span><span id="run-status">READY TO REPLAY</span></div>
+    </header>
+
+    <section class="hero-copy">
+      <div>
+        <p class="eyebrow">CLOSED-LOOP SIMULATION</p>
+        <h2>Make the car <em>earn</em> its parking spot.</h2>
+        <p class="lede">Hybrid A* generates the manoeuvre. A reverse-aware Pure Pursuit controller follows it in closed loop — no teleporting, no scripted shortcut.</p>
+      </div>
+      <div class="hero-tag"><span>01</span><strong>PLAN → TRACK → PARK</strong></div>
+    </section>
+
+    <section class="workspace">
+      <div class="visual-panel panel">
+        <div class="panel-head">
+          <div>
+            <p class="eyebrow">LIVE REPLAY</p>
+            <h3>Parking manoeuvre</h3>
+          </div>
+          <div class="legend"><span><i class="swatch plan"></i>planned</span><span><i class="swatch trace"></i>closed loop</span></div>
+        </div>
+        <div class="canvas-wrap"><canvas id="parking-canvas" aria-label="Parking simulation visualization"></canvas><div id="loading" class="loading">loading trace…</div></div>
+        <div class="timeline"><div class="timeline-track"><div id="timeline-fill"></div><div id="timeline-thumb"></div></div><div class="timeline-labels"><span id="timeline-time">00.0 s</span><span id="timeline-progress">0%</span></div></div>
+        <div class="controls">
+          <button id="play-button" class="primary"><span class="play-icon">▶</span> Başlat</button>
+          <button id="step-button">Adım</button>
+          <button id="reset-button">Sıfırla</button>
+          <label class="speed-control"><span>Replay speed</span><input id="speed-slider" type="range" min="0.25" max="3" step="0.25" value="1" /><output id="speed-value">1×</output></label>
+        </div>
+      </div>
+
+      <aside class="side-stack">
+        <section class="panel metric-panel">
+          <div class="panel-head compact"><div><p class="eyebrow">RUN TELEMETRY</p><h3>Mission status</h3></div><span id="mission-badge" class="badge good">SUCCESS</span></div>
+          <div class="metric-grid">
+            <div class="metric"><span>Planner</span><strong id="metric-planner">Hybrid A*</strong><small id="metric-expanded">217 expansions</small></div>
+            <div class="metric"><span>Controller</span><strong>Pure Pursuit</strong><small id="metric-gear">gear —</small></div>
+            <div class="metric"><span>Path length</span><strong id="metric-path">8.24 m</strong><small>generated route</small></div>
+            <div class="metric"><span>Collisions</span><strong id="metric-collisions">0</strong><small>hard safety stop</small></div>
+          </div>
+        </section>
+
+        <section class="panel signal-panel">
+          <div class="panel-head compact"><div><p class="eyebrow">CONTROL LOOP</p><h3>Live signals</h3></div><span class="pulse"></span></div>
+          <div class="signal-row"><span>position</span><strong id="signal-position">—</strong></div>
+          <div class="signal-row"><span>heading</span><strong id="signal-heading">—</strong></div>
+          <div class="signal-row"><span>steering</span><strong id="signal-steering">—</strong></div>
+          <div class="signal-row"><span>elapsed</span><strong id="signal-time">0.0 s</strong></div>
+        </section>
+
+        <section class="panel note-panel">
+          <p class="eyebrow">WHY THIS MATTERS</p>
+          <p>RoadLens asks <strong>“can the car trust what it sees?”</strong> ihateparking asks <strong>“can the car move safely with what it knows?”</strong></p>
+          <div class="stack-label"><span>v1 stack</span><span>kinematics · planning · control</span></div>
+        </section>
+      </aside>
+    </section>
+
+    <footer class="footer"><span>ihateparking / independent from RoadLens</span><span id="data-source">trace.json</span></footer>
+  </main>
+  <script src="./app.js"></script>
+</body>
+</html>

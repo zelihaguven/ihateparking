@@ -16,7 +16,7 @@ parking world -> collision model -> Hybrid A* -> reverse-aware Pure Pursuit -> c
 
 - 2-D parking world with two parked vehicles, a curb, and a target slot
 - Rear-axle bicycle model
-- Slot goals are converted from footprint centers to rear-axle poses
+- Slot goals converted from footprint centers to rear-axle poses
 - Oriented-rectangle collision checking using the separating-axis theorem
 - Hybrid A* with forward/reverse motion primitives and steering discretisation
 - Reverse-aware Pure Pursuit controller
@@ -34,6 +34,18 @@ Artifacts are written to `artifacts/`:
 
 - `parking_run.png` — planned path, actual closed-loop trace, start and final poses
 - `metrics.json` — planner/controller metrics
+- `trace.json` — world, plan and per-frame trace consumed by the browser replay
+
+## Browser demo
+
+After generating the artifacts, serve the project root:
+
+```bash
+cd /home/ubuntu/ihateparking
+python3 -m http.server 8000 --bind 0.0.0.0
+```
+
+Open `/web/` to replay the real v1 trace. The dashboard has Play/Pause, step, reset and replay-speed controls, plus live position, heading, steering, gear and mission metrics.
 
 ## Architecture
 
@@ -43,7 +55,8 @@ geometry.py    Pose, oriented rectangles, polygon intersection
 planner.py     Hybrid A* search with kinematic motion primitives
 controller.py  Reverse-aware Pure Pursuit + simulator
 render.py      Static visualization for experiments
-run.py         Reproducible CLI entry point
+run.py         Reproducible CLI entry point + browser trace export
+web/           Static browser replay dashboard
 ```
 
 ## Initial experiment protocol
@@ -75,6 +88,7 @@ Primary metrics:
 - [x] Hybrid A* planner
 - [x] closed-loop controller
 - [x] reproducible render + metrics
+- [x] browser replay dashboard
 - [ ] automated scenario sweep
 
 ### v2 — research layer
@@ -89,7 +103,7 @@ Primary metrics:
 
 - [ ] camera-based parking-slot segmentation
 - [ ] top-down local occupancy map
-- [ ] browser-based replay dashboard
+- [ ] browser-based scenario editor
 - [ ] optional CARLA bridge
 
 ## Portfolio positioning
