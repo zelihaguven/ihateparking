@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import argparse
+import math
 from pathlib import Path
 from typing import Iterable
 
@@ -202,6 +203,7 @@ class NumpyMLPPerceptionBackend:
         self.model = model
         self.pixel_scale_m = pixel_scale_m
         self.origin_px = origin_px
+        self._track_history: dict[str, tuple[Pose, float]] = {}
 
     def predict(self, frame: SensorFrame) -> RawPerceptionOutput:
         if not frame.rgb_uri or not frame.depth_uri or not frame.lidar_uri:
@@ -231,15 +233,29 @@ class NumpyMLPPerceptionBackend:
             if class_name == "slot":
                 slots.append(RawSlot(f"slot_nn_{len(slots):02d}", Pose(world_x, world_y, 0.0), max(2.0, world_length), max(1.8, world_width), confidence, .25))
             elif class_name in ("static_obstacle", "dynamic_obstacle"):
+                track_id = f"{class_name}_nn_{len(obstacles):02d}"
+                pose = Pose(world_x, world_y, 0.0)
+                velocity_mps = 0.0
+                if class_name == "dynamic_obstacle":
+                    previous = self._track_history.get(track_id)
+                    if previous is not None:
+                        previous_pose, previous_time = previous
+                        dt = max(1e-3, frame.timestamp_s - previous_time)
+                        dx, dy = pose.x - previous_pose.x, pose.y - previous_pose.y
+                        velocity_mps = min(3.5, math.hypot(dx, dy) / dt)
+                        if velocity_mps > 0.02:
+                            pose = Pose(pose.x, pose.y, math.atan2(dy, dx))
+                    self._track_history[track_id] = (pose, frame.timestamp_s)
                 obstacles.append(RawObstacle(
-                    track_id=f"{class_name}_nn_{len(obstacles):02d}",
+                    track_id=track_id,
                     kind=class_name,
-                    pose=Pose(world_x, world_y, 0.0),
+                    pose=pose,
                     length_m=world_length,
                     width_m=world_width,
                     confidence=confidence,
                     uncertainty_m=.30 if class_name == "dynamic_obstacle" else .20,
                     dynamic=class_name == "dynamic_obstacle",
+                    velocity_mps=velocity_mps,
                 ))
         return RawPerceptionOutput(
             slots=tuple(slots),

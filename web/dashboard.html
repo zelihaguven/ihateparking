@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ihateparking / dynamic safety console</title>
+  <link rel="stylesheet" href="/static/dashboard.css" />
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <div class="brand"><span class="brand-mark">IP</span><div><p class="eyebrow">IHATEPARKING / MOCK CARLA</p><h1>Dynamic Safety Console</h1></div></div>
+      <div class="connection"><span id="connection-dot" class="dot"></span><span id="connection-label">CONNECTING</span></div>
+    </header>
+
+    <section class="hero">
+      <div><p class="eyebrow">PERCEPTION → PREDICTION → REPLAN → BRAKE</p><h2>See the safety envelope move.</h2><p class="lede">A GPU-free mirror of the autonomous parking loop. The NumPy perception model sees synthetic slots and actors; the supervisor predicts their motion before the controller commits to the next step.</p></div>
+      <div class="hero-stamp"><strong>LIVE</strong><span>JSON-LINES<br />FASTAPI</span></div>
+    </section>
+
+    <section class="toolbar panel">
+      <label>Scenario<select id="scenario-kind"><option value="perpendicular_reverse">Perpendicular reverse</option><option value="parallel_reverse">Parallel reverse</option><option value="perpendicular_forward">Perpendicular forward</option><option value="angled_forward">Angled forward</option></select></label>
+      <label>Seed<input id="seed" type="number" value="100" min="0" /></label>
+      <label>Dynamic actors<input id="dynamic-count" type="number" value="2" min="0" max="6" /></label>
+      <button id="reset-button" class="button secondary">Reset scenario</button>
+      <button id="step-button" class="button secondary">Single step</button>
+      <button id="run-button" class="button primary">Run loop</button>
+    </section>
+
+    <section class="layout">
+      <div class="panel visual-panel">
+        <div class="panel-heading"><div><p class="eyebrow">TOP-DOWN DEBUG VIEW</p><h3>Mock CARLA world</h3></div><span id="mode-badge" class="badge neutral">EXECUTE</span></div>
+        <div class="canvas-wrap"><canvas id="world-canvas"></canvas><div class="canvas-caption">synthetic BEV / not a photorealistic camera</div></div>
+        <div class="legend"><span><i class="key ego"></i>ego</span><span><i class="key plan"></i>plan</span><span><i class="key static"></i>static</span><span><i class="key dynamic"></i>dynamic</span><span><i class="key slot"></i>slot</span></div>
+      </div>
+
+      <aside class="right-column">
+        <section class="panel safety-card"><div class="panel-heading"><div><p class="eyebrow">SUPERVISOR</p><h3 id="safety-action">PROCEED</h3></div><span id="safety-icon" class="safety-icon">✓</span></div><p id="safety-reason" class="reason">Waiting for telemetry.</p><div class="safety-grid"><div><span>clearance</span><strong id="clearance">—</strong></div><div><span>braking distance</span><strong id="braking-distance">—</strong></div><div><span>time to collision</span><strong id="ttc">—</strong></div><div><span>replans</span><strong id="replans">0</strong></div></div></section>
+        <section class="panel metric-card"><div class="panel-heading"><div><p class="eyebrow">PERCEPTION</p><h3 id="model-name">—</h3></div><span id="frame-id" class="mono">—</span></div><div class="metric-row"><span>slots</span><strong id="slot-count">0</strong></div><div class="metric-row"><span>obstacles</span><strong id="obstacle-count">0</strong></div><div class="metric-row"><span>dynamic tracks</span><strong id="dynamic-count-readout">0</strong></div><div class="metric-row"><span>out-of-distribution</span><strong id="ood-score">—</strong></div></section>
+        <section class="panel metric-card"><div class="panel-heading"><div><p class="eyebrow">VEHICLE STATE</p><h3 id="gear">PARK</h3></div><span id="frame-number" class="mono">frame 0</span></div><div class="metric-row"><span>position</span><strong id="position">—</strong></div><div class="metric-row"><span>speed</span><strong id="speed">—</strong></div><div class="metric-row"><span>steering</span><strong id="steering">—</strong></div><div class="metric-row"><span>collisions</span><strong id="collisions">0</strong></div></section>
+      </aside>
+    </section>
+
+    <section class="panel event-panel"><div class="panel-heading"><div><p class="eyebrow">SAFETY EVENT LOG</p><h3>Supervisor decisions</h3></div><span id="last-time" class="mono">t=0.00s</span></div><div id="event-log" class="event-log"></div></section>
+    <footer><span>ihateparking / dynamic replanning prototype</span><span>FastAPI · NumPy MLP · Hybrid A*</span></footer>
+  </main>
+  <script src="/static/dashboard.js"></script>
+</body>
+</html>

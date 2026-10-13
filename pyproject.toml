@@ -15,10 +15,15 @@ dependencies = [
 
 [project.scripts]
 ihateparking = "ihateparking.run:main"
+ihateparking-dashboard = "ihateparking.dashboard:main"
 
 [project.optional-dependencies]
 vision = [
   "opencv-python-headless>=4.9",
+]
+dashboard = [
+  "fastapi>=0.110",
+  "uvicorn[standard]>=0.29",
 ]
 
 [tool.setuptools.packages.find]

@@ -6,5 +6,6 @@ __pycache__/
 artifacts/*.png
 artifacts/*.json
 artifacts/mock_carla/
+artifacts/dashboard/
 assets/*.mp4
 assets/frames/

@@ -20,7 +20,7 @@ from typing import Any
 import numpy as np
 
 from .ai_perception import NeuralPerceptionAdapter
-from .geometry import Pose, oriented_box
+from .geometry import Pose, oriented_box, polygons_intersect, vehicle_polygon
 from .ground_truth_benchmark import backend_for_scenario
 from .lightweight_perception import NumpyMLPPerceptionBackend, load_or_train
 from .planner import HybridAStar
@@ -87,6 +87,16 @@ class MockCarlaWorld:
             float((self.pose.yaw + yaw_rate * dt + np.pi) % (2.0 * np.pi) - np.pi),
         )
         collision = self.scenario.to_world().is_collision(next_pose)
+        if not collision:
+            vehicle_shape = vehicle_polygon(next_pose, self.scenario.vehicle.length, self.scenario.vehicle.width, self.scenario.vehicle.rear_overhang)
+            dynamic_poses = self._dynamic_actor_poses()
+            for actor in self.scenario.dynamic_actors:
+                actor_pose = dynamic_poses[actor.actor_id]
+                length, width = ((4.5, 2.0) if actor.kind == "vehicle" else (.7, .7))
+                actor_shape = oriented_box((actor_pose.x, actor_pose.y), length, width, actor_pose.yaw)
+                if polygons_intersect(vehicle_shape, actor_shape, margin=.12):
+                    collision = True
+                    break
         if collision:
             self.collisions += 1
         else:

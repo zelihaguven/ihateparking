@@ -75,8 +75,10 @@ scenario_generator.py Seeded multi-scenario contract for CARLA/replay
 carla_adapter.py Optional CARLA runtime boundary
 ai_perception.py Model-independent AI perception interface and validation
 lightweight_perception.py NumPy MLP detector for slots and dynamic obstacles
+dynamic_safety.py Time-indexed prediction, replanning and emergency braking
 ground_truth_benchmark.py Replayable sensor stream and benchmark runner
 mock_carla_server.py GPU-free JSON-lines server and pipeline smoke test
+dashboard.py FastAPI real-time dynamic safety visualization API
 stack_contracts.py Sensor, perception, trajectory, control and safety messages
 geometry.py    Pose, oriented rectangles, polygon intersection
 planner.py     Hybrid A* search with kinematic motion primitives
@@ -160,6 +162,29 @@ python3 -m ihateparking.mock_carla_server --mode server --port 2100
 ```
 
 The smoke test uses the same request boundary as a remote server and writes synthetic `.npy` RGB/depth/LiDAR artifacts. The mock image is explicitly a top-down debug representation, not a photorealistic camera. Supported operations are `health`, `reset`, `sensor_frame`, `plan`, `step`, `spawn_plan` and `shutdown`.
+
+### Dynamic replanning and safety braking
+
+`dynamic_safety.py` predicts each confident dynamic track over a two-second horizon. It compares predicted overlap and time-to-collision against reaction time, braking distance and a safety margin:
+
+```text
+clear envelope       → PROCEED
+approaching envelope → REPLAN with dynamic obstacles inserted
+emergency TTC        → BRAKE / SAFE_STOP with zero speed
+```
+
+The safety layer is conservative by design. A failed replan is converted into an emergency stop rather than an unsafe fallback.
+
+### FastAPI real-time dashboard
+
+Install the optional dashboard dependencies and start the local visualization:
+
+```bash
+python3 -m pip install -r requirements-dashboard.txt
+python3 -m ihateparking.dashboard --host 0.0.0.0 --port 8010
+```
+
+Open `http://localhost:8010`. The dashboard shows the mock world, planned path, neural slot/obstacle detections, dynamic actor tracks, clearance, braking distance, time-to-collision, replanning events and safety-stop events. `POST /api/tick` advances one perception/control cycle; `POST /api/reset` changes the seed, scenario kind and dynamic actor count.
 
 ## Initial experiment protocol
 
