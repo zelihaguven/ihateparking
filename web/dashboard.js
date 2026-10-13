@@ -45,6 +45,13 @@ function boxPoints(center, length, width, yaw, bounds, cw, ch) {
   return corners.map(([x, y]) => posePoint({ x: center[0] + x * Math.cos(yaw) - y * Math.sin(yaw), y: center[1] + x * Math.sin(yaw) + y * Math.cos(yaw) }, bounds, cw, ch));
 }
 
+function vehiclePoints(pose, bounds, cw, ch) {
+  // The planner pose is at the rear axle: 0.70 m rear overhang and
+  // 3.70 m from rear axle to the front bumper.
+  const corners = [[-.70, -.95], [3.70, -.95], [3.70, .95], [-.70, .95]];
+  return corners.map(([x, y]) => posePoint({ x: pose.x + x * Math.cos(pose.yaw) - y * Math.sin(pose.yaw), y: pose.y + x * Math.sin(pose.yaw) + y * Math.cos(pose.yaw) }, bounds, cw, ch));
+}
+
 function drawWorld(data) {
   const rect = canvas.getBoundingClientRect();
   const ratio = window.devicePixelRatio || 1;
@@ -102,7 +109,7 @@ function drawWorld(data) {
   });
 
   const vehicle = data.snapshot.state.pose;
-  const ego = boxPoints([vehicle.x, vehicle.y], 4.4, 1.9, vehicle.yaw, bounds, width, height);
+  const ego = vehiclePoints(vehicle, bounds, width, height);
   drawPolygon(ego, "#22616b", "#72d8dc", 2);
   const direction = posePoint({ x: vehicle.x + Math.cos(vehicle.yaw) * 1.5, y: vehicle.y + Math.sin(vehicle.yaw) * 1.5 }, bounds, width, height);
   const origin = posePoint(vehicle, bounds, width, height);

@@ -29,6 +29,16 @@ class DashboardSession:
     def __init__(self, output_dir: str | Path = "artifacts/dashboard"):
         self.output_dir = Path(output_dir)
         self.world = MockCarlaWorld(self.output_dir / "mock_carla")
+        self.initial_planner_config = PlannerConfig(
+            xy_resolution=.65,
+            yaw_bins=16,
+            primitive_length=.75,
+            primitive_sample=.25,
+            steering_samples=5,
+            goal_position_tolerance=.35,
+            goal_yaw_tolerance=math.radians(12.0),
+            max_expansions=180,
+        )
         self.safety = DynamicReplanner(
             planner_config=PlannerConfig(
                 xy_resolution=.8,
@@ -44,6 +54,7 @@ class DashboardSession:
         )
         self.current_plan: PlanResult | None = None
         self._lock = threading.RLock()
+        self.completed = False
         self.last_safety = SafetyDecision(SafetyAction.PROCEED, True, "waiting for reset", 999.0, 0.45, None)
         self.event_log: list[dict[str, Any]] = []
         self.last_action = "proceed"
@@ -52,8 +63,9 @@ class DashboardSession:
     def reset(self, seed: int = 100, kind: str = "perpendicular_reverse", dynamic_actor_count: int = 0) -> dict[str, Any]:
         with self._lock:
             snapshot = self.world.reset(seed, kind, dynamic_actor_count)
-            self.current_plan = HybridAStar(self.world.scenario.to_world(), self.safety.planner_config).plan(start=self.world.pose)
+            self.current_plan = HybridAStar(self.world.scenario.to_world(), self.initial_planner_config).plan(start=self.world.pose)
             self.safety.replan_count = 0
+            self.completed = False
             self.last_safety = SafetyDecision(SafetyAction.PROCEED, True, "initial plan ready", 999.0, .45, None)
             self.event_log = [{"frame": snapshot["frame"], "time_s": snapshot["timestamp_s"], "level": "info", "message": "scenario reset and initial plan generated"}]
             self.last_action = "proceed"
@@ -62,6 +74,13 @@ class DashboardSession:
     def tick(self, dt: float = .10) -> dict[str, Any]:
         with self._lock:
             snapshot = self.world.snapshot()
+            if self.completed or self.world.scenario.to_world().at_goal(self.world.pose):
+                self.completed = True
+                self.world.speed_mps = 0.0
+                self.world.gear = Gear.PARK
+                self.last_safety = SafetyDecision(SafetyAction.PROCEED, True, "goal pose captured; vehicle parked", 999.0, .45, None)
+                self._event("complete", "goal pose captured; vehicle parked")
+                return self.state(self.world.snapshot())
             perception = self._perception_from_dict(snapshot["perception"])
             assessment = self.safety.assess_and_replan(
                 self.world.scenario.to_world(),
@@ -113,7 +132,7 @@ class DashboardSession:
             "plan": self._plan_dict(self.current_plan),
             "safety": self._safety_dict(self.last_safety),
             "replan_count": self.safety.replan_count,
-            "autonomy_mode": AutonomyMode.SAFE_STOP.value if self.last_safety.should_brake else (AutonomyMode.PLAN_MANOEUVRE.value if self.last_safety.should_replan else AutonomyMode.EXECUTE.value),
+            "autonomy_mode": AutonomyMode.COMPLETE.value if self.completed else (AutonomyMode.SAFE_STOP.value if self.last_safety.should_brake else (AutonomyMode.PLAN_MANOEUVRE.value if self.last_safety.should_replan else AutonomyMode.EXECUTE.value)),
             "events": list(self.event_log[-30:]),
         }
 
@@ -123,12 +142,22 @@ class DashboardSession:
         pose = self.world.pose
         closest = min(range(len(self.current_plan.poses)), key=lambda index: distance(pose, self.current_plan.poses[index]))
         target_index = min(len(self.current_plan.poses) - 1, closest + 2)
-        raw_gear = self.current_plan.gears[target_index]
+        goal = self.world.scenario.target_slot.goal_pose(self.world.scenario.vehicle)
+        final_approach = target_index >= len(self.current_plan.poses) - 2 or distance(pose, goal) < 1.5
+        if final_approach:
+            target = goal
+            dx, dy = target.x - pose.x, target.y - pose.y
+            local_x = math.cos(pose.yaw) * dx + math.sin(pose.yaw) * dy
+            raw_gear = -1 if local_x < -0.05 else 1
+            speed = .16
+        else:
+            raw_gear = self.current_plan.gears[target_index]
+            target = self.current_plan.poses[target_index]
+            speed = .35
         gear = Gear.REVERSE if raw_gear < 0 else Gear.DRIVE
-        target = self.current_plan.poses[target_index]
         from .controller import pure_pursuit
         steering = pure_pursuit(pose, target, raw_gear, self.world.scenario.vehicle.wheelbase, .6, self.world.scenario.vehicle.max_steering)
-        return gear, steering, .35
+        return gear, steering, speed
 
     @staticmethod
     def _perception_from_dict(data: dict[str, Any]) -> PerceptionFrame:
