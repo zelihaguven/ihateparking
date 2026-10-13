@@ -137,11 +137,12 @@ The current sandbox does not contain CARLA, so the spawn path is validated throu
 For a GPU-free end-to-end contract test, start the local JSON-lines mock server:
 
 ```bash
-# Terminal A
-python3 -m ihateparking.mock_carla_server --mode server --port 2100
-
-# Terminal B: reset, stream synthetic sensors, run Hybrid A*, and step controls
+# One-command smoke test: starts an ephemeral TCP server internally, then
+# resets, streams synthetic sensors, runs Hybrid A*, and steps controls.
 python3 -m ihateparking.mock_carla_server --mode smoke-test --frames 8
+
+# Optional long-running endpoint for a separate client
+python3 -m ihateparking.mock_carla_server --mode server --port 2100
 ```
 
 The smoke test uses the same request boundary as a remote server and writes synthetic `.npy` RGB/depth/LiDAR artifacts. The mock image is explicitly a top-down debug representation, not a photorealistic camera. Supported operations are `health`, `reset`, `sensor_frame`, `plan`, `step`, `spawn_plan` and `shutdown`.
