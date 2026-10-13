@@ -71,6 +71,10 @@ python3 -m ihateparking.tutorial_video --output assets/ihateparking_virtual_park
 
 ```text
 world.py       Scenario, vehicle dimensions, slot and collision queries
+scenario_generator.py Seeded multi-scenario contract for CARLA/replay
+carla_adapter.py Optional CARLA runtime boundary
+ai_perception.py Model-independent AI perception interface and validation
+stack_contracts.py Sensor, perception, trajectory, control and safety messages
 geometry.py    Pose, oriented rectangles, polygon intersection
 planner.py     Hybrid A* search with kinematic motion primitives
 controller.py  Reverse-aware Pure Pursuit + simulator
@@ -82,6 +86,22 @@ web/           Static browser replay dashboard
 assets/        Research footage used by the Video Assist demo
 
 The target real-system architecture is documented in [`docs/real-system-architecture.md`](docs/real-system-architecture.md). The first transport-independent message contracts live in `stack_contracts.py`; they are designed to map to ROS2 messages later without importing ROS2 into the core planner.
+
+## Phase 1–2: scenarios and AI perception boundary
+
+Generate a deterministic scenario suite without requiring CARLA to be installed:
+
+```bash
+python3 - <<'PY'
+from ihateparking.scenario_generator import ScenarioGenerator
+path = ScenarioGenerator().write_suite("artifacts/scenario_suite.json", count=20, seed=100)
+print(path)
+PY
+```
+
+The suite covers perpendicular forward/reverse, parallel reverse and angled parking, with weather, sensor, calibration, occlusion and dynamic-actor metadata. `carla_adapter.py` is intentionally optional and raises a clear error instead of pretending that the CARLA runtime is available.
+
+Phase 2 exposes `ai_perception.py`: a PyTorch/ONNX/TensorRT backend only needs to implement `predict(SensorFrame) -> RawPerceptionOutput`. `NeuralPerceptionAdapter` validates confidence and geometry, then returns the stable `PerceptionFrame` consumed by planning. `GroundTruthBackend` exists only for offline benchmark/replay and is explicitly marked as not for vehicle control.
 ```
 
 ## Initial experiment protocol
