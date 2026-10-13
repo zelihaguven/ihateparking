@@ -57,6 +57,14 @@ python3 -m ihateparking.video_assist assets/pexels_parking_pov.mp4
 
 The current clip contains a cone driving course, a turn, and a stop, but not a complete reverse parking manoeuvre. This limitation is recorded in `docs/footage-research.md`; the next dataset should add a fixed rear/360 camera view and a continuous parking-slot sequence.
 
+## Self-generated virtual lesson
+
+The `/web/tutorial.html` page plays a locally rendered English parking lesson. It is not stock footage: every frame is generated from the v1 world, Hybrid A* path and closed-loop trace. The lesson explains approach, turning, arc following, wheel straightening and the final stop while showing the steering gauge, path and zero-collision result.
+
+```bash
+python3 -m ihateparking.tutorial_video --output assets/ihateparking_virtual_parking_tutorial.mp4
+```
+
 ## Architecture
 
 ```text
@@ -67,6 +75,7 @@ controller.py  Reverse-aware Pure Pursuit + simulator
 render.py      Static visualization for experiments
 run.py         Reproducible CLI entry point + browser trace export
 video_assist.py OpenCV-based footage perception and English guidance signals
+ tutorial_video.py Self-generated instructional parking animation
 web/           Static browser replay dashboard
 assets/        Research footage used by the Video Assist demo
 ```
