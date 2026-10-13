@@ -84,6 +84,7 @@ video_assist.py OpenCV-based footage perception and English guidance signals
  tutorial_video.py Self-generated instructional parking animation
 web/           Static browser replay dashboard
 assets/        Research footage used by the Video Assist demo
+```
 
 The target real-system architecture is documented in [`docs/real-system-architecture.md`](docs/real-system-architecture.md). The first transport-independent message contracts live in `stack_contracts.py`; they are designed to map to ROS2 messages later without importing ROS2 into the core planner.
 
@@ -102,7 +103,32 @@ PY
 The suite covers perpendicular forward/reverse, parallel reverse and angled parking, with weather, sensor, calibration, occlusion and dynamic-actor metadata. `carla_adapter.py` is intentionally optional and raises a clear error instead of pretending that the CARLA runtime is available.
 
 Phase 2 exposes `ai_perception.py`: a PyTorch/ONNX/TensorRT backend only needs to implement `predict(SensorFrame) -> RawPerceptionOutput`. `NeuralPerceptionAdapter` validates confidence and geometry, then returns the stable `PerceptionFrame` consumed by planning. `GroundTruthBackend` exists only for offline benchmark/replay and is explicitly marked as not for vehicle control.
+
+### First sensor-flow benchmark
+
+Run the CARLA-independent GroundTruthBackend flow before installing the simulator:
+
+```bash
+python3 -m ihateparking.ground_truth_benchmark --count 4 --frames 5
 ```
+
+This exercises `ScenarioSpec -> SensorFrame stream -> GroundTruthBackend -> NeuralPerceptionAdapter -> PerceptionFrame` and writes `artifacts/ground_truth_benchmark.json`.
+
+### CARLA connection and spawning
+
+When the CARLA Python API and server are available, the adapter can load the requested map, enable synchronous mode, set weather, spawn the ego vehicle and attach front/rear RGB, front depth, LiDAR and IMU sensors:
+
+```python
+from ihateparking.carla_adapter import CarlaScenarioAdapter
+from ihateparking.scenario_generator import ScenarioConfig, ScenarioGenerator
+
+scenario = ScenarioGenerator().generate(ScenarioConfig(seed=7))
+with CarlaScenarioAdapter() as adapter:
+    plan = adapter.spawn_vehicle_and_sensors(scenario)
+    adapter.tick()
+```
+
+The current sandbox does not contain CARLA, so the spawn path is validated through a serializable `CarlaSpawnPlan` and an explicit missing-runtime error rather than a fake live run.
 
 ## Initial experiment protocol
 
