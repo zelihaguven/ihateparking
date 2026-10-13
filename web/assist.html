@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ihateparking — Video Assist</title>
+  <link rel="stylesheet" href="./styles.css" />
+  <link rel="stylesheet" href="./assist.css" />
+</head>
+<body>
+  <main class="app-shell">
+    <header class="topbar">
+      <div class="brand-lockup"><div class="brand-mark" aria-hidden="true"><span></span><span></span><span></span></div><div><p class="eyebrow">VISION-TO-ACTION / V1</p><h1>ihateparking</h1></div></div>
+      <nav class="assist-nav"><a href="./">Planner replay</a><span class="active">Video assist</span></nav>
+    </header>
+
+    <section class="assist-hero"><div><p class="eyebrow">HUMAN-IN-THE-LOOP PARKING ASSIST</p><h2>See the road. <em>Explain the next move.</em></h2><p class="lede">A real in-cabin clip is processed as a visual signal. The prototype turns detected cone boundaries into short, actionable English guidance — without pretending to control the vehicle.</p></div><div class="assist-pill"><span class="live-dot"></span><strong>FRAME ANALYSIS ACTIVE</strong></div></section>
+
+    <section class="assist-workspace">
+      <div class="video-panel panel">
+        <div class="panel-head"><div><p class="eyebrow">SOURCE FOOTAGE</p><h3>In-cabin driving view</h3></div><span class="source-chip">Pexels / 13.2 s</span></div>
+        <div class="video-stage"><video id="source-video" controls playsinline preload="metadata" src="../assets/pexels_parking_pov.mp4"></video><canvas id="vision-boxes" aria-hidden="true"></canvas><div class="vision-overlay"><div class="overlay-top"><span class="vision-tag">VISION ASSIST</span><span id="frame-counter">frame —</span></div><div id="instruction-card" class="instruction-card"><small>NEXT RECOMMENDATION</small><strong id="instruction">Loading signal…</strong><span id="instruction-reason">Waiting for the first analyzed frame</span></div><div class="overlay-bottom"><span id="boundary-readout">boundary signal —</span><span id="confidence-readout">confidence —</span></div></div></div>
+        <div class="video-controls"><button id="analyze-button" class="primary">▶ Play assist</button><button id="reset-video-button">Reset</button><button id="voice-button">Enable voice</button><label class="assist-speed">Replay speed <input id="assist-speed-slider" type="range" min="0.5" max="2" step="0.5" value="1" /><output id="assist-speed-value">1×</output></label></div>
+      </div>
+
+      <aside class="side-stack">
+        <section class="panel instruction-panel"><div class="panel-head compact"><div><p class="eyebrow">ACTION POLICY</p><h3>What the assistant sees</h3></div><span class="badge good">SAFE MODE</span></div><div class="policy-line"><span class="policy-icon cone"></span><div><strong>Orange boundary</strong><small>detected from the camera frame</small></div></div><div class="policy-line"><span class="policy-icon steer"></span><div><strong>Steering suggestion</strong><small>direction only — no actuation</small></div></div><div class="policy-line"><span class="policy-icon stop"></span><div><strong>Safety stop</strong><small>triggered when the boundary is too close</small></div></div></section>
+        <section class="panel signal-panel"><div class="panel-head compact"><div><p class="eyebrow">LIVE FRAME SIGNAL</p><h3>Perception telemetry</h3></div><span class="pulse"></span></div><div class="signal-row"><span>video time</span><strong id="assist-time">0.0 s</strong></div><div class="signal-row"><span>boundary count</span><strong id="boundary-count">—</strong></div><div class="signal-row"><span>boundary center</span><strong id="boundary-center">—</strong></div><div class="signal-row"><span>mode</span><strong>human-in-the-loop</strong></div></section>
+        <section class="panel note-panel"><p class="eyebrow">CURRENT LIMITATION</p><p>This source has cones and a turn, but no complete reverse parking slot. The next dataset pass will replace the cone policy with slot geometry, rear-camera context and true reverse/straighten instructions.</p><div class="stack-label"><span>source</span><span>assets/pexels_parking_pov.mp4</span></div></section>
+      </aside>
+    </section>
+    <footer class="footer"><span>ihateparking / English video-assist prototype</span><a href="./">Back to planner replay</a></footer>
+  </main>
+  <script src="./assist.js"></script>
+</body>
+</html>

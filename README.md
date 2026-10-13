@@ -47,6 +47,16 @@ python3 -m http.server 8000 --bind 0.0.0.0
 
 Open `/web/` to replay the real v1 trace. The dashboard has Play/Pause, step, reset and replay-speed controls, plus live position, heading, steering, gear and mission metrics.
 
+## English Video Assist demo
+
+The `/web/assist.html` page replays a real in-cabin Pexels clip and overlays the output of `ihateparking.video_assist`. The current v1 perception signal is a deterministic orange-boundary/cone detector implemented with OpenCV. It produces English human-in-the-loop suggestions such as `KEEP CENTERED`, `STEER RIGHT GENTLY`, `STEER LEFT GENTLY`, and `STOP — boundary is too close`.
+
+```bash
+python3 -m ihateparking.video_assist assets/pexels_parking_pov.mp4
+```
+
+The current clip contains a cone driving course, a turn, and a stop, but not a complete reverse parking manoeuvre. This limitation is recorded in `docs/footage-research.md`; the next dataset should add a fixed rear/360 camera view and a continuous parking-slot sequence.
+
 ## Architecture
 
 ```text
@@ -56,7 +66,9 @@ planner.py     Hybrid A* search with kinematic motion primitives
 controller.py  Reverse-aware Pure Pursuit + simulator
 render.py      Static visualization for experiments
 run.py         Reproducible CLI entry point + browser trace export
+video_assist.py OpenCV-based footage perception and English guidance signals
 web/           Static browser replay dashboard
+assets/        Research footage used by the Video Assist demo
 ```
 
 ## Initial experiment protocol
