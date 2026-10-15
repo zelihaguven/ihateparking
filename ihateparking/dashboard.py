@@ -57,6 +57,14 @@ class MpcDemoRequest(BaseModel):
     derivative_mode: Literal["finite_difference", "casadi_ad"] = "finite_difference"
 
 
+class ParkingSearchRequest(BaseModel):
+    seed: int = Field(default=100, ge=0, le=2_147_483_647)
+    case: Literal[
+        "clear_slot", "cars_too_close", "slot_too_short",
+        "occupied_slot", "low_confidence", "no_verified_path",
+    ] = "clear_slot"
+
+
 class DashboardSession:
     GOAL_POSITION_TOLERANCE_M = .25
     GOAL_YAW_TOLERANCE_RAD = math.radians(7.0)
@@ -248,7 +256,7 @@ class DashboardSession:
 
 app = FastAPI(title="ihateparking Dynamic Safety Console", version="0.3")
 session = DashboardSession()
-_mpc_run_lock = threading.Lock()
+_heavy_simulation_lock = threading.Lock()
 app.mount("/static", StaticFiles(directory=str(WEB_DIR)), name="static")
 app.mount("/web", StaticFiles(directory=str(WEB_DIR), html=True), name="web")
 app.mount("/assets", StaticFiles(directory=str(ROOT / "assets")), name="assets")
@@ -297,10 +305,10 @@ async def step(body: ManualStepRequest) -> dict[str, Any]:
 
 @app.post("/api/mpc/run")
 async def run_mpc_demo(body: MpcDemoRequest) -> dict[str, Any]:
-    if not _mpc_run_lock.acquire(blocking=False):
+    if not _heavy_simulation_lock.acquire(blocking=False):
         raise HTTPException(
             status_code=429,
-            detail="An MPC simulation is already running on this worker; retry after it finishes.",
+            detail="Another compute-intensive simulation is running on this worker; retry after it finishes.",
         )
 
     def execute() -> dict[str, Any]:
@@ -333,7 +341,22 @@ async def run_mpc_demo(body: MpcDemoRequest) -> dict[str, Any]:
     try:
         return await run_in_threadpool(execute)
     finally:
-        _mpc_run_lock.release()
+        _heavy_simulation_lock.release()
+
+
+@app.post("/api/parking-search/run")
+async def run_parking_search_demo(body: ParkingSearchRequest) -> dict[str, Any]:
+    if not _heavy_simulation_lock.acquire(blocking=False):
+        raise HTTPException(
+            status_code=429,
+            detail="Another compute-intensive simulation is running on this worker; retry after it finishes.",
+        )
+    try:
+        from ihateparking.parking_search import run_parking_search
+
+        return await run_in_threadpool(run_parking_search, body.seed, body.case)
+    finally:
+        _heavy_simulation_lock.release()
 
 
 def main() -> int:

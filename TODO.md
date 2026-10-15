@@ -3,43 +3,47 @@
 - [ ] **Permanent public website**
   - Host the actual interactive autonomous-parking application as a permanent public website with a stable HTTPS URL.
   - Preserve the real-time FastAPI-backed safety dashboard and live API behavior.
-
+  - Keep same-origin relative APIs, an unauthenticated health endpoint, the frozen NumPy perception checkpoint, temporary runtime artifacts, no database or cross-session run history, and the ordinary non-always-on hosting default.
 - [x] **Synthetic parking simulation and planner**
   - Provide a synthetic/mock CARLA simulation experience with no implication of a live CARLA or vehicle-hardware connection.
   - Offer all six parking maneuvers: perpendicular, parallel, and angled parking, each in forward and reverse.
   - Visualize and run Hybrid A* path planning for the selected parking maneuver.
   - Apply reverse-aware Pure Pursuit control during simulated trajectory execution.
-
 - [x] **Perception and dynamic safety supervision**
   - Retain lightweight NumPy-based perception within the simulation pipeline.
   - Preserve dynamic-safety supervision with real-time status and intervention visibility.
-
 - [x] **English lab documentation**
   - Present clear English documentation covering architecture, controls, API usage, limitations, and how to use the lab.
-
 - [x] **Research-only boundary**
   - Display prominent research-prototype disclaimers stating that the system is not production-certified or intended for real-vehicle operation.
-
 - [x] **Interactive constrained-MPC web demo**
   - “Turn the simulation results and script into an interactive web demo or dashboard.”
   - Provide browser controls for bounded MPC configuration, run the existing Python simulation through a same-origin API, and visualize both Pure Pursuit and constrained-MPC results in the same scenario.
   - Include an on/off shifted warm-start option that uses the prior feasible control sequence only as an initial guess; retain the hard MPC constraints and independent executed-footprint check.
   - Show completion/collision-guard outcome, clearance, solver timing, and whether the measured solve fits the selected simulation-step threshold; label the 2.5 m reverse-in world as synthetic and static-obstacle only.
   - Keep the feature in English, link it from the existing lab console, and synchronize its page path in `manus-routes.json`.
-
 - [x] **Solver performance and real-vehicle integration guidance**
   - “How can we optimize the SLSQP solver performance or use alternative optimization libraries to bring solve time below the 180ms threshold?”
   - Measure the current and selectable SLSQP configurations, report actual latency and feasibility, and do not claim sub-180 ms unless the measured result supports it.
   - “This algorithm will be used in the real autonomous car”: explain candidate optimization paths and the validation boundary; distinguish the 180 ms simulation comparison from the project’s 20–50 Hz control target and do not present the current Python simulation as ready to control a real vehicle.
-
-
 - [x] **SLSQP callback and derivative optimization**
   - “Profile callbacks and reduce callback work, then benchmark analytic/automatic-differentiation Jacobians.”
   - Compare the current finite-difference SLSQP path against an optional CasADi automatic-differentiation Jacobian path on the same synthetic scenario and configuration.
   - Report setup, objective/constraint/Jacobian evaluation counts, optimizer-only time, full controller-call p50/p95/p99/max, feasibility, clearance, safety-stop outcome and simulation-step misses.
   - Preserve hard polygon constraints, the independent executed-footprint collision check and safe-stop behavior; make no real-time claim without target-hardware evidence.
-
-- [x] **Push recent project code to GitHub**
-  - “Do not forget for pushing the recent codes to GitHub.”
-  - Synchronize the completed project source to the existing private `zelihaguven/ihateparking` repository’s default branch without rewriting or force-pushing its history, and keep the separate Manus project repository intact.
-  - GitHub default branch `master` updated successfully (commit `f7082c40a3c47889b88dbc88c0f51ba28480ac50`).
+- [ ] **Push the latest project source to GitHub**
+  - Synchronize the completed current project source, including the new parking-suitability simulation, to the existing private `zelihaguven/ihateparking` repository’s default branch without rewriting or force-pushing its history, and keep the separate Manus project repository intact.
+  - The previous GitHub synchronization was commit `f7082c40a3c47889b88dbc88c0f51ba28480ac50`; update GitHub after the current Manus checkpoint is saved.
+- [x] **Autonomous simulated parking search and suitability decision**
+  - “I wanted a system where the car itself understands whether it can park; if nearby cars are close, it should say ‘I shouldn’t park here’.”
+  - “I want you to create that simulation environment”—the feature runs entirely inside the synthetic simulator; it does not require live cameras or a real-vehicle connection.
+  - Generate repeatable synthetic candidates with nearby parked cars and confidence-tagged slot/obstacle estimates. Compare estimated gap length and width against the vehicle footprint, uncertainty, and safety margins.
+  - Include deterministic clear-slot, cars-too-close, too-short, occupied, low-confidence, and no-verified-path cases; the selected option chooses only the test scene, never the computed verdict.
+  - Reject too-short, too-narrow, occupied, low-confidence, or unplannable candidates before motion; return a clear `NO-GO / KEEP SEARCHING` reason and apply no motion to rejected candidates.
+  - Select only a candidate that passes geometry and Hybrid A* collision checks, then demonstrate the existing closed-loop Pure Pursuit maneuver with an independent per-step footprint guard. No deliberate contact is allowed.
+  - Provide an English same-origin web page showing the synthetic scene, candidate dimensions, adjacent-car influence, decision, plan/execution path, and state progression; retain the research-only disclaimer and add the page to the route manifest.
+  - Clearly disclose that the positive demo is a spacious 5.0 m × 5.0 m synthetic bay and does not establish reliable performance in ordinary compact bays.
+- [ ] **Repair the failed container build and complete permanent publication**
+  - Replace the invalid Dockerfile `HEALTHCHECK ... CMD-SHELL` form with valid Dockerfile `HEALTHCHECK ... CMD` syntax.
+  - Keep the existing single-process FastAPI container, platform `PORT` behavior, `/api/health`, frozen NumPy perception checkpoint, temporary runtime artifacts, no database, and ordinary non-always-on hosting default.
+  - Build and publish the corrected checkpoint successfully to the stable HTTPS website before marking the public site complete.

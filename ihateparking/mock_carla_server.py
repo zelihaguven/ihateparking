@@ -73,28 +73,28 @@ class MockCarlaWorld:
         return self.snapshot()
 
     def step(self, speed_mps: float, steering_angle_rad: float, gear: str, dt: float = 0.05) -> dict[str, Any]:
-        self._require_reset()
+        scenario, _ = self._require_reset()
         if dt <= 0 or dt > 1.0:
             raise ValueError("dt must be between 0 and 1 second")
         try:
             command_gear = Gear(gear)
         except ValueError as exc:
             raise ValueError(f"unsupported gear: {gear}") from exc
-        max_steering = self.scenario.vehicle.max_steering
+        max_steering = scenario.vehicle.max_steering
         steering = max(-max_steering, min(max_steering, float(steering_angle_rad)))
         speed = max(0.0, min(3.0, float(speed_mps)))
         signed_speed = speed if command_gear is Gear.DRIVE else -speed if command_gear is Gear.REVERSE else 0.0
-        yaw_rate = signed_speed / self.scenario.vehicle.wheelbase * np.tan(steering)
+        yaw_rate = signed_speed / scenario.vehicle.wheelbase * np.tan(steering)
         next_pose = Pose(
             self.pose.x + signed_speed * np.cos(self.pose.yaw) * dt,
             self.pose.y + signed_speed * np.sin(self.pose.yaw) * dt,
             float((self.pose.yaw + yaw_rate * dt + np.pi) % (2.0 * np.pi) - np.pi),
         )
-        collision = self.scenario.to_world().is_collision(next_pose)
+        collision = scenario.to_world().is_collision(next_pose)
         if not collision:
-            vehicle_shape = vehicle_polygon(next_pose, self.scenario.vehicle.length, self.scenario.vehicle.width, self.scenario.vehicle.rear_overhang)
+            vehicle_shape = vehicle_polygon(next_pose, scenario.vehicle.length, scenario.vehicle.width, scenario.vehicle.rear_overhang)
             dynamic_poses = self._dynamic_actor_poses()
-            for actor in self.scenario.dynamic_actors:
+            for actor in scenario.dynamic_actors:
                 actor_pose = dynamic_poses[actor.actor_id]
                 length, width = ((4.5, 2.0) if actor.kind == "vehicle" else (.7, .7))
                 actor_shape = oriented_box((actor_pose.x, actor_pose.y), length, width, actor_pose.yaw)
@@ -116,8 +116,8 @@ class MockCarlaWorld:
         return self.snapshot()
 
     def plan(self) -> dict[str, Any]:
-        self._require_reset()
-        result = HybridAStar(self.scenario.to_world()).plan(start=self.pose)
+        scenario, _ = self._require_reset()
+        result = HybridAStar(scenario.to_world()).plan(start=self.pose)
         return {
             "success": result.success,
             "message": result.message,
@@ -130,15 +130,15 @@ class MockCarlaWorld:
         }
 
     def snapshot(self) -> dict[str, Any]:
-        self._require_reset()
+        scenario, neural_model = self._require_reset()
         sensor_files = self._write_sensor_artifacts()
         sensor = self._sensor_frame()
         dynamic_poses = self._dynamic_actor_poses()
-        ground_truth_model = NeuralPerceptionAdapter(backend_for_scenario(self.scenario, dynamic_poses))
+        ground_truth_model = NeuralPerceptionAdapter(backend_for_scenario(scenario, dynamic_poses))
         ground_truth = ground_truth_model.infer(sensor)
-        perception = self._neural_model.infer(sensor)
+        perception = neural_model.infer(sensor)
         return {
-            "scenario_id": self.scenario.scenario_id,
+            "scenario_id": scenario.scenario_id,
             "frame": self.frame,
             "timestamp_s": self.timestamp_s,
             "state": {
@@ -153,15 +153,15 @@ class MockCarlaWorld:
             "perception": self._serialize_perception(perception),
             "ground_truth": self._serialize_perception(ground_truth),
             "ground_truth_source": "GroundTruthBackend",
-            "dynamic_actor_count": len(self.scenario.dynamic_actors),
+            "dynamic_actor_count": len(scenario.dynamic_actors),
             "dynamic_actor_poses": {actor_id: asdict(pose) for actor_id, pose in dynamic_poses.items()},
         }
 
     def spawn_plan(self) -> dict[str, Any]:
-        self._require_reset()
+        scenario, _ = self._require_reset()
         # Reuse the CARLA adapter's pure plan builder without importing CARLA.
         from .carla_adapter import CarlaScenarioAdapter
-        return CarlaScenarioAdapter().build_spawn_plan(self.scenario).to_dict()
+        return CarlaScenarioAdapter().build_spawn_plan(scenario).to_dict()
 
     def handle(self, request: dict[str, Any]) -> dict[str, Any]:
         operation = request.get("op")
@@ -206,10 +206,11 @@ class MockCarlaWorld:
         return poses
 
     def _sensor_frame(self) -> SensorFrame:
+        scenario, _ = self._require_reset()
         files = self._artifact_paths()
         return SensorFrame(
             timestamp_s=self.timestamp_s,
-            frame_id=f"{self.scenario.scenario_id}:{self.frame:06d}",
+            frame_id=f"{scenario.scenario_id}:{self.frame:06d}",
             rgb_uri=files["rgb_front"],
             depth_uri=files["depth_front"],
             lidar_uri=files["lidar"],
@@ -218,7 +219,8 @@ class MockCarlaWorld:
         )
 
     def _artifact_paths(self) -> dict[str, str]:
-        scenario_dir = self.output_dir / self.scenario.scenario_id
+        scenario, _ = self._require_reset()
+        scenario_dir = self.output_dir / scenario.scenario_id
         return {
             "rgb_front": str(scenario_dir / f"rgb_front_{self.frame:06d}.npy"),
             "depth_front": str(scenario_dir / f"depth_front_{self.frame:06d}.npy"),
@@ -226,6 +228,7 @@ class MockCarlaWorld:
         }
 
     def _write_sensor_artifacts(self) -> dict[str, str]:
+        scenario, _ = self._require_reset()
         paths = self._artifact_paths()
         scenario_dir = Path(paths["rgb_front"]).parent
         scenario_dir.mkdir(parents=True, exist_ok=True)
@@ -237,11 +240,11 @@ class MockCarlaWorld:
             cv2.rectangle(rgb, (30, 20), (480, 235), (215, 229, 226), 2)
             scale = 14.0
             origin = np.array([110.0, 230.0])
-            for obstacle in self.scenario.static_obstacles:
+            for obstacle in scenario.static_obstacles:
                 center = (int(origin[0] + obstacle.center[0] * scale), int(origin[1] - obstacle.center[1] * scale))
                 size = (max(2, int(obstacle.length * scale / 2)), max(2, int(obstacle.width * scale / 2)))
                 cv2.rectangle(rgb, (center[0] - size[0], center[1] - size[1]), (center[0] + size[0], center[1] + size[1]), (70, 85, 98), -1)
-            for actor in self.scenario.dynamic_actors:
+            for actor in scenario.dynamic_actors:
                 actor_pose = self._dynamic_actor_poses().get(actor.actor_id, actor.start_pose)
                 length, width = ((4.5, 2.0) if actor.kind == "vehicle" else (.7, .7))
                 polygon = oriented_box((actor_pose.x, actor_pose.y), length, width, actor_pose.yaw)
@@ -249,12 +252,12 @@ class MockCarlaWorld:
                 polygon[:, 1] = origin[1] - polygon[:, 1] * scale
                 polygon = polygon.astype(np.int32)
                 cv2.fillPoly(rgb, [polygon], (70, 90, 210))
-            slot = self.scenario.target_slot.center
+            slot = scenario.target_slot.center
             slot_center = (int(origin[0] + slot[0] * scale), int(origin[1] - slot[1] * scale))
             cv2.circle(rgb, slot_center, 14, (70, 160, 110), 2)
             ego = (int(origin[0] + self.pose.x * scale), int(origin[1] - self.pose.y * scale))
             cv2.circle(rgb, ego, 9, (50, 150, 195), -1)
-            for actor in self.scenario.dynamic_actors:
+            for actor in scenario.dynamic_actors:
                 actor_pose = self._dynamic_actor_poses().get(actor.actor_id, actor.start_pose)
                 length, width = ((4.5, 2.0) if actor.kind == "vehicle" else (.7, .7))
                 polygon = oriented_box((actor_pose.x, actor_pose.y), length, width, actor_pose.yaw)
@@ -268,8 +271,9 @@ class MockCarlaWorld:
         return paths
 
     def _mock_lidar_points(self) -> np.ndarray:
+        scenario, _ = self._require_reset()
         points = []
-        for obstacle in self.scenario.static_obstacles:
+        for obstacle in scenario.static_obstacles:
             dx = obstacle.center[0] - self.pose.x
             dy = obstacle.center[1] - self.pose.y
             distance = float(np.hypot(dx, dy))
@@ -299,9 +303,12 @@ class MockCarlaWorld:
             "extra": dict(perception.extra),
         }
 
-    def _require_reset(self) -> None:
-        if self.scenario is None or self._ground_truth_model is None or self._neural_model is None:
+    def _require_reset(self) -> tuple[ScenarioSpec, NeuralPerceptionAdapter]:
+        scenario = self.scenario
+        neural_model = self._neural_model
+        if scenario is None or self._ground_truth_model is None or neural_model is None:
             raise RuntimeError("mock world must be reset before this operation")
+        return scenario, neural_model
 
 
 class _JsonLineHandler(socketserver.StreamRequestHandler):
@@ -320,6 +327,7 @@ class _JsonLineHandler(socketserver.StreamRequestHandler):
 
 class _MockTCPServer(socketserver.ThreadingTCPServer):
     allow_reuse_address = True
+    state: MockCarlaWorld
 
 
 class MockCarlaServer:
@@ -327,7 +335,8 @@ class MockCarlaServer:
         self.state = MockCarlaWorld(output_dir)
         self.server = _MockTCPServer((host, port), _JsonLineHandler)
         self.server.state = self.state
-        self.host, self.port = self.server.server_address
+        self.host: str = str(self.server.server_address[0])
+        self.port: int = int(self.server.server_address[1])
 
     def serve_forever(self) -> None:
         self.server.serve_forever(poll_interval=.05)
@@ -358,7 +367,7 @@ def run_smoke_test(output: str | Path = "artifacts/mock_carla_smoke_test.json", 
     server = MockCarlaServer(port=0)
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
-    client = MockCarlaClient(server.host, server.port)
+    client = MockCarlaClient(server.host, server.port, timeout_s=15.0)
     try:
         health = client.request("health")
         reset = client.request("reset", seed=100, kind=ScenarioKind.PERPENDICULAR_REVERSE.value, dynamic_actor_count=2)

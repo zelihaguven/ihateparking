@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="A synthetic parking-search simulation where a virtual car estimates parking-space suitability, refuses unsafe gaps, and parks only after path verification." />
+  <meta name="theme-color" content="#071114" />
+  <link rel="icon" href="/assets/ihateparking-logo.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="/static/dashboard.css" />
+  <link rel="stylesheet" href="/static/parking-search.css" />
+  <title>Parking Suitability Lab — ihateparking</title>
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <div class="brand"><span class="brand-mark" aria-hidden="true">IP</span><div><p class="eyebrow">SYNTHETIC PARKING DECISION EXPERIMENT</p><h1>ihateparking</h1></div></div>
+      <div class="connection"><span class="dot live"></span><span>SIMULATION ONLY</span></div>
+    </header>
+
+    <nav class="site-nav" aria-label="Lab pages">
+      <a href="/">Live console</a>
+      <a class="active" href="/web/parking-search.html" aria-current="page">Parking suitability</a>
+      <a href="/web/mpc-lab.html">Constrained MPC lab</a>
+      <a href="/web/">Planner replay</a>
+      <a href="/docs">API schema</a>
+    </nav>
+
+    <aside class="prototype-warning" role="note" aria-label="Simulation limitation">
+      <strong>RESEARCH PROTOTYPE — NO REAL SENSORS</strong>
+      <span>The observer receives seeded synthetic geometry proposals, not camera images or live CARLA data. This is not production-certified autonomy or a vehicle-control interface.</span>
+    </aside>
+
+    <section class="hero search-hero">
+      <div>
+        <p class="eyebrow">SEARCH → ESTIMATE → CHECK → PLAN → PARK OR REFUSE</p>
+        <h2>Should the car park here?</h2>
+        <p class="lede">Pick a synthetic scene, not a verdict. The simulator estimates the gap from nearby vehicle boundaries, applies uncertainty and footprint margins, checks whether the target is occupied, and asks Hybrid A* for a collision-checked route. A rejected candidate receives zero motion.</p>
+      </div>
+      <div class="hero-stamp"><strong>NO-GO</strong><span>IS A VALID<br />DECISION</span></div>
+    </section>
+
+    <section class="toolbar panel search-toolbar" aria-label="Parking suitability scenario controls">
+      <label for="case-select">Synthetic scene
+        <select id="case-select">
+          <option value="clear_slot">Clear, generous bay — expected to park</option>
+          <option value="cars_too_close">Flanking cars too close — expected NO-GO</option>
+          <option value="slot_too_short">Insufficient parking depth — expected NO-GO</option>
+          <option value="occupied_slot">Vehicle inside candidate — expected NO-GO</option>
+          <option value="low_confidence">Uncertain detection — expected NO-GO</option>
+          <option value="no_verified_path">Dimensions fit, route unverified — expected NO-GO</option>
+        </select>
+      </label>
+      <label for="seed-input">Scene seed
+        <input id="seed-input" type="number" value="100" min="0" max="2147483647" step="1" />
+      </label>
+      <button id="assess-button" class="button primary" type="button">Assess and simulate</button>
+      <span id="run-status" class="run-status" role="status" aria-live="polite">READY — CHOOSE A TEST SCENE</span>
+    </section>
+
+    <section class="search-layout" aria-label="Parking-search result">
+      <section class="panel scene-panel">
+        <div class="panel-heading"><div><p class="eyebrow">TOP-DOWN SYNTHETIC PERCEPTION</p><h3>Candidate bay and neighboring vehicles</h3></div><span id="case-badge" class="badge neutral">NOT RUN</span></div>
+        <div class="scene-canvas-wrap"><canvas id="scene-canvas" aria-label="Top-down simulated parking slot with detected neighboring vehicles and vehicle path"></canvas></div>
+        <div class="legend search-legend"><span><i class="key ego"></i>ego</span><span><i class="key static"></i>detected parked car</span><span><i class="key slot"></i>estimated candidate</span><span><i class="key plan"></i>planned / executed path</span><span><i class="key dynamic"></i>occupied / refused</span></div>
+        <p class="scene-caption">Boxes are generated from the test scene with small seeded measurement noise. They are not detections from camera footage.</p>
+      </section>
+
+      <aside class="search-side">
+        <section id="decision-panel" class="panel decision-panel" data-verdict="idle" aria-live="polite">
+          <p class="eyebrow">AUTONOMOUS SUITABILITY DECISION</p>
+          <h2 id="decision-title">WAITING FOR SCENE</h2>
+          <p id="decision-message" class="decision-message">The selected option defines the geometry only; the backend computes the result.</p>
+        </section>
+
+        <section class="panel metrics-panel">
+          <div class="panel-heading"><div><p class="eyebrow">MEASURED FIT</p><h3>Perception vs vehicle envelope</h3></div></div>
+          <div class="metric-row"><span>estimated gap width</span><strong id="gap-width">—</strong></div>
+          <div class="metric-row"><span>required width + margin</span><strong id="required-width">—</strong></div>
+          <div class="metric-row"><span>estimated bay depth</span><strong id="gap-length">—</strong></div>
+          <div class="metric-row"><span>required depth + margin</span><strong id="required-length">—</strong></div>
+          <div class="metric-row"><span>slot confidence / floor</span><strong id="confidence">—</strong></div>
+          <div class="metric-row"><span>fit checks</span><strong id="fit-checks">—</strong></div>
+        </section>
+
+        <section class="panel metrics-panel">
+          <div class="panel-heading"><div><p class="eyebrow">PLAN & CLOSED-LOOP EXECUTION</p><h3>Verified progress</h3></div></div>
+          <div class="metric-row"><span>Hybrid A* result</span><strong id="planner-status">—</strong></div>
+          <div class="metric-row"><span>search expansions</span><strong id="planner-expansions">—</strong></div>
+          <div class="metric-row"><span>applied motion steps</span><strong id="motion-steps">0</strong></div>
+          <div class="metric-row"><span>physical contacts</span><strong id="applied-contacts">0</strong></div>
+          <div class="metric-row"><span>rejected unsafe proposals</span><strong id="guard-rejections">0</strong></div>
+        </section>
+      </aside>
+    </section>
+
+    <section class="panel state-panel">
+      <div class="panel-heading"><div><p class="eyebrow">BEHAVIOUR MACHINE</p><h3>Decision trace</h3></div><span class="mono">COMPUTED PER REQUEST</span></div>
+      <ol id="state-sequence" class="state-sequence" aria-label="Behaviour state progression"><li>SEARCH_CANDIDATE</li><li>ESTIMATE_GAP</li><li>ASSESS_FIT</li></ol>
+    </section>
+
+    <section class="panel limitation-panel">
+      <p class="eyebrow">HONEST LIMITATION</p>
+      <p>The accepted example is an intentionally spacious <strong>5.0 m × 5.0 m</strong> bay so the current Hybrid A* baseline can verify and complete it. The compact 3 m example does not produce a verified route within the bounded search budget, so it remains stationary. This demonstrates a fail-closed decision; it does <strong>not</strong> establish performance in ordinary tight parking bays. Synthetic geometry, planner resolution, braking and uncertainty models still require validation before any real-system use.</p>
+    </section>
+
+    <footer><span>ihateparking / synthetic parking suitability research</span><span>Estimated geometry · Hybrid A* · guarded Pure Pursuit</span></footer>
+  </main>
+  <script src="/static/parking-search.js" defer></script>
+</body>
+</html>
