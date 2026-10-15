@@ -80,6 +80,7 @@ ground_truth_benchmark.py Replayable sensor stream and benchmark runner
 pedestrian_stress_test.py Deterministic pedestrian crossing safety benchmark
 mock_carla_server.py GPU-free JSON-lines server and pipeline smoke test
 dashboard.py FastAPI real-time dynamic safety visualization API
+parking_search.py Synthetic slot-fit gate, no-go decisions and guarded park simulation
 stack_contracts.py Sensor, perception, trajectory, control and safety messages
 geometry.py    Pose, oriented rectangles, polygon intersection
 planner.py     Hybrid A* search with kinematic motion primitives
@@ -345,3 +346,12 @@ The page distinguishes the selected simulation-step budget from the real-system 
 
 
 The `casadi_ad` mode supplies automatic objective and constraint Jacobians to the same SLSQP solver; it is not an acados backend and does not provide a real-time guarantee. Graph setup is measured separately and must not be repeated inside the control cycle. See [`docs/mpc-solver-performance.md`](docs/mpc-solver-performance.md) for the paired benchmark and target-vehicle limitations.
+
+
+## Synthetic parking suitability simulation
+
+Open `/web/parking-search.html` in the FastAPI application to exercise the candidate assessment flow. The scene selector chooses only a deterministic synthetic layout; the backend derives the verdict from seeded neighboring-car geometry, slot confidence/uncertainty, vehicle dimensions and safety margins. It tests a clear generous bay, nearby cars leaving insufficient width, insufficient depth, an occupied footprint, low-confidence observations, and a case where the bounded planner cannot verify a route. A rejected candidate is `NO-GO / KEEP SEARCHING` and receives zero motion. Only an accepted plan enters the closed-loop simulator, whose independent footprint guard remains enabled.
+
+The positive case is a deliberately spacious **5.0 m × 5.0 m** bay because the current planner has not yet demonstrated reliable search in ordinary compact bays. The observer uses synthetic geometric proposals, not camera images or a trained image detector; a bounded search failure means “no route verified,” not proof that no route exists. This is a simulation experiment, not a real-vehicle control interface.
+
+The page calls the same-origin endpoint `POST /api/parking-search/run` with `{"case":"cars_too_close","seed":100}`. Supported case names are `clear_slot`, `cars_too_close`, `slot_too_short`, `occupied_slot`, `low_confidence`, and `no_verified_path`.

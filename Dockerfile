@@ -29,7 +29,7 @@ USER ihateparking
 EXPOSE 3000
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
-  CMD-SHELL python -c "import os,urllib.request; urllib.request.urlopen('http://127.0.0.1:'+os.getenv('PORT','3000')+'/api/health',timeout=3)"
+  CMD ["python", "-c", "import os,urllib.request; urllib.request.urlopen('http://127.0.0.1:'+os.getenv('PORT','3000')+'/api/health',timeout=3)"]
 
 ENTRYPOINT ["python", "-m", "ihateparking.dashboard"]
 CMD ["--host", "0.0.0.0"]
