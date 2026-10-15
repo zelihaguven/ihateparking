@@ -1,9 +1,10 @@
 # Website Outcomes
 
-- [ ] **Permanent public website**
+- [x] **Permanent public website**
   - Host the actual interactive autonomous-parking application as a permanent public website with a stable HTTPS URL.
   - Preserve the real-time FastAPI-backed safety dashboard and live API behavior.
   - Keep same-origin relative APIs, an unauthenticated health endpoint, the frozen NumPy perception checkpoint, temporary runtime artifacts, no database or cross-session run history, and the ordinary non-always-on hosting default.
+  - Published at `https://ihateparking-zanntidj.manus.space` as version `ce63b3ddd1be9c8637caabad994a47d441299d06`.
 - [x] **Synthetic parking simulation and planner**
   - Provide a synthetic/mock CARLA simulation experience with no implication of a live CARLA or vehicle-hardware connection.
   - Offer all six parking maneuvers: perpendicular, parallel, and angled parking, each in forward and reverse.
@@ -33,7 +34,7 @@
   - Preserve hard polygon constraints, the independent executed-footprint collision check and safe-stop behavior; make no real-time claim without target-hardware evidence.
 - [x] **Push the latest project source to GitHub**
   - Synchronize the completed current project source, including the new parking-suitability simulation, to the existing private `zelihaguven/ihateparking` repository’s default branch without rewriting or force-pushing its history, and keep the separate Manus project repository intact.
-  - GitHub master was updated by merge commit `e212d518ee647a18aa2403873f7f86e64f167e35`, preserving both the existing GitHub master history and the Manus main history without force-pushing.
+  - GitHub master was updated by history-preserving merge commit `1995b20bf5aa72696c97e0b3355482d3cba33fbe`, preserving both the existing GitHub master history and the Manus main history without force-pushing.
 - [x] **Autonomous simulated parking search and suitability decision**
   - “I wanted a system where the car itself understands whether it can park; if nearby cars are close, it should say ‘I shouldn’t park here’.”
   - “I want you to create that simulation environment”—the feature runs entirely inside the synthetic simulator; it does not require live cameras or a real-vehicle connection.
@@ -43,7 +44,7 @@
   - Select only a candidate that passes geometry and Hybrid A* collision checks, then demonstrate the existing closed-loop Pure Pursuit maneuver with an independent per-step footprint guard. No deliberate contact is allowed.
   - Provide an English same-origin web page showing the synthetic scene, candidate dimensions, adjacent-car influence, decision, plan/execution path, and state progression; retain the research-only disclaimer and add the page to the route manifest.
   - Clearly disclose that the positive demo is a spacious 5.0 m × 5.0 m synthetic bay and does not establish reliable performance in ordinary compact bays.
-- [ ] **Repair the failed container build and complete permanent publication**
+- [x] **Repair the failed container build and complete permanent publication**
   - Replace the invalid Dockerfile `HEALTHCHECK ... CMD-SHELL` form with valid Dockerfile `HEALTHCHECK ... CMD` syntax.
   - Keep the existing single-process FastAPI container, platform `PORT` behavior, `/api/health`, frozen NumPy perception checkpoint, temporary runtime artifacts, no database, and ordinary non-always-on hosting default.
-  - Build and publish the corrected checkpoint successfully to the stable HTTPS website before marking the public site complete.
+  - The corrected container checkpoint built and published successfully as version `ce63b3ddd1be9c8637caabad994a47d441299d06` at `https://ihateparking-zanntidj.manus.space`.
