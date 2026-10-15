@@ -1,4 +1,4 @@
-# ihateparking Permanent Website — Plan
+# ihateparking — Plan
 
 ## Product and implementation
 
