@@ -1,8 +1,4 @@
-# Website Outcomes
-
-- [ ] **Permanent public website**
-  - Host the actual interactive autonomous-parking application as a permanent public website with a stable HTTPS URL.
-  - Preserve the real-time FastAPI-backed safety dashboard and live API behavior.
+#  Outcomes
 
 - [x] **Synthetic parking simulation and planner**
   - Provide a synthetic/mock CARLA simulation experience with no implication of a live CARLA or vehicle-hardware connection.
@@ -13,9 +9,6 @@
 - [x] **Perception and dynamic safety supervision**
   - Retain lightweight NumPy-based perception within the simulation pipeline.
   - Preserve dynamic-safety supervision with real-time status and intervention visibility.
-
-- [x] **English lab documentation**
-  - Present clear English documentation covering architecture, controls, API usage, limitations, and how to use the lab.
 
 - [x] **Research-only boundary**
   - Display prominent research-prototype disclaimers stating that the system is not production-certified or intended for real-vehicle operation.
@@ -38,8 +31,3 @@
   - Compare the current finite-difference SLSQP path against an optional CasADi automatic-differentiation Jacobian path on the same synthetic scenario and configuration.
   - Report setup, objective/constraint/Jacobian evaluation counts, optimizer-only time, full controller-call p50/p95/p99/max, feasibility, clearance, safety-stop outcome and simulation-step misses.
   - Preserve hard polygon constraints, the independent executed-footprint collision check and safe-stop behavior; make no real-time claim without target-hardware evidence.
-
-- [x] **Push recent project code to GitHub**
-  - “Do not forget for pushing the recent codes to GitHub.”
-  - Synchronize the completed project source to the existing private `zelihaguven/ihateparking` repository’s default branch without rewriting or force-pushing its history, and keep the separate Manus project repository intact.
-  - GitHub default branch `master` updated successfully (commit `f7082c40a3c47889b88dbc88c0f51ba28480ac50`).
