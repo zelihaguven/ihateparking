@@ -273,6 +273,16 @@ python3 -m pip install -e '.[mpc]'
 python3 scripts/demo_constrained_mpc.py
 ```
 
+To compare CasADi automatic-differentiation Jacobians supplied to the same SciPy SLSQP optimizer, install the additional optional extra and select the mode:
+
+```bash
+python3 -m pip install -e '.[mpc-ad]'
+python3 scripts/demo_constrained_mpc.py --horizon 4 --max-iterations 12 --derivative-mode casadi_ad
+python3 scripts/benchmark_mpc_derivatives.py --runs 5
+```
+
+The benchmark runs the same synthetic scene/configuration in both derivative modes and writes JSON with setup time, callback/evaluation counts, full command-cycle latency including the independent footprint guard, feasibility and safety-stop outcomes. Percentiles are pooled across all measured cycles. CasADi is optional; finite-difference SLSQP remains available without the `mpc-ad` extra.
+
 The script compares the existing reverse-aware Pure Pursuit controller with a direct-shooting
 SLSQP MPC in a 2.50 m reverse-in perpendicular slot. Both controllers track the same smooth,
 synthetic reverse-in reference and share an additional 0.05 m clearance beyond the configured
@@ -327,8 +337,11 @@ For local development, run `python3 -m ihateparking.dashboard --host 0.0.0.0 --p
 
 ## Interactive constrained-MPC lab
 
-Open `/web/mpc-lab.html` from the FastAPI site or use the **Constrained MPC lab** link in the live console. The page runs the same Python simulation script used by the CLI; it does not approximate controller results in JavaScript. The bounded `POST /api/mpc/run` endpoint accepts `horizon_steps` (3–10), `max_iterations` (5–60), `dt` (0.10–0.25 s), and `extra_clearance_m` (0–0.10 m). It returns both trajectories, static-scene geometry, clearance profiles, solver-only timing, full MPC call timing, and deadline misses. Runs are transient, and one CPU-intensive run is allowed at a time per worker.
+Open `/web/mpc-lab.html` from the FastAPI site or use the **Constrained MPC lab** link in the live console. The page runs the same Python simulation script used by the CLI; it does not approximate controller results in JavaScript. The bounded `POST /api/mpc/run` endpoint accepts `horizon_steps` (3–10), `max_iterations` (5–60), `dt` (0.10–0.25 s), `extra_clearance_m` (0–0.10 m), `warm_start` and `derivative_mode` (`finite_difference` or `casadi_ad`). It returns both trajectories, static-scene geometry, clearance profiles, setup time, callback/Jacobian counts, solver-only timing, full command-cycle p50/p95/p99/max, and deadline misses. The timed cycle includes SLSQP, feasibility checks and the independent next-footprint collision guard; it excludes perception, localization, transport, actuator and hardware scheduling. Runs are transient, and one CPU-intensive run is allowed at a time per worker.
 
 The page distinguishes the selected simulation-step budget from the real-system control periods documented in [`docs/real-system-architecture.md`](docs/real-system-architecture.md). This SLSQP demo is not real-time-certified or suitable for vehicle control. Solver alternatives and reproducible measurements are discussed in [`docs/mpc-solver-performance.md`](docs/mpc-solver-performance.md).
 
 `warm_start` is a boolean API field (default `true`). When enabled, the controller shifts the previous feasible control sequence by one step as the next SLSQP initial guess; the same hard polygon constraints and independent executed-footprint collision check still apply. Disable it to compare against the fresh Pure Pursuit seed.
+
+
+The `casadi_ad` mode supplies automatic objective and constraint Jacobians to the same SLSQP solver; it is not an acados backend and does not provide a real-time guarantee. Graph setup is measured separately and must not be repeated inside the control cycle. See [`docs/mpc-solver-performance.md`](docs/mpc-solver-performance.md) for the paired benchmark and target-vehicle limitations.

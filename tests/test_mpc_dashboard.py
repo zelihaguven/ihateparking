@@ -33,6 +33,13 @@ class MpcDashboardContractTests(unittest.TestCase):
         )
         self.assertEqual(response.status_code, 422)
 
+    def test_unknown_derivative_mode_is_rejected_before_optimization(self) -> None:
+        response = self.client.post(
+            "/api/mpc/run",
+            json={"horizon_steps": 4, "max_iterations": 12, "derivative_mode": "magic"},
+        )
+        self.assertEqual(response.status_code, 422)
+
 
 if __name__ == "__main__":
     unittest.main()

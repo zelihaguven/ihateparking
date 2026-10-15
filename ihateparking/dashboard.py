@@ -54,6 +54,7 @@ class MpcDemoRequest(BaseModel):
     dt: float = Field(default=0.18, ge=0.10, le=0.25)
     extra_clearance_m: float = Field(default=0.05, ge=0.0, le=0.10)
     warm_start: bool = True
+    derivative_mode: Literal["finite_difference", "casadi_ad"] = "finite_difference"
 
 
 class DashboardSession:
@@ -320,11 +321,12 @@ async def run_mpc_demo(body: MpcDemoRequest) -> dict[str, Any]:
             dt=body.dt,
             extra_clearance_m=body.extra_clearance_m,
             warm_start=body.warm_start,
+            derivative_mode=body.derivative_mode,
         )
         try:
             return comparison_payload(run_comparison(config))
         except RuntimeError as exc:
-            if "SciPy is required" in str(exc):
+            if "SciPy is required" in str(exc) or "CasADi is required" in str(exc):
                 raise HTTPException(status_code=503, detail=str(exc)) from exc
             raise
 

@@ -25,7 +25,7 @@ import math
 from pathlib import Path
 import sys
 import time
-from typing import cast
+from typing import Any, Literal, cast
 
 from matplotlib.axes import Axes
 import matplotlib.pyplot as plt
@@ -59,6 +59,7 @@ class MPCConfig:
     lookahead_m: float = 0.55
     max_iterations: int = 40
     warm_start: bool = True
+    derivative_mode: Literal["finite_difference", "casadi_ad"] = "finite_difference"
     position_weight: float = 36.0
     heading_weight: float = 10.0
     speed_weight: float = 2.5
@@ -83,6 +84,8 @@ class Rollout:
     solve_times_s: list[float]
     message: str
     controller_call_times_s: list[float] = field(default_factory=list)
+    solver_diagnostics: list[dict[str, Any]] = field(default_factory=list)
+    solver_setup_time_s: float = 0.0
 
 
 @dataclass
@@ -227,8 +230,77 @@ def _rollout_controls(
     return poses, speeds
 
 
+def _rollout_arrays(
+    pose0: Pose,
+    speed0: float,
+    controls: np.ndarray,
+    gear: int,
+    dt: float,
+    wheelbase: float,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    """Vectorized midpoint rollout used by repeated optimizer callbacks."""
+    controls = np.asarray(controls, dtype=float).reshape(-1, 2)
+    accelerations = controls[:, 0]
+    steerings = controls[:, 1]
+    speeds = np.empty(len(controls) + 1, dtype=float)
+    speeds[0] = speed0
+    speeds[1:] = speed0 + np.cumsum(accelerations) * dt
+    signed_distances = gear * 0.5 * (speeds[:-1] + speeds[1:]) * dt
+    yaw_deltas = signed_distances / wheelbase * np.tan(steerings)
+    yaws = np.empty(len(controls) + 1, dtype=float)
+    yaws[0] = pose0.yaw
+    yaws[1:] = pose0.yaw + np.cumsum(yaw_deltas)
+    mid_yaws = yaws[:-1] + 0.5 * yaw_deltas
+    xs = np.empty(len(controls) + 1, dtype=float)
+    ys = np.empty(len(controls) + 1, dtype=float)
+    xs[0], ys[0] = pose0.x, pose0.y
+    xs[1:] = pose0.x + np.cumsum(signed_distances * np.cos(mid_yaws))
+    ys[1:] = pose0.y + np.cumsum(signed_distances * np.sin(mid_yaws))
+    return xs, ys, yaws, speeds
+
+
+def _rectangle_sat_gap(
+    x: float,
+    y: float,
+    yaw: float,
+    vehicle: VehicleSpec,
+    obstacle: RectangleObstacle,
+    obstacle_axes: tuple[np.ndarray, np.ndarray] | None = None,
+) -> float:
+    """Return the polygon SAT gap using rectangle support intervals."""
+    ego_forward = np.array([math.cos(yaw), math.sin(yaw)])
+    ego_lateral = np.array([-math.sin(yaw), math.cos(yaw)])
+    if obstacle_axes is None:
+        obs_forward = np.array([math.cos(obstacle.yaw), math.sin(obstacle.yaw)])
+        obs_lateral = np.array([-math.sin(obstacle.yaw), math.cos(obstacle.yaw)])
+    else:
+        obs_forward, obs_lateral = obstacle_axes
+    axes = np.vstack((ego_forward, ego_lateral, obs_forward, obs_lateral))
+
+    axle_to_center = vehicle.length / 2.0 - vehicle.rear_overhang
+    ego_center = np.array([x, y]) + axle_to_center * ego_forward
+    ego_radius = (
+        vehicle.length / 2.0 * np.abs(axes @ ego_forward)
+        + vehicle.width / 2.0 * np.abs(axes @ ego_lateral)
+    )
+    obs_center = np.asarray(obstacle.center, dtype=float)
+    obs_radius = (
+        obstacle.length / 2.0 * np.abs(axes @ obs_forward)
+        + obstacle.width / 2.0 * np.abs(axes @ obs_lateral)
+    )
+    ego_projection = axes @ ego_center
+    obs_projection = axes @ obs_center
+    gaps = np.concatenate(
+        (
+            obs_projection - obs_radius - (ego_projection + ego_radius),
+            ego_projection - ego_radius - (obs_projection + obs_radius),
+        )
+    )
+    return float(np.max(gaps))
+
+
 class PolygonConstrainedMPC:
-    """Direct-shooting nonlinear MPC with hard polygon-clearance constraints."""
+    """Direct-shooting MPC with cached callbacks and optional CasADi Jacobians."""
 
     def __init__(self, world: ParkingWorld, path: list[Pose], config: MPCConfig):
         self.world = world
@@ -238,28 +310,157 @@ class PolygonConstrainedMPC:
         self.gear = -1  # gear is discrete and fixed for this one-segment demo
         self.prev_steering = 0.0
         self.previous_controls: np.ndarray | None = None
+        self._obstacle_axes = [
+            (
+                np.array([math.cos(obstacle.yaw), math.sin(obstacle.yaw)]),
+                np.array([-math.sin(obstacle.yaw), math.cos(obstacle.yaw)]),
+            )
+            for obstacle in world.obstacles
+        ]
+        self._ad_model: Any | None = None
+        self.solver_setup_time_s = 0.0
+        if config.derivative_mode == "casadi_ad":
+            setup_started = time.perf_counter()
+            module_name = (
+                f"{__package__}.mpc_autodiff" if __package__ else "mpc_autodiff"
+            )
+            casadi_model = getattr(import_module(module_name), "CasadiMPCAD")
+            self._ad_model = casadi_model(
+                world, path[-1], config, self.gear, config.horizon_steps
+            )
+            self.solver_setup_time_s = time.perf_counter() - setup_started
 
-    def _clearance_constraints(self, poses: list[Pose]) -> np.ndarray:
+    def _reference_targets(self, progress_s: float) -> list[tuple[Pose, float]]:
+        total = float(self.arc[-1])
+        targets = []
+        for k in range(1, self.cfg.horizon_steps + 1):
+            travel_ref = min(
+                total,
+                progress_s + self.cfg.cruise_speed_mps * self.cfg.dt * k,
+            )
+            ref = sample_path(self.path, self.arc, travel_ref)
+            remaining = max(0.0, total - travel_ref)
+            target_speed = min(
+                self.cfg.cruise_speed_mps,
+                math.sqrt(2.0 * self.cfg.max_accel_mps2 * remaining),
+            )
+            targets.append((ref, target_speed))
+        return targets
+
+    @staticmethod
+    def _parameters(
+        pose: Pose,
+        speed: float,
+        previous_steering: float,
+        references: list[tuple[Pose, float]],
+    ) -> np.ndarray:
+        values = [pose.x, pose.y, pose.yaw, speed, previous_steering]
+        for ref, target_speed in references:
+            values.extend((ref.x, ref.y, ref.yaw, target_speed))
+        return np.asarray(values, dtype=float)
+
+    @staticmethod
+    def _reference_arrays(
+        references: list[tuple[Pose, float]],
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+        return (
+            np.asarray([ref.x for ref, _ in references], dtype=float),
+            np.asarray([ref.y for ref, _ in references], dtype=float),
+            np.asarray([ref.yaw for ref, _ in references], dtype=float),
+            np.asarray([target_speed for _, target_speed in references], dtype=float),
+        )
+
+    def _clearance_constraints(
+        self, xs: np.ndarray, ys: np.ndarray, yaws: np.ndarray
+    ) -> np.ndarray:
         margin = self.world.collision_margin + self.cfg.extra_clearance_m
         xmin, xmax, ymin, ymax = self.world.bounds
+        vehicle = self.world.vehicle
+        half_length = vehicle.length / 2.0
+        half_width = vehicle.width / 2.0
+        axle_to_center = vehicle.length / 2.0 - vehicle.rear_overhang
         values: list[float] = []
-        for pose in poses[1:]:
-            footprint = self.world.vehicle_polygon(pose)
-            # Hard rectangle separation constraints against every parked actor.
-            for obstacle in self.world.obstacles:
+        for index in range(1, len(xs)):
+            yaw = float(yaws[index])
+            forward = np.array([math.cos(yaw), math.sin(yaw)])
+            center_x = float(xs[index]) + axle_to_center * forward[0]
+            center_y = float(ys[index]) + axle_to_center * forward[1]
+            for obstacle, axes in zip(self.world.obstacles, self._obstacle_axes):
                 values.append(
-                    separating_axis_gap(footprint, obstacle.polygon()) - margin
+                    _rectangle_sat_gap(
+                        float(xs[index]), float(ys[index]), yaw, vehicle, obstacle, axes
+                    )
+                    - margin
                 )
-            # Constrain all four footprint extremes inside the shrunken world.
+            extent_x = half_length * abs(forward[0]) + half_width * abs(forward[1])
+            extent_y = half_length * abs(forward[1]) + half_width * abs(forward[0])
             values.extend(
                 (
-                    float(footprint[:, 0].min() - xmin - margin),
-                    float(xmax - margin - footprint[:, 0].max()),
-                    float(footprint[:, 1].min() - ymin - margin),
-                    float(ymax - margin - footprint[:, 1].max()),
+                    center_x - extent_x - xmin - margin,
+                    xmax - margin - center_x - extent_x,
+                    center_y - extent_y - ymin - margin,
+                    ymax - margin - center_y - extent_y,
                 )
             )
         return np.asarray(values, dtype=float)
+
+    def _numpy_evaluate(
+        self,
+        vector: np.ndarray,
+        pose: Pose,
+        speed: float,
+        previous_steering: float,
+        reference_arrays: tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray],
+    ) -> tuple[float, np.ndarray]:
+        """Evaluate the exact numerical objective/constraints for regression checks."""
+        cfg = self.cfg
+        n = cfg.horizon_steps
+        controls = np.asarray(vector, dtype=float).reshape(n, 2)
+        xs, ys, yaws, speeds = _rollout_arrays(
+            pose,
+            speed,
+            controls,
+            self.gear,
+            cfg.dt,
+            self.world.vehicle.wheelbase,
+        )
+        ref_x, ref_y, ref_yaw, target_speeds = reference_arrays
+        yaw_errors = np.arctan2(
+            np.sin(ref_yaw - yaws[1:]), np.cos(ref_yaw - yaws[1:])
+        )
+        objective_value = float(
+            cfg.position_weight
+            * np.sum((xs[1:] - ref_x) ** 2 + (ys[1:] - ref_y) ** 2)
+            + cfg.heading_weight * np.sum(yaw_errors**2)
+            + cfg.speed_weight * np.sum((speeds[1:] - target_speeds) ** 2)
+            + cfg.acceleration_weight * np.sum(controls[:, 0] ** 2)
+            + cfg.steering_weight * np.sum(controls[:, 1] ** 2)
+        )
+        steering_before = np.concatenate(([previous_steering], controls[:-1, 1]))
+        objective_value += float(
+            cfg.steering_rate_weight
+            * np.sum((controls[:, 1] - steering_before) ** 2)
+        )
+        terminal_yaw_error = math.atan2(
+            math.sin(self.path[-1].yaw - yaws[-1]),
+            math.cos(self.path[-1].yaw - yaws[-1]),
+        )
+        objective_value += cfg.terminal_position_weight * (
+            (xs[-1] - self.path[-1].x) ** 2
+            + (ys[-1] - self.path[-1].y) ** 2
+        )
+        objective_value += cfg.terminal_heading_weight * terminal_yaw_error**2
+        objective_value += 8.0 * speeds[-1] ** 2
+
+        values = list(self._clearance_constraints(xs, ys, yaws))
+        for speed_k in speeds[1:]:
+            values.extend((float(speed_k), cfg.max_speed_mps - float(speed_k)))
+        rate_limit = cfg.max_steering_rate_rad_s * cfg.dt
+        steering_prev = previous_steering
+        for steering in controls[:, 1]:
+            values.append(rate_limit - abs(float(steering) - steering_prev))
+            steering_prev = float(steering)
+        return objective_value, np.asarray(values, dtype=float)
 
     def solve(
         self,
@@ -267,97 +468,57 @@ class PolygonConstrainedMPC:
         speed: float,
         progress_s: float,
         previous_steering: float,
-    ) -> tuple[np.ndarray | None, dict[str, object]]:
+    ) -> tuple[np.ndarray | None, dict[str, Any]]:
         cfg = self.cfg
         n = cfg.horizon_steps
         dt = cfg.dt
-        wb = self.world.vehicle.wheelbase
-        max_steer = self.world.vehicle.max_steering
+        vehicle = self.world.vehicle
+        wb = vehicle.wheelbase
+        max_steer = vehicle.max_steering
         max_accel = cfg.max_accel_mps2
         total = float(self.arc[-1])
+        references = self._reference_targets(progress_s)
+        reference_arrays = self._reference_arrays(references)
+        parameters = self._parameters(pose, speed, previous_steering, references)
+        stats = {
+            "objective_calls": 0,
+            "constraint_calls": 0,
+            "objective_jacobian_calls": 0,
+            "constraint_jacobian_calls": 0,
+            "evaluation_cache_hits": 0,
+            "evaluation_cache_misses": 0,
+        }
 
-        def unpack(flat: np.ndarray) -> np.ndarray:
-            return flat.reshape(n, 2)
-
-        def predict(flat: np.ndarray) -> tuple[list[Pose], list[float]]:
-            return _rollout_controls(pose, speed, unpack(flat), self.gear, dt, wb)
-
-        def objective(flat: np.ndarray) -> float:
-            controls = unpack(flat)
-            predicted_poses, predicted_speeds = predict(flat)
-            cost = 0.0
-            for k in range(1, n + 1):
-                travel_ref = min(
-                    total,
-                    progress_s + cfg.cruise_speed_mps * dt * k,
-                )
-                ref = sample_path(self.path, self.arc, travel_ref)
-                remaining = max(0.0, total - travel_ref)
-                target_speed = min(
-                    cfg.cruise_speed_mps,
-                    math.sqrt(2.0 * max_accel * remaining),
-                )
-                state = predicted_poses[k]
-                speed_k = predicted_speeds[k]
-                accel_k, steer_k = controls[k - 1]
-                yaw_error = angle_error(ref.yaw, state.yaw)
-                cost += cfg.position_weight * (
-                    (state.x - ref.x) ** 2 + (state.y - ref.y) ** 2
-                )
-                cost += cfg.heading_weight * yaw_error**2
-                cost += cfg.speed_weight * (speed_k - target_speed) ** 2
-                cost += cfg.acceleration_weight * accel_k**2
-                cost += cfg.steering_weight * steer_k**2
-                delta_prev = previous_steering if k == 1 else controls[k - 2, 1]
-                cost += cfg.steering_rate_weight * (steer_k - delta_prev) ** 2
-            terminal = predicted_poses[-1]
-            goal = self.path[-1]
-            cost += cfg.terminal_position_weight * (
-                (terminal.x - goal.x) ** 2 + (terminal.y - goal.y) ** 2
-            )
-            cost += cfg.terminal_heading_weight * angle_error(goal.yaw, terminal.yaw) ** 2
-            cost += 8.0 * predicted_speeds[-1] ** 2
-            return float(cost)
-
-        def constraints(flat: np.ndarray) -> np.ndarray:
-            controls = unpack(flat)
-            predicted_poses, predicted_speeds = predict(flat)
-            values = list(self._clearance_constraints(predicted_poses))
-            for speed_k in predicted_speeds[1:]:
-                values.extend((speed_k, cfg.max_speed_mps - speed_k))
-            rate_limit = cfg.max_steering_rate_rad_s * dt
-            previous = previous_steering
-            for _, steering in controls:
-                values.append(rate_limit - abs(float(steering) - previous))
-                previous = float(steering)
-            return np.asarray(values, dtype=float)
-
-        # Use the geometric Pure Pursuit law for the first seed or when the
-        # shifted previous solution is disabled; constraints are checked again.
-        guess = np.zeros((n, 2), dtype=float)
-        warm_speed = float(speed)
-        for k in range(n):
-            s_ref = min(total, progress_s + max(warm_speed, 0.25) * dt * (k + 1))
-            target = sample_path(self.path, self.arc, s_ref)
-            guess[k, 0] = np.clip(
-                (min(cfg.cruise_speed_mps, math.sqrt(2 * max_accel * max(total - s_ref, 0.0))) - warm_speed) / dt,
-                -max_accel,
-                max_accel,
-            )
-            guess[k, 1] = pure_pursuit(
-                pose,
-                target,
-                self.gear,
-                wb,
-                cfg.lookahead_m,
-                max_steer,
-            )
-            warm_speed = float(np.clip(warm_speed + guess[k, 0] * dt, 0.0, cfg.max_speed_mps))
-
+        # Construct a geometric initial guess; the optional shifted prior
+        # solution remains only an initial guess, never a relaxed constraint.
         warm_start_used = bool(cfg.warm_start and self.previous_controls is not None)
         if warm_start_used:
             previous = cast(np.ndarray, self.previous_controls)
             guess = np.vstack((previous[1:], previous[-1:])).copy()
+        else:
+            guess = np.zeros((n, 2), dtype=float)
+            warm_speed = float(speed)
+            for k in range(n):
+                s_ref = min(total, progress_s + max(warm_speed, 0.25) * dt * (k + 1))
+                target = sample_path(self.path, self.arc, s_ref)
+                guess[k, 0] = np.clip(
+                    (
+                        min(
+                            cfg.cruise_speed_mps,
+                            math.sqrt(2 * max_accel * max(total - s_ref, 0.0)),
+                        )
+                        - warm_speed
+                    )
+                    / dt,
+                    -max_accel,
+                    max_accel,
+                )
+                guess[k, 1] = pure_pursuit(
+                    pose, target, self.gear, wb, cfg.lookahead_m, max_steer
+                )
+                warm_speed = float(
+                    np.clip(warm_speed + guess[k, 0] * dt, 0.0, cfg.max_speed_mps)
+                )
 
         bounds = []
         for _ in range(n):
@@ -367,29 +528,101 @@ class PolygonConstrainedMPC:
                 "SciPy is required for the constrained MPC demo. Install it with: "
                 "python -m pip install -e '.[mpc]'"
             )
+
+        cached_key: bytes | None = None
+        cached_values: tuple[float, np.ndarray, np.ndarray | None, np.ndarray | None] | None = None
+
+        def evaluate(flat: np.ndarray) -> tuple[float, np.ndarray, np.ndarray | None, np.ndarray | None]:
+            nonlocal cached_key, cached_values
+            vector = np.asarray(flat, dtype=float).reshape(2 * n)
+            key = vector.tobytes()
+            if key == cached_key and cached_values is not None:
+                stats["evaluation_cache_hits"] += 1
+                return cached_values
+            stats["evaluation_cache_misses"] += 1
+
+            if self._ad_model is not None:
+                objective_value, constraint_values, objective_gradient, constraint_jacobian = (
+                    self._ad_model.evaluate(vector, parameters)
+                )
+                result = (
+                    objective_value,
+                    constraint_values,
+                    objective_gradient,
+                    constraint_jacobian,
+                )
+            else:
+                objective_value, constraint_values = self._numpy_evaluate(
+                    vector, pose, speed, previous_steering, reference_arrays
+                )
+                result = (
+                    objective_value,
+                    constraint_values,
+                    None,
+                    None,
+                )
+            cached_key = key
+            cached_values = result
+            return result
+
+        def objective(flat: np.ndarray) -> float:
+            stats["objective_calls"] += 1
+            return evaluate(flat)[0]
+
+        def constraints(flat: np.ndarray) -> np.ndarray:
+            stats["constraint_calls"] += 1
+            return evaluate(flat)[1]
+
+        def objective_jacobian(flat: np.ndarray) -> np.ndarray:
+            stats["objective_jacobian_calls"] += 1
+            gradient = evaluate(flat)[2]
+            if gradient is None:
+                raise RuntimeError("Automatic objective gradient is unavailable.")
+            return gradient
+
+        def constraints_jacobian(flat: np.ndarray) -> np.ndarray:
+            stats["constraint_jacobian_calls"] += 1
+            jacobian = evaluate(flat)[3]
+            if jacobian is None:
+                raise RuntimeError("Automatic constraint Jacobian is unavailable.")
+            return jacobian
+
+        constraint_spec: dict[str, object] = {"type": "ineq", "fun": constraints}
+        solver_kwargs: dict[str, object] = {
+            "method": "SLSQP",
+            "bounds": bounds,
+            "constraints": (constraint_spec,),
+            "options": {"maxiter": cfg.max_iterations, "ftol": 2e-3, "disp": False},
+        }
+        if self._ad_model is not None:
+            solver_kwargs["jac"] = objective_jacobian
+            constraint_spec["jac"] = constraints_jacobian
+
         started = time.perf_counter()
-        result = minimize(
-            objective,
-            guess.ravel(),
-            method="SLSQP",
-            bounds=bounds,
-            constraints=({"type": "ineq", "fun": constraints},),
-            options={"maxiter": cfg.max_iterations, "ftol": 2e-3, "disp": False},
-        )
+        result = minimize(objective, guess.ravel(), **solver_kwargs)
         elapsed = time.perf_counter() - started
-        controls = unpack(np.asarray(result.x, dtype=float))
-        min_constraint = float(np.min(constraints(result.x)))
-        feasible = bool(np.isfinite(result.fun) and min_constraint >= -cfg.feasibility_tolerance)
+        controls = np.asarray(result.x, dtype=float).reshape(n, 2)
+        final_objective, final_constraints, _, _ = evaluate(result.x)
+        min_constraint = float(np.min(final_constraints))
+        feasible = bool(
+            np.isfinite(final_objective)
+            and np.all(np.isfinite(final_constraints))
+            and min_constraint >= -cfg.feasibility_tolerance
+        )
         self.previous_controls = controls.copy() if cfg.warm_start and feasible else None
-        info: dict[str, object] = {
+        info: dict[str, Any] = {
             "solver_success": bool(result.success),
             "feasible": feasible,
             "warm_start_used": warm_start_used,
+            "derivative_mode": cfg.derivative_mode,
             "status": str(result.message),
             "iterations": int(getattr(result, "nit", 0)),
+            "optimizer_nfev": int(getattr(result, "nfev", 0)),
+            "optimizer_njev": int(getattr(result, "njev", 0)),
             "min_constraint_m": min_constraint,
-            "objective": float(result.fun) if np.isfinite(result.fun) else None,
+            "objective": final_objective if np.isfinite(final_objective) else None,
             "solve_time_s": elapsed,
+            "callback_diagnostics": dict(stats),
         }
         return (controls if feasible else None), info
 
@@ -407,7 +640,9 @@ def simulate_mpc(
     config: MPCConfig,
     max_time_s: float = 25.0,
 ) -> Rollout:
+    setup_started = time.perf_counter()
     controller = PolygonConstrainedMPC(world, path, config)
+    solver_setup_time = time.perf_counter() - setup_started
     pose = path[0]
     speed = 0.0
     progress_s = 0.0
@@ -416,6 +651,7 @@ def simulate_mpc(
     speeds = [speed]
     solve_times: list[float] = []
     controller_call_times: list[float] = []
+    solver_diagnostics: list[dict[str, object]] = []
     clearances = [world_clearance(world, pose)]
     elapsed = 0.0
     collisions = 0
@@ -432,19 +668,20 @@ def simulate_mpc(
             return Rollout(
                 True, poses, steerings, speeds, elapsed, collisions,
                 min(clearances), clearances, solve_times, "MPC reached the parked pose",
-                controller_call_times,
+                controller_call_times, solver_diagnostics, solver_setup_time,
             )
 
         call_started = time.perf_counter()
         controls, info = controller.solve(pose, speed, progress_s, previous_steering)
-        controller_call_times.append(time.perf_counter() - call_started)
         solve_times.append(cast(float, info["solve_time_s"]))
+        solver_diagnostics.append(info)
         if controls is None:
+            controller_call_times.append(time.perf_counter() - call_started)
             return Rollout(
                 False, poses, steerings, speeds, elapsed, collisions,
                 min(clearances), clearances, solve_times,
                 "MPC safe-stop: no feasible command; " + str(info["status"]),
-                controller_call_times,
+                controller_call_times, solver_diagnostics, solver_setup_time,
             )
 
         acceleration, steering = map(float, controls[0])
@@ -458,14 +695,16 @@ def simulate_mpc(
         )
         next_pose, next_speed = next_poses[-1], next_speeds[-1]
         if world.is_collision(next_pose, extra_margin=config.extra_clearance_m):
+            controller_call_times.append(time.perf_counter() - call_started)
             collisions += 1
             return Rollout(
                 False, poses, steerings, speeds, elapsed, collisions,
                 min(clearances), clearances, solve_times,
                 "MPC command rejected by the independent footprint collision check",
-                controller_call_times,
+                controller_call_times, solver_diagnostics, solver_setup_time,
             )
 
+        controller_call_times.append(time.perf_counter() - call_started)
         pose, speed = next_pose, float(next_speed)
         elapsed += config.dt
         previous_steering = steering
@@ -478,7 +717,7 @@ def simulate_mpc(
     return Rollout(
         False, poses, steerings, speeds, elapsed, collisions,
         min(clearances), clearances, solve_times, "MPC timed out before reaching the slot",
-        controller_call_times,
+        controller_call_times, solver_diagnostics, solver_setup_time,
     )
 
 
@@ -511,6 +750,12 @@ def rollout_from_pure_pursuit(
         ),
     )
     clearances = [world_clearance(world, pose) for pose in result.poses]
+    message = result.message
+    if result.collisions:
+        message = (
+            "Pure Pursuit command rejected by the independent footprint collision "
+            "check before it was applied"
+        )
     return Rollout(
         result.success,
         result.poses,
@@ -521,7 +766,7 @@ def rollout_from_pure_pursuit(
         min(clearances, default=-math.inf),
         clearances,
         [],
-        result.message,
+        message,
     )
 
 
@@ -547,6 +792,23 @@ def _draw_world(ax: Axes, world: ParkingWorld) -> None:
 def _summary(rollout: Rollout) -> dict[str, object]:
     optimizer_times = np.asarray(rollout.solve_times_s, dtype=float)
     call_times = np.asarray(rollout.controller_call_times_s, dtype=float)
+    callback_keys = (
+        "objective_calls",
+        "constraint_calls",
+        "objective_jacobian_calls",
+        "constraint_jacobian_calls",
+        "evaluation_cache_hits",
+        "evaluation_cache_misses",
+    )
+    callback_totals = {key: 0 for key in callback_keys}
+    for diagnostic in rollout.solver_diagnostics:
+        callbacks = diagnostic.get("callback_diagnostics", {})
+        if isinstance(callbacks, dict):
+            for key in callback_keys:
+                callback_totals[key] += cast(int, callbacks.get(key, 0))
+    diagnostic_modes = {
+        str(item.get("derivative_mode")) for item in rollout.solver_diagnostics
+    }
     summary: dict[str, object] = {
         "success": rollout.success,
         "message": rollout.message,
@@ -554,10 +816,18 @@ def _summary(rollout: Rollout) -> dict[str, object]:
         "steps": max(0, len(rollout.poses) - 1),
         "collisions": rollout.collisions,
         "minimum_raw_polygon_clearance_m": rollout.min_clearance_m,
+        "solver_setup_time_ms": rollout.solver_setup_time_s * 1000.0,
+        "derivative_mode": next(iter(diagnostic_modes)) if len(diagnostic_modes) == 1 else None,
+        "solver_iterations_total": sum(cast(int, item.get("iterations", 0)) for item in rollout.solver_diagnostics),
+        "optimizer_nfev_total": sum(cast(int, item.get("optimizer_nfev", 0)) for item in rollout.solver_diagnostics),
+        "optimizer_njev_total": sum(cast(int, item.get("optimizer_njev", 0)) for item in rollout.solver_diagnostics),
+        "callback_totals": callback_totals,
         "mean_mpc_solve_time_ms": float(optimizer_times.mean() * 1000) if optimizer_times.size else None,
         "p95_mpc_solve_time_ms": float(np.percentile(optimizer_times, 95) * 1000) if optimizer_times.size else None,
+        "p50_controller_call_ms": float(np.percentile(call_times, 50) * 1000) if call_times.size else None,
         "p95_controller_call_ms": float(np.percentile(call_times, 95) * 1000) if call_times.size else None,
         "p99_controller_call_ms": float(np.percentile(call_times, 99) * 1000) if call_times.size else None,
+        "max_controller_call_ms": float(call_times.max() * 1000) if call_times.size else None,
     }
     if call_times.size:
         summary["mean_controller_call_ms"] = float(call_times.mean() * 1000)
@@ -707,10 +977,19 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--output-dir", type=Path, default=Path("artifacts/mpc_demo"))
     parser.add_argument("--horizon", type=int, default=8, help="MPC prediction steps (default: 8)")
     parser.add_argument("--max-iterations", type=int, default=40)
+    parser.add_argument(
+        "--derivative-mode",
+        choices=("finite_difference", "casadi_ad"),
+        default="finite_difference",
+    )
     args = parser.parse_args(argv)
     if args.horizon < 3:
         parser.error("--horizon must be at least 3")
-    config = MPCConfig(horizon_steps=args.horizon, max_iterations=args.max_iterations)
+    config = MPCConfig(
+        horizon_steps=args.horizon,
+        max_iterations=args.max_iterations,
+        derivative_mode=args.derivative_mode,
+    )
     try:
         run_demo(args.output_dir, config)
     except Exception as exc:

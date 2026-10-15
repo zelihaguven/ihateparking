@@ -1,62 +1,64 @@
 # Constrained-MPC Solver Performance
 
-## Measured result
+## Implemented optimization
 
-The interactive demo evaluates a synthetic, static-obstacle reverse-in maneuver into a 2.5 m slot. These measurements were made in the Manus sandbox on 2026-10-15 using `time.perf_counter`; they are descriptive results from one scenario, not a target-hardware benchmark. Each closed-loop sample has only 47–48 calls, so percentile estimates are sensitive to run-to-run noise.
+The dashboard and CLI compare two derivative paths for the **same SciPy SLSQP solver**:
 
-| Profile | Outcome | Mean full controller call | p95 | p99 | Calls over 180 ms |
-|---|---|---:|---:|---:|---:|
-| Horizon 4, 12 iterations, Pure Pursuit seed (`warm_start=false`), direct run | Goal reached; 0 collision-guard stops; 0.2595 m minimum raw clearance | 93.63 ms | 132.97 ms | 155.86 ms | 0 / 47 |
-| Horizon 4, 12 iterations, shifted feasible-sequence seed (`warm_start=true`), direct run | Goal reached; 0 collision-guard stops; 0.2587 m minimum raw clearance | 42.06 ms | 121.47 ms | 130.98 ms | 0 / 47 |
-| Horizon 4, 12 iterations, shifted seed, second API run | Goal reached; 0 collision-guard stops | 43.64 ms | 125.69 ms | 135.57 ms | 0 / 47 |
-| Horizon 4, 12 iterations, Pure Pursuit seed, second API run | Goal reached; one pre-execution collision-guard stop | 107.46 ms | 155.92 ms | 179.53 ms | 1 / 47 |
-| Horizon 8, 40 iterations, Pure Pursuit seed, direct run | Goal reached; 0 collision-guard stops; 0.2595 m minimum raw clearance | 353.52 ms | 562.66 ms | 594.24 ms | 48 / 48 |
+- **Finite-difference baseline:** cached/vectorized numerical evaluator; objective and inequality callbacks share the same kinematic rollout for an identical decision vector.
+- **CasADi AD:** the same bicycle model, objective and hard inequality constraints are expressed as a parameterized CasADi graph. CasADi supplies the objective gradient and full constraint Jacobian to SciPy SLSQP.
 
-The shifted initial-guess warm start reduced the mean call time in both observed paired runs; p95 ranged from 121.47 to 125.69 ms. The two cold-seed runs varied more: p95 ranged from 132.97 to 155.92 ms, and one run had a single call exceed the 180 ms budget. The long-horizon reference missed every 180 ms deadline. **These data show that warm starting can help this one case, not that the controller is reliably real-time.**
+Both paths retain the same acceleration, steering, speed, steering-rate, world-boundary and sampled full-vehicle-polygon clearance constraints. Static obstacle orientation axes and horizon reference arrays are prepared once per controller solve. The shifted feasible-sequence warm start is only an initial guess; the code skips rebuilding the Pure Pursuit seed while that shifted seed is usable. An independent next-footprint collision check still rejects an unsafe command before the pose is applied.
 
-Even the warm profile’s p95 is above both project control-period references: 50 ms at 20 Hz and 20 ms at 50 Hz. The 180 ms line is only the chosen simulation-step budget; it is not an acceptable real-vehicle target. The project architecture specifies 20–50 Hz control, and the actual deadline must come from the target vehicle’s system design.
+Run `python3 scripts/benchmark_mpc_derivatives.py --runs 5` to compare both modes on identical closed-loop runs and write `artifacts/mpc_demo/derivative_benchmark.json` (runtime output, ignored by Git). The report records per-call setup, function/Jacobian counts, feasibility, collision-guard stops and latency percentiles.
 
-The API distinguishes **optimizer-only time** (the `scipy.optimize.minimize` call) from **full controller-call time** (Python setup, optimization and post-solve feasibility checks). The table uses full controller-call time, which is closer to the computation required before a command can be accepted. Re-run the page to measure the selected profile on the current worker.
+## Paired sandbox benchmark
 
-The paired Pure Pursuit baseline triggered one collision guard in one run: its proposed next pose was rejected before it was appended to the trace. No colliding pose was applied. The constrained MPC reached the goal without a rejected pose in the reported samples. This is evidence about one synthetic path, not proof that MPC is generally safer. The scene has no moving actors, localization error, sensor delay, tire dynamics, actuator lag or real vehicle.
+Measured in the Manus sandbox on **2026-10-15**. Both modes used a 4-step horizon, 12 SLSQP iterations, `dt=0.18 s`, 0.05 m extra clearance, shifted warm start enabled, and the same 2.5 m reverse-in static-obstacle scene. Each mode ran five closed-loop repetitions, yielding **235 command-cycle samples per mode**. Mean and percentiles in the table are computed over all 235 per-command samples pooled across the five runs, not by averaging five run-level percentiles. These results describe this one synthetic scene and execution environment, not a target-hardware real-time guarantee.
 
-## What the warm-start toggle actually does
+| Mode | Goal runs / guard stops | Mean | p50 | p95 | p99 | Max | Calls >20 ms | Calls >50 ms | Calls >180 ms | Mean model setup |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| Cached NumPy + finite differences | 5/5; 0 | 24.84 ms | 14.79 ms | 76.00 ms | 84.30 ms | 117.13 ms | 65/235 | 27/235 | 0/235 | 0.10 ms |
+| CasADi Jacobians + SciPy SLSQP | 5/5; 0 | 6.01 ms | 5.43 ms | 12.23 ms | 13.51 ms | 23.21 ms | 1/235 | 0/235 | 0/235 | 114.92 ms |
 
-When enabled, the controller shifts its previous **feasible control sequence** forward by one step and uses it as the next SLSQP initial guess. The first solve still uses the geometric Pure Pursuit seed. If a solve is infeasible, the stored warm start is cleared. Every solve still evaluates the hard polygon-clearance constraints, and the executed command still passes the independent footprint collision check.
+Under this configuration, the CasADi-AD mode reduced pooled **p95 command-cycle latency by 83.9% (6.2×)** and mean latency by 75.8% versus the cached finite-difference path. SLSQP objective evaluations fell from 827 to 167 per maneuver (79.8% fewer); constraint callbacks fell from 957 to 214 per maneuver (77.6% fewer), and cached evaluator misses fell from 1,625 to 167 per maneuver. AD supplied 83 objective gradients and 83 constraint Jacobians per maneuver. Both modes completed all five runs with no MPC guard stops; minimum raw polygon clearances were 0.2586 m and 0.2589 m respectively. Both had zero calls over the selected 180 ms simulation-step budget.
 
-This is an initial-guess warm start only: SciPy SLSQP is still invoked anew each time; the demo does not preserve a solver workspace, Hessian approximation or factorization. It does not guarantee feasibility, convergence or a deadline. The checkbox lets visitors compare it against the fresh Pure Pursuit seed under the same horizon and scenario.
+CasADi graph construction/import is a separate **controller setup cost**, not a per-command operation. The five-run mean was 114.92 ms per controller instance. Build the graph before starting the control loop and do not reconstruct it on every step. Setup time is reported separately from the command-cycle measurements.
 
-## Improving the current SLSQP baseline
+## What the timing includes—and excludes
 
-1. **Profile callbacks and evaluations.** Separate objective, constraint, rollout and safety-check costs. Precompute static obstacle polygons/axes and path-reference samples once rather than rebuilding them in every callback.
-2. **Use analytic or automatic-differentiation Jacobians.** SLSQP currently relies on numerical differences. Exact/sparse derivatives can reduce repeated Python callbacks, but the active separating axis can switch at polygon features; validate gradients around those transitions and preserve conservative collision margins.
-3. **Scale variables and constraints consistently.** Position, yaw, speed, steering and clearance have different units and ranges. Record convergence status and constraint residuals as well as elapsed time.
-4. **Keep the shifted warm start, but test it broadly.** Include disturbances, replanning, mode/gear transitions and infeasible solves. Warm start is only a seed; retain the safe-stop path and independent collision checker.
-5. **Change problem size cautiously.** Shortening horizon or limiting iterations can reduce compute, but may remove look-ahead or robustness. Test success, swept-volume clearance and deadline misses across all maneuver types, dynamic actors and model-error cases before accepting a trade-off.
-6. **Measure p95/p99 and maximum on the target processor.** Include state input, constraint construction, solver, feasibility validation and command output. A low average is not a real-time guarantee.
+Each full command-cycle sample starts before `controller.solve` and ends after the proposed next pose has been checked by the independent footprint collision guard. It includes Python reference/initial-guess preparation, SLSQP, post-solve feasibility evaluation and the synthetic next-pose collision check. It excludes perception, localization, global planning, transport/I/O, operating-system scheduling, actuator communication and physical vehicle response. It also excludes the separate controller/model setup time shown in the table.
 
-SciPy documents finite-difference settings and a `workers` map for parallel numerical differentiation in recent releases (added in SciPy 1.16). It may or may not help this small, Python-heavy problem: dispatch overhead and callback/GIL costs need a local benchmark. The demo does not enable `workers` or provide analytic Jacobians. [1]
+The 180 ms value is only the demo’s selected `dt`; it is **not** a suitable real-car deadline. The project architecture’s 20–50 Hz control target corresponds to 50–20 ms periods. Although 234/235 CasADi sandbox samples were below 20 ms, that cannot establish a 50 Hz deadline on a target ECU or for a complete vehicle control cycle; one command cycle reached 23.21 ms. The finite-difference p95 remained above both period references.
 
-## Candidate solver paths
+The Pure Pursuit comparison can encounter a predicted unsafe next pose; the guard rejects it before it is appended or applied. That is a rejected-command stop, not a physical contact. The MPC result and controller choice do not prove general safety or superiority: this fixed scene has no moving actors, sensing/localization error, delayed data, tire dynamics or actuator lag.
 
-**Primary nonlinear candidate: CasADi + acados SQP-RTI.** CasADi provides algorithmic differentiation, sparse derivative information, and building blocks for optimal-control formulations. It is not a drop-in automatic-differentiation wrapper for the current Python functions; the vehicle model/objective/constraints must be expressed in CasADi’s symbolic form. acados supports real-time iteration with preparation and feedback phases intended to reduce control delay. Port the bicycle model, constraints and costs to a structured OCP, then build and benchmark for the target CPU. Neither tool is wired into this repository’s dashboard or shown to meet a deadline. [2] [3]
+## Callback profiling and derivative checks
 
-**Convexified alternative: OSQP inside sequential QPs/SQP.** OSQP’s official MPC example formulates a linear time-invariant model as a constrained QP, then warm-starts and updates the initial-state bounds each receding-horizon step. The current nonlinear bicycle model and polygon-separation constraints are not a direct OSQP problem. A candidate implementation would need safe local linearization/convexification and an independent exact-footprint check; OSQP alone is not a drop-in nonlinear MPC solver. [4]
+The previous path repeatedly rebuilt intermediate rollout and static obstacle data through SLSQP callbacks. The current NumPy baseline now:
 
-## Real-vehicle acceptance boundary
+1. caches static obstacle orientation axes and horizon reference arrays per solve;
+2. vectorizes the midpoint kinematic rollout and tracking-cost terms;
+3. evaluates objective and constraints together and memoizes the last decision-vector result so separate SLSQP callbacks reuse work; and
+4. records objective/constraint calls, explicit Jacobian calls, cache hits/misses, `nfev`/`njev`, solver setup, optimizer-only time and command-cycle percentiles.
 
-The 180 ms comparison is just the current simulation step, **not a suitable real-vehicle target**. The project architecture calls for 20–50 Hz control, corresponding to 50–20 ms periods; the actual deadline must come from the target vehicle’s system design.
+The CasADi form uses a piecewise-smooth maximum over separating-axis gaps. Its objective and constraint values match the NumPy evaluator in regression tests; automatic gradients/Jacobians are checked against central differences at a smooth tested point. The numerical rectangle-support SAT gap matches the project polygon SAT over randomized poses. These checks do not establish differentiability at active-axis switches or prove collision safety between discrete prediction samples. Preserve margins, hard feasibility checks and the independent exact-footprint rejection path.
 
-Before any vehicle integration, measure the full call path on the exact target hardware under worst-case scene complexity and repeated maneuvers. Record p50, p95, p99, maximum, solver status and deadline-miss rate. A missed/infeasible solve must trigger a separately validated safe-stop, not an unverified fallback controller. Discrete-time polygon checks do not prove continuous-time or swept-volume safety. Also require vehicle-specific system identification, uncertainty-aware margins, stale-input monitoring, actuator limits, hardware-in-the-loop tests and controlled closed-course validation. This Python code remains research/demo software, not vehicle-ready autonomy.
+## Solver path beyond the prototype
+
+- **Near term:** retain the cached finite-difference path as a dependency-light reference and use CasADi AD only as a measured research mode. Validate gradient behavior around separating-axis changes; scale state, control and constraint units; then repeat tests over all six maneuvers, dynamic actors, disturbances, model mismatch and failed/infeasible solves.
+- **Primary real-time candidate:** reformulate the bicycle model and constraints as a structured optimal-control problem for **CasADi + acados SQP-RTI**. Its preparation/feedback phases are intended for low-latency NMPC. That is a separate backend port—not a drop-in flag—and must be benchmarked, compiled/configured and validated on the intended target CPU.
+- **Alternative:** investigate **OSQP** only inside sequential QPs or another carefully validated local convexification. The current nonlinear bicycle dynamics and polygon-separation constraints are not a direct convex QP. Retain an independent exact-footprint check and safe-stop on infeasible or missed-deadline results.
+
+A missed or infeasible solve must trigger a separately validated safe stop; do not silently switch to an unverified controller. Before vehicle integration, require target-processor worst-case measurements, input freshness checks, vehicle-specific identification, uncertainty-aware margins, swept-volume/continuous-time review, hardware-in-the-loop testing and controlled closed-course validation. This Python simulation remains research/demo software, not vehicle-ready autonomy.
 
 ## References
 
-[1] SciPy, `minimize(method='SLSQP')`: https://docs.scipy.org/doc/scipy/reference/optimize.minimize-slsqp.html
+[1] SciPy, `minimize(method='SLSQP')`: <https://docs.scipy.org/doc/scipy/reference/optimize.minimize-slsqp.html>
 
-[2] CasADi documentation: https://web.casadi.org/docs/
+[2] CasADi documentation: <https://web.casadi.org/docs/>
 
-[3] acados features, including real-time iterations: https://docs.acados.org/features/index.html
+[3] acados features, including real-time iterations: <https://docs.acados.org/features/index.html>
 
-[4] OSQP constrained MPC example: https://osqp.org/docs/examples/mpc.html
+[4] OSQP constrained MPC example: <https://osqp.org/docs/examples/mpc.html>
 
 [5] Project control-period context: [`real-system-architecture.md`](real-system-architecture.md#runtime-budgets).

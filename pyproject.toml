@@ -22,6 +22,9 @@ ihateparking-pedestrian-stress = "ihateparking.pedestrian_stress_test:main"
 mpc = [
   "scipy>=1.11",
 ]
+mpc-ad = [
+  "casadi>=3.6.7,<4",
+]
 vision = [
   "opencv-python-headless>=4.9",
 ]

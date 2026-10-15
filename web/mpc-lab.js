@@ -5,6 +5,7 @@ const formValues = {
   dt: () => Number(byId("dt").value),
   extra_clearance_m: () => Number(byId("extra-clearance").value),
   warm_start: () => byId("warm-start").checked,
+  derivative_mode: () => byId("derivative-mode").value,
 };
 let lastResult = null;
 
@@ -182,10 +183,13 @@ function render(data) {
   const budgetPass = Number.isFinite(p95) && p95 <= budget;
   setCardStatus("latency-status", budgetPass, budgetPass ? "WITHIN SIM STEP" : "MISSES SIM STEP");
   if (budgetPass && p95 > 50) byId("latency-status").classList.add("warn");
-  byId("latency-message").textContent = `${realPeriod}; shifted warm start ${data.mpc_configuration.warm_start ? "on" : "off"}; ${misses}/${count} calls exceeded ${fmt(budget, 0, " ms")} simulation step.`;
+  const derivativeLabel = data.mpc_configuration.derivative_mode === "casadi_ad" ? "CasADi AD" : "finite differences";
+  byId("latency-message").textContent = `${realPeriod}; ${derivativeLabel}; shifted warm start ${data.mpc_configuration.warm_start ? "on" : "off"}; ${misses}/${count} calls exceeded ${fmt(budget, 0, " ms")} simulation step.`;
   byId("latency-percentiles").textContent = `${fmt(data.constrained_mpc.mean_controller_call_ms, 1)} / ${fmt(p95, 1)} / ${fmt(data.constrained_mpc.p99_controller_call_ms, 1)} ms`;
   byId("deadline-misses").textContent = `${misses} / ${count}`;
   byId("optimizer-p95").textContent = fmt(data.constrained_mpc.p95_mpc_solve_time_ms, 1, " ms");
+  const callbacks = data.constrained_mpc.callback_totals || {};
+  byId("solver-diagnostics").textContent = `${fmt(data.constrained_mpc.solver_setup_time_ms, 1)} ms · ${data.constrained_mpc.optimizer_nfev_total || 0} f evals · ${callbacks.objective_jacobian_calls || 0}+${callbacks.constraint_jacobian_calls || 0} explicit J`;
   byId("safety-note").textContent = `${data.safety_note} Collision-guard stops mean a proposed next pose was rejected before it was appended to the executed trace; this demo does not deliberately apply a colliding pose. Scene: ${data.scenario.reference_source}. ${data.constrained_mpc.success ? "The current MPC rollout reached the goal." : "The MPC rollout did not complete; treat it as a failed experiment, not a reason to fall back to Pure Pursuit."}`;
   byId("download-json").disabled = false;
   drawTrajectory(data);
@@ -221,11 +225,13 @@ byId("extra-clearance").addEventListener("input", (event) => {
 });
 byId("fast-preset").addEventListener("click", () => {
   byId("horizon").value = "4"; byId("iterations").value = "12"; byId("dt").value = "0.18";
+  byId("derivative-mode").value = "finite_difference";
   byId("warm-start").checked = true;
   setStatus("Quick profile loaded. Run it to measure this session’s actual results.");
 });
 byId("reference-preset").addEventListener("click", () => {
   byId("horizon").value = "8"; byId("iterations").value = "40"; byId("dt").value = "0.18";
+  byId("derivative-mode").value = "finite_difference";
   byId("warm-start").checked = false;
   setStatus("Reference profile loaded. Expect higher SLSQP latency; run it to measure.");
 });

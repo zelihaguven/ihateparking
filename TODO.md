@@ -31,3 +31,14 @@
   - “How can we optimize the SLSQP solver performance or use alternative optimization libraries to bring solve time below the 180ms threshold?”
   - Measure the current and selectable SLSQP configurations, report actual latency and feasibility, and do not claim sub-180 ms unless the measured result supports it.
   - “This algorithm will be used in the real autonomous car”: explain candidate optimization paths and the validation boundary; distinguish the 180 ms simulation comparison from the project’s 20–50 Hz control target and do not present the current Python simulation as ready to control a real vehicle.
+
+
+- [x] **SLSQP callback and derivative optimization**
+  - “Profile callbacks and reduce callback work, then benchmark analytic/automatic-differentiation Jacobians.”
+  - Compare the current finite-difference SLSQP path against an optional CasADi automatic-differentiation Jacobian path on the same synthetic scenario and configuration.
+  - Report setup, objective/constraint/Jacobian evaluation counts, optimizer-only time, full controller-call p50/p95/p99/max, feasibility, clearance, safety-stop outcome and simulation-step misses.
+  - Preserve hard polygon constraints, the independent executed-footprint collision check and safe-stop behavior; make no real-time claim without target-hardware evidence.
+
+- [ ] **Push recent project code to GitHub**
+  - “Do not forget for pushing the recent codes to GitHub.”
+  - Synchronize the completed project source to the existing private `zelihaguven/ihateparking` repository’s default branch without rewriting or force-pushing its history, and keep the separate Manus project repository intact.
