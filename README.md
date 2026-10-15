@@ -1,6 +1,8 @@
 # ihateparking
 
 > A closed-loop autonomous parking research prototype.
+>
+> **Live research lab:** [ihateparking-zanntidj.manus.space](https://ihateparking-zanntidj.manus.space)
 
 `ihateparking` is an independent project from RoadLens. RoadLens focuses on perception reliability; this repository is becoming an **AI-assisted, safety-supervised autonomous parking stack** for simulation first and vehicle integration later.
 
