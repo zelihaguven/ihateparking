@@ -1,0 +1,21 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+*.egg-info/
+.venv/
+build/
+
+# Keep runtime simulation output out of Git, but ship the read-only website fixtures.
+artifacts/
+!artifacts/
+artifacts/*
+!artifacts/trace.json
+!artifacts/footage_assist.json
+artifacts/mock_carla/
+artifacts/dashboard/
+
+# Keep large video assets out of Git except for files served by the website.
+assets/*.mp4
+!assets/ihateparking_virtual_parking_tutorial.mp4
+!assets/pexels_parking_pov.mp4
+assets/frames/

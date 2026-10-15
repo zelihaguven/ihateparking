@@ -1,0 +1,24 @@
+{
+  "format": "ihateparking-deployment-export-v1",
+  "generated_from": "ihateparking",
+  "scenario_count": 24,
+  "seed": 100,
+  "files": {
+    "perception_model_numpy_mlp_v2.npz": {
+      "bytes": 2764,
+      "sha256": "8601c24d5d5ed5a0380ce84dd77ec721cf53d8e7049a7b833398d247683c4730"
+    },
+    "perception_metadata.json": {
+      "bytes": 561,
+      "sha256": "af081dbc0b4531699d9d10d19963714058a3c2c6b54abdd96719e30f3e9e5f2d"
+    },
+    "planning_profiles.json": {
+      "bytes": 1711,
+      "sha256": "d33d9104460115193f6cc21c37b62e9e30994a339c1010e3d201a62ef02eee78"
+    },
+    "scenario_suite.json": {
+      "bytes": 47181,
+      "sha256": "4f7686ba53b545187330d7a26a088b62c1b343ac96a76c3235fd2bac524e0bc1"
+    }
+  }
+}

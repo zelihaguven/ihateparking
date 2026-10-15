@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="An interactive autonomous parking research lab with Hybrid A*, closed-loop control, synthetic perception and dynamic safety supervision." />
+  <meta name="theme-color" content="#071114" />
+  <link rel="icon" href="/assets/ihateparking-logo.svg" type="image/svg+xml" />
+  <title>ihateparking — Autonomous Parking Lab</title>
+  <link rel="stylesheet" href="/static/dashboard.css" />
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <div class="brand"><span class="brand-mark" aria-hidden="true">IP</span><div><p class="eyebrow">INDEPENDENT AUTONOMY RESEARCH LAB</p><h1>ihateparking</h1></div></div>
+      <div class="connection"><span id="connection-dot" class="dot"></span><span id="connection-label">CONNECTING</span></div>
+    </header>
+
+    <nav class="site-nav" aria-label="Lab pages">
+      <a class="active" href="#console">Live console</a>
+      <a href="/web/">Planner replay</a>
+      <a href="/web/assist.html">Video assist</a>
+      <a href="/web/tutorial.html">Virtual lesson</a>
+      <a href="#operator-guide">Operator guide</a>
+      <a href="/docs">API schema</a>
+    </nav>
+
+    <aside class="prototype-warning" role="note" aria-label="Research prototype notice">
+      <strong>RESEARCH PROTOTYPE — SIMULATION ONLY</strong>
+      <span>This site runs a synthetic mock-CARLA world. It is not connected to live CARLA or vehicle hardware, is not production-certified, and must not be used to operate a real vehicle.</span>
+    </aside>
+
+    <section class="hero">
+      <div><p class="eyebrow">PERCEPTION → PREDICTION → REPLAN → BRAKE</p><h2>See the safety envelope move.</h2><p class="lede">Explore the full parking loop: synthetic sensor proposals feed a lightweight NumPy perception model, Hybrid A* plans a maneuver, reverse-aware Pure Pursuit tracks it, and a dynamic supervisor can replan or brake.</p></div>
+      <div class="hero-stamp"><strong>MOCK</strong><span>FASTAPI<br />SYNTHETIC WORLD</span></div>
+    </section>
+
+    <section id="console" class="toolbar panel" aria-label="Simulation controls">
+      <label>Maneuver<select id="scenario-kind"><option value="perpendicular_reverse">Perpendicular · reverse</option><option value="perpendicular_forward">Perpendicular · forward</option><option value="parallel_reverse">Parallel · reverse</option><option value="parallel_forward">Parallel · forward</option><option value="angled_forward">Angled · forward</option><option value="angled_reverse">Angled · reverse</option></select></label>
+      <label>Seed<input id="seed" type="number" value="100" min="0" /></label>
+      <label>Dynamic actors<input id="dynamic-count" type="number" value="0" min="0" max="6" /></label>
+      <button id="reset-button" class="button secondary" type="button">Reset scenario</button>
+      <button id="step-button" class="button secondary" type="button">Single step</button>
+      <button id="run-button" class="button primary" type="button">Run loop</button>
+    </section>
+
+    <section class="layout" aria-label="Live simulation telemetry">
+      <div class="panel visual-panel">
+        <div class="panel-heading"><div><p class="eyebrow">TOP-DOWN DEBUG VIEW</p><h3>Mock CARLA world</h3></div><span id="mode-badge" class="badge neutral">EXECUTE</span></div>
+        <div class="canvas-wrap"><canvas id="world-canvas" aria-label="Top-down synthetic parking simulation"></canvas><div class="canvas-caption">cyan = ego vehicle · mint = planned path · red = moving hazard · orange = target slot</div></div>
+        <div class="legend"><span><i class="key ego"></i>ego vehicle</span><span><i class="key plan"></i>planned path</span><span><i class="key static"></i>parked/static</span><span><i class="key dynamic"></i>moving actor / hazard</span><span><i class="key slot"></i>target slot</span><span><i class="key nn"></i>neural detection</span></div>
+      </div>
+
+      <aside class="right-column">
+        <section class="panel safety-card"><div class="panel-heading"><div><p class="eyebrow">DYNAMIC SAFETY SUPERVISOR</p><h3 id="safety-action">PROCEED</h3></div><span id="safety-icon" class="safety-icon" aria-hidden="true">✓</span></div><p id="safety-reason" class="reason">Waiting for telemetry.</p><div class="safety-grid"><div><span>clearance</span><strong id="clearance">—</strong></div><div><span>braking distance</span><strong id="braking-distance">—</strong></div><div><span>time to collision</span><strong id="ttc">—</strong></div><div><span>replans</span><strong id="replans">0</strong></div></div></section>
+        <section class="panel metric-card"><div class="panel-heading"><div><p class="eyebrow">LIGHTWEIGHT PERCEPTION</p><h3 id="model-name">—</h3></div><span id="frame-id" class="mono">—</span></div><div class="metric-row"><span>slots</span><strong id="slot-count">0</strong></div><div class="metric-row"><span>obstacles</span><strong id="obstacle-count">0</strong></div><div class="metric-row"><span>dynamic tracks</span><strong id="dynamic-count-readout">0</strong></div><div class="metric-row"><span>out-of-distribution</span><strong id="ood-score">—</strong></div></section>
+        <section class="panel metric-card"><div class="panel-heading"><div><p class="eyebrow">VEHICLE STATE</p><h3 id="gear">PARK</h3></div><span id="frame-number" class="mono">frame 0</span></div><div class="metric-row"><span>position</span><strong id="position">—</strong></div><div class="metric-row"><span>speed</span><strong id="speed">—</strong></div><div class="metric-row"><span>steering</span><strong id="steering">—</strong></div><div class="metric-row"><span>contact events</span><strong id="collisions">0</strong></div></section>
+      </aside>
+    </section>
+
+    <section class="panel event-panel"><div class="panel-heading"><div><p class="eyebrow">SAFETY EVENT LOG</p><h3>Supervisor decisions</h3></div><span id="last-time" class="mono">t=0.00s</span></div><div id="event-log" class="event-log" aria-live="polite"></div></section>
+
+    <section id="operator-guide" class="guide-section" aria-labelledby="guide-title">
+      <div class="guide-heading"><div><p class="eyebrow">READ THE INSTRUMENTS</p><h2 id="guide-title">How this lab works</h2></div><p>Every visible movement comes from the simulator loop. The dashboard does not send commands to a vehicle.</p></div>
+      <div class="guide-grid">
+        <article class="panel guide-card"><p class="eyebrow">01 / OPERATE</p><h3>Run a maneuver</h3><ol><li>Choose one of the six perpendicular, parallel or angled forward/reverse scenarios.</li><li>Keep the seed to reproduce a scene, then set <strong>Dynamic actors</strong> from 0–6 to introduce moving mock vehicles or pedestrians.</li><li>Select <strong>Reset scenario</strong> to generate a new scene and Hybrid A* plan. Use <strong>Single step</strong> to advance once, or <strong>Run loop</strong> / <strong>Pause loop</strong> to execute supervised cycles.</li><li>Watch the path, gear, clearance, time-to-collision, event log and supervisor state. <code>BRAKE</code> is a safety decision; it is not a failed UI state.</li></ol></article>
+        <article class="panel guide-card"><p class="eyebrow">02 / ARCHITECTURE</p><h3>From scene to control</h3><p><strong>Mock world</strong> creates a seeded parking scene and synthetic RGB/depth/LiDAR-style proposals. <strong>NumPy perception</strong> classifies slots and obstacles. <strong>Hybrid A*</strong> searches kinematic forward/reverse primitives with collision checking. <strong>Pure Pursuit</strong> follows the plan using a rear-axle bicycle model. <strong>Dynamic safety</strong> predicts actor motion, then allows progress, replans around a hazard or holds a safe stop.</p><p class="callout">The public dashboard reports the current decision and event history; it does not hide planner or safety failures.</p></article>
+        <article class="panel guide-card"><p class="eyebrow">03 / API</p><h3>Same-origin JSON endpoints</h3><dl class="api-list"><div><dt><code>GET /api/health</code></dt><dd>Service readiness and mock-backend identity.</dd></div><div><dt><code>GET /api/state</code></dt><dd>Current scene, plan, perception, vehicle state, safety decision and events.</dd></div><div><dt><code>POST /api/reset</code></dt><dd><code>{"seed":100,"kind":"parallel_reverse","dynamic_actor_count":0}</code></dd></div><div><dt><code>POST /api/tick</code></dt><dd><code>{"dt":0.1}</code> advances one closed-loop cycle.</dd></div><div><dt><code>POST /api/step</code></dt><dd>Manual simulated step: <code>speed_mps</code>, <code>steering_angle_rad</code>, <code>gear</code>, optional <code>dt</code>; safety monitor still applies.</dd></div></dl><p><a href="/docs">Open the interactive FastAPI schema →</a></p></article>
+        <article class="panel guide-card"><p class="eyebrow">04 / SCOPE & LIMITATIONS</p><h3>What this demo is—and is not</h3><p>This is a research and simulation prototype running a synthetic mock-CARLA backend. It is not connected to CARLA, ROS 2, cameras, LiDAR, CAN, steering, brakes or a vehicle. The compact NumPy MLP is a synthetic-data baseline, not a camera-trained production model; the planner, controller and safety monitor are not certified for road use.</p><p>Visitors share one in-memory demo session. Reset changes that shared scene, no run history is saved, and process replacement or idle wake can reset state. Real-system integration needs real sensor adapters, validated perception, vehicle-specific dynamics, independent safety engineering and hardware-in-the-loop validation.</p></article>
+      </div>
+    </section>
+
+    <footer><span>ihateparking / autonomous parking research lab</span><span>Hybrid A* · Pure Pursuit · NumPy · mock-CARLA</span></footer>
+  </main>
+  <script src="/static/dashboard.js"></script>
+</body>
+</html>

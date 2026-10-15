@@ -1,0 +1,25 @@
+{
+  "model_name": "numpy_mlp_perception",
+  "version": "0.2",
+  "backend": "numpy",
+  "classes": [
+    "background",
+    "slot",
+    "static_obstacle",
+    "dynamic_obstacle"
+  ],
+  "feature_size": 9,
+  "training_config": {
+    "seed": 17,
+    "samples_per_class": 160,
+    "epochs": 90,
+    "learning_rate": 0.08,
+    "hidden_size": 24
+  },
+  "metrics": {
+    "train_samples": 640.0,
+    "train_accuracy": 0.946875,
+    "final_loss": 0.553813099861145
+  },
+  "runtime_note": "Replace this artifact with ONNX/TensorRT weights for production camera inference."
+}
