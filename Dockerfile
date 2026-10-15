@@ -11,6 +11,7 @@ WORKDIR /app
 
 COPY pyproject.toml README.md ./
 COPY ihateparking ./ihateparking
+COPY scripts ./scripts
 COPY web ./web
 COPY assets/*.mp4 ./assets/
 COPY assets/*.svg ./assets/
@@ -19,7 +20,7 @@ COPY deployment/export ./deployment/export
 COPY manus-routes.json ./manus-routes.json
 
 RUN python -m pip install --upgrade pip \
-    && python -m pip install '.[dashboard,vision]' \
+    && python -m pip install '.[dashboard,vision,mpc]' \
     && useradd --create-home --uid 10001 ihateparking \
     && mkdir -p /tmp/ihateparking-runtime \
     && chown -R ihateparking:ihateparking /app /tmp/ihateparking-runtime

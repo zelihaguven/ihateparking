@@ -9,7 +9,7 @@ from pathlib import Path
 import threading
 from typing import Any, Literal
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -46,6 +46,14 @@ class ManualStepRequest(BaseModel):
     steering_angle_rad: float = Field(default=0.0, ge=-0.56, le=0.56)
     gear: Literal["drive", "reverse", "park"] = "drive"
     dt: float = Field(default=0.10, ge=0.01, le=0.20)
+
+
+class MpcDemoRequest(BaseModel):
+    horizon_steps: int = Field(default=4, ge=3, le=10)
+    max_iterations: int = Field(default=12, ge=5, le=60)
+    dt: float = Field(default=0.18, ge=0.10, le=0.25)
+    extra_clearance_m: float = Field(default=0.05, ge=0.0, le=0.10)
+    warm_start: bool = True
 
 
 class DashboardSession:
@@ -239,6 +247,7 @@ class DashboardSession:
 
 app = FastAPI(title="ihateparking Dynamic Safety Console", version="0.3")
 session = DashboardSession()
+_mpc_run_lock = threading.Lock()
 app.mount("/static", StaticFiles(directory=str(WEB_DIR)), name="static")
 app.mount("/web", StaticFiles(directory=str(WEB_DIR), html=True), name="web")
 app.mount("/assets", StaticFiles(directory=str(ROOT / "assets")), name="assets")
@@ -283,6 +292,46 @@ async def tick(body: TickRequest) -> dict[str, Any]:
 @app.post("/api/step")
 async def step(body: ManualStepRequest) -> dict[str, Any]:
     return await run_in_threadpool(session.manual_step, body.speed_mps, body.steering_angle_rad, body.gear, body.dt)
+
+
+@app.post("/api/mpc/run")
+async def run_mpc_demo(body: MpcDemoRequest) -> dict[str, Any]:
+    if not _mpc_run_lock.acquire(blocking=False):
+        raise HTTPException(
+            status_code=429,
+            detail="An MPC simulation is already running on this worker; retry after it finishes.",
+        )
+
+    def execute() -> dict[str, Any]:
+        try:
+            from scripts.demo_constrained_mpc import (
+                MPCConfig,
+                comparison_payload,
+                run_comparison,
+            )
+        except ImportError as exc:
+            raise HTTPException(
+                status_code=503,
+                detail="The optional MPC demo dependencies are not installed on this server.",
+            ) from exc
+        config = MPCConfig(
+            horizon_steps=body.horizon_steps,
+            max_iterations=body.max_iterations,
+            dt=body.dt,
+            extra_clearance_m=body.extra_clearance_m,
+            warm_start=body.warm_start,
+        )
+        try:
+            return comparison_payload(run_comparison(config))
+        except RuntimeError as exc:
+            if "SciPy is required" in str(exc):
+                raise HTTPException(status_code=503, detail=str(exc)) from exc
+            raise
+
+    try:
+        return await run_in_threadpool(execute)
+    finally:
+        _mpc_run_lock.release()
 
 
 def main() -> int:

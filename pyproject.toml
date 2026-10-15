@@ -19,6 +19,9 @@ ihateparking-dashboard = "ihateparking.dashboard:main"
 ihateparking-pedestrian-stress = "ihateparking.pedestrian_stress_test:main"
 
 [project.optional-dependencies]
+mpc = [
+  "scipy>=1.11",
+]
 vision = [
   "opencv-python-headless>=4.9",
 ]
@@ -28,4 +31,4 @@ dashboard = [
 ]
 
 [tool.setuptools.packages.find]
-include = ["ihateparking*"]
+include = ["ihateparking*", "scripts*"]

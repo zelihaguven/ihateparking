@@ -264,6 +264,25 @@ Primary metrics:
 - number of gear changes, and
 - planning expansions/time.
 
+## Constrained MPC demo
+
+Install the optional SciPy optimizer and run the research comparison from the repository root:
+
+```bash
+python3 -m pip install -e '.[mpc]'
+python3 scripts/demo_constrained_mpc.py
+```
+
+The script compares the existing reverse-aware Pure Pursuit controller with a direct-shooting
+SLSQP MPC in a 2.50 m reverse-in perpendicular slot. Both controllers track the same smooth,
+synthetic reverse-in reference and share an additional 0.05 m clearance beyond the configured
+world margin; the reference is not a Hybrid A* output. The MPC predicts the rear-axle kinematic
+bicycle model and constrains the full vehicle polygon against parked-car polygons and world
+bounds. It saves a trajectory/clearance plot and JSON metrics under `artifacts/mpc_demo/`. The
+maneuver is one reverse gear segment with static obstacles; it is a simulation demonstration,
+not a CARLA, ROS 2, or real-vehicle safety validation. Horizon constraints are sampled at discrete
+steps, and every executed MPC step is independently checked by the existing collision model.
+
 ## Roadmap
 
 ### v1 — current
@@ -304,3 +323,12 @@ The console uses same-origin `GET /api/health`, `GET /api/state`, `POST /api/res
 This public site is a **synthetic mock-CARLA research prototype only**. It has no connection to live CARLA, a vehicle, ROS 2, cameras, LiDAR, CAN, steering or braking and is not production-certified. Visitors share one in-memory demo session; resets and process replacement can change/reset its state. It does not save visitor runs. Never use the outputs to operate a real vehicle.
 
 For local development, run `python3 -m ihateparking.dashboard --host 0.0.0.0 --port 3000` and open `http://localhost:3000`. The Docker image uses the same port by default and respects `PORT` when the host provides a different value.
+
+
+## Interactive constrained-MPC lab
+
+Open `/web/mpc-lab.html` from the FastAPI site or use the **Constrained MPC lab** link in the live console. The page runs the same Python simulation script used by the CLI; it does not approximate controller results in JavaScript. The bounded `POST /api/mpc/run` endpoint accepts `horizon_steps` (3–10), `max_iterations` (5–60), `dt` (0.10–0.25 s), and `extra_clearance_m` (0–0.10 m). It returns both trajectories, static-scene geometry, clearance profiles, solver-only timing, full MPC call timing, and deadline misses. Runs are transient, and one CPU-intensive run is allowed at a time per worker.
+
+The page distinguishes the selected simulation-step budget from the real-system control periods documented in [`docs/real-system-architecture.md`](docs/real-system-architecture.md). This SLSQP demo is not real-time-certified or suitable for vehicle control. Solver alternatives and reproducible measurements are discussed in [`docs/mpc-solver-performance.md`](docs/mpc-solver-performance.md).
+
+`warm_start` is a boolean API field (default `true`). When enabled, the controller shifts the previous feasible control sequence by one step as the next SLSQP initial guess; the same hard polygon constraints and independent executed-footprint collision check still apply. Disable it to compare against the fresh Pure Pursuit seed.
