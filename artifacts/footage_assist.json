@@ -1,0 +1,1082 @@
+{
+  "project": "ihateparking",
+  "mode": "video_assist_v1",
+  "language": "English",
+  "source": {
+    "file": "assets/pexels_parking_pov.mp4",
+    "provider": "Pexels",
+    "asset_id": "18495959",
+    "duration_s": 13.12,
+    "fps": 25.0,
+    "analysis": "orange boundary/cone perception from a fixed in-cabin view"
+  },
+  "limitations": [
+    "This clip contains a cone driving course, not a complete parking manoeuvre.",
+    "The camera does not expose a reliable reverse view or real steering-angle/CAN signal.",
+    "Instructions are human-in-the-loop suggestions, not vehicle actuation commands."
+  ],
+  "signals": [
+    {
+      "t": 0.0,
+      "frame": 0,
+      "orange_area_ratio": 0.001077,
+      "boundary_centroid_x": 0.1602,
+      "boundary_count": 1,
+      "boundaries": [
+        {
+          "x": 0.1458,
+          "y": 0.2667,
+          "w": 0.0306,
+          "h": 0.0272,
+          "area": 0.000622,
+          "cx": 0.1602,
+          "cy": 0.2793
+        }
+      ],
+      "instruction": "STEER RIGHT GENTLY",
+      "reason": "boundary mass is left of the camera center",
+      "confidence": 0.427
+    },
+    {
+      "t": 0.2,
+      "frame": 5,
+      "orange_area_ratio": 0.001303,
+      "boundary_centroid_x": 0.1629,
+      "boundary_count": 1,
+      "boundaries": [
+        {
+          "x": 0.1486,
+          "y": 0.2691,
+          "w": 0.0306,
+          "h": 0.0272,
+          "area": 0.000622,
+          "cx": 0.1629,
+          "cy": 0.281
+        }
+      ],
+      "instruction": "STEER RIGHT GENTLY",
+      "reason": "boundary mass is left of the camera center",
+      "confidence": 0.433
+    },
+    {
+      "t": 0.4,
+      "frame": 10,
+      "orange_area_ratio": 0.001324,
+      "boundary_centroid_x": 0.1689,
+      "boundary_count": 1,
+      "boundaries": [
+        {
+          "x": 0.1542,
+          "y": 0.2543,
+          "w": 0.0306,
+          "h": 0.0247,
+          "area": 0.000609,
+          "cx": 0.1689,
+          "cy": 0.2649
+        }
+      ],
+      "instruction": "STEER RIGHT GENTLY",
+      "reason": "boundary mass is left of the camera center",
+      "confidence": 0.433
+    },
+    {
+      "t": 0.6,
+      "frame": 15,
+      "orange_area_ratio": 0.000933,
+      "boundary_centroid_x": 0.1735,
+      "boundary_count": 1,
+      "boundaries": [
+        {
+          "x": 0.1583,
+          "y": 0.2494,
+          "w": 0.0306,
+          "h": 0.0173,
+          "area": 0.000406,
+          "cx": 0.1735,
+          "cy": 0.2564
+        }
+      ],
+      "instruction": "STEER RIGHT GENTLY",
+      "reason": "boundary mass is left of the camera center",
+      "confidence": 0.423
+    },
+    {
+      "t": 0.8,
+      "frame": 20,
+      "orange_area_ratio": 0.000785,
+      "boundary_centroid_x": null,
+      "boundary_count": 0,
+      "boundaries": [],
+      "instruction": "SCAN \u2014 no clear boundary detected",
+      "reason": "no reliable orange boundary response",
+      "confidence": 0.37
+    },
+    {
+      "t": 1.0,
+      "frame": 25,
+      "orange_area_ratio": 0.000991,
+      "boundary_centroid_x": 0.2032,
+      "boundary_count": 1,
+      "boundaries": [
+        {
+          "x": 0.1889,
+          "y": 0.2543,
+          "w": 0.0306,
+          "h": 0.0272,
+          "area": 0.000621,
+          "cx": 0.2032,
+          "cy": 0.2665
+        }
+      ],
+      "instruction": "STEER RIGHT GENTLY",
+      "reason": "boundary mass is left of the camera center",
+      "confidence": 0.425
+    },
+    {
+      "t": 1.2,
+      "frame": 30,
+      "orange_area_ratio": 0.001694,
+      "boundary_centroid_x": 0.2773,
+      "boundary_count": 1,
+      "boundaries": [
+        {
+          "x": 0.2403,
+          "y": 0.3012,
+          "w": 0.075,
+          "h": 0.0296,
+          "area": 0.001485,
+          "cx": 0.2773,
+          "cy": 0.3146
+        }
+      ],
+      "instruction": "STEER RIGHT GENTLY",
+      "reason": "boundary mass is left of the camera center",
+      "confidence": 0.442
+    },
+    {
+      "t": 1.4,
+      "frame": 35,
+      "orange_area_ratio": 0.000813,
+      "boundary_centroid_x": 0.2608,
+      "boundary_count": 1,
+      "boundaries": [
+        {
+          "x": 0.2486,
+          "y": 0.3284,
+          "w": 0.025,
+          "h": 0.0222,
+          "area": 0.000448,
+          "cx": 0.2608,
+          "cy": 0.3379
+        }
+      ],
+      "instruction": "STEER RIGHT GENTLY",
+      "reason": "boundary mass is left of the camera center",
+      "confidence": 0.42
+    },
+    {
+      "t": 1.6,
+      "frame": 40,
+      "orange_area_ratio": 0.0,
+      "boundary_centroid_x": null,
+      "boundary_count": 0,
+      "boundaries": [],
+      "instruction": "SCAN \u2014 no clear boundary detected",
+      "reason": "no reliable orange boundary response",
+      "confidence": 0.35
+    },
+    {
+      "t": 1.8,
+      "frame": 45,
+      "orange_area_ratio": 0.0,
+      "boundary_centroid_x": null,
+      "boundary_count": 0,
+      "boundaries": [],
+      "instruction": "SCAN \u2014 no clear boundary detected",
+      "reason": "no reliable orange boundary response",
+      "confidence": 0.35
+    },
+    {
+      "t": 2.0,
+      "frame": 50,
+      "orange_area_ratio": 0.0,
+      "boundary_centroid_x": null,
+      "boundary_count": 0,
+      "boundaries": [],
+      "instruction": "SCAN \u2014 no clear boundary detected",
+      "reason": "no reliable orange boundary response",
+      "confidence": 0.35
+    },
+    {
+      "t": 2.2,
+      "frame": 55,
+      "orange_area_ratio": 0.0,
+      "boundary_centroid_x": null,
+      "boundary_count": 0,
+      "boundaries": [],
+      "instruction": "SCAN \u2014 no clear boundary detected",
+      "reason": "no reliable orange boundary response",
+      "confidence": 0.35
+    },
+    {
+      "t": 2.4,
+      "frame": 60,
+      "orange_area_ratio": 0.0,
+      "boundary_centroid_x": null,
+      "boundary_count": 0,
+      "boundaries": [],
+      "instruction": "SCAN \u2014 no clear boundary detected",
+      "reason": "no reliable orange boundary response",
+      "confidence": 0.35
+    },
+    {
+      "t": 2.6,
+      "frame": 65,
+      "orange_area_ratio": 0.0,
+      "boundary_centroid_x": null,
+      "boundary_count": 0,
+      "boundaries": [],
+      "instruction": "SCAN \u2014 no clear boundary detected",
+      "reason": "no reliable orange boundary response",
+      "confidence": 0.35
+    },
+    {
+      "t": 2.8,
+      "frame": 70,
+      "orange_area_ratio": 0.0,
+      "boundary_centroid_x": null,
+      "boundary_count": 0,
+      "boundaries": [],
+      "instruction": "SCAN \u2014 no clear boundary detected",
+      "reason": "no reliable orange boundary response",
+      "confidence": 0.35
+    },
+    {
+      "t": 3.0,
+      "frame": 75,
+      "orange_area_ratio": 0.0,
+      "boundary_centroid_x": null,
+      "boundary_count": 0,
+      "boundaries": [],
+      "instruction": "SCAN \u2014 no clear boundary detected",
+      "reason": "no reliable orange boundary response",
+      "confidence": 0.35
+    },
+    {
+      "t": 3.2,
+      "frame": 80,
+      "orange_area_ratio": 0.0,
+      "boundary_centroid_x": null,
+      "boundary_count": 0,
+      "boundaries": [],
+      "instruction": "SCAN \u2014 no clear boundary detected",
+      "reason": "no reliable orange boundary response",
+      "confidence": 0.35
+    },
+    {
+      "t": 3.4,
+      "frame": 85,
+      "orange_area_ratio": 0.0,
+      "boundary_centroid_x": null,
+      "boundary_count": 0,
+      "boundaries": [],
+      "instruction": "SCAN \u2014 no clear boundary detected",
+      "reason": "no reliable orange boundary response",
+      "confidence": 0.35
+    },
+    {
+      "t": 3.6,
+      "frame": 90,
+      "orange_area_ratio": 0.0,
+      "boundary_centroid_x": null,
+      "boundary_count": 0,
+      "boundaries": [],
+      "instruction": "SCAN \u2014 no clear boundary detected",
+      "reason": "no reliable orange boundary response",
+      "confidence": 0.35
+    },
+    {
+      "t": 3.8,
+      "frame": 95,
+      "orange_area_ratio": 0.0,
+      "boundary_centroid_x": null,
+      "boundary_count": 0,
+      "boundaries": [],
+      "instruction": "SCAN \u2014 no clear boundary detected",
+      "reason": "no reliable orange boundary response",
+      "confidence": 0.35
+    },
+    {
+      "t": 4.0,
+      "frame": 100,
+      "orange_area_ratio": 0.0,
+      "boundary_centroid_x": null,
+      "boundary_count": 0,
+      "boundaries": [],
+      "instruction": "SCAN \u2014 no clear boundary detected",
+      "reason": "no reliable orange boundary response",
+      "confidence": 0.35
+    },
+    {
+      "t": 4.2,
+      "frame": 105,
+      "orange_area_ratio": 0.0,
+      "boundary_centroid_x": null,
+      "boundary_count": 0,
+      "boundaries": [],
+      "instruction": "SCAN \u2014 no clear boundary detected",
+      "reason": "no reliable orange boundary response",
+      "confidence": 0.35
+    },
+    {
+      "t": 4.4,
+      "frame": 110,
+      "orange_area_ratio": 0.0,
+      "boundary_centroid_x": null,
+      "boundary_count": 0,
+      "boundaries": [],
+      "instruction": "SCAN \u2014 no clear boundary detected",
+      "reason": "no reliable orange boundary response",
+      "confidence": 0.35
+    },
+    {
+      "t": 4.6,
+      "frame": 115,
+      "orange_area_ratio": 0.0,
+      "boundary_centroid_x": null,
+      "boundary_count": 0,
+      "boundaries": [],
+      "instruction": "SCAN \u2014 no clear boundary detected",
+      "reason": "no reliable orange boundary response",
+      "confidence": 0.35
+    },
+    {
+      "t": 4.8,
+      "frame": 120,
+      "orange_area_ratio": 0.0,
+      "boundary_centroid_x": null,
+      "boundary_count": 0,
+      "boundaries": [],
+      "instruction": "SCAN \u2014 no clear boundary detected",
+      "reason": "no reliable orange boundary response",
+      "confidence": 0.35
+    },
+    {
+      "t": 5.0,
+      "frame": 125,
+      "orange_area_ratio": 0.0,
+      "boundary_centroid_x": null,
+      "boundary_count": 0,
+      "boundaries": [],
+      "instruction": "SCAN \u2014 no clear boundary detected",
+      "reason": "no reliable orange boundary response",
+      "confidence": 0.35
+    },
+    {
+      "t": 5.2,
+      "frame": 130,
+      "orange_area_ratio": 0.0,
+      "boundary_centroid_x": null,
+      "boundary_count": 0,
+      "boundaries": [],
+      "instruction": "SCAN \u2014 no clear boundary detected",
+      "reason": "no reliable orange boundary response",
+      "confidence": 0.35
+    },
+    {
+      "t": 5.4,
+      "frame": 135,
+      "orange_area_ratio": 0.0,
+      "boundary_centroid_x": null,
+      "boundary_count": 0,
+      "boundaries": [],
+      "instruction": "SCAN \u2014 no clear boundary detected",
+      "reason": "no reliable orange boundary response",
+      "confidence": 0.35
+    },
+    {
+      "t": 5.6,
+      "frame": 140,
+      "orange_area_ratio": 0.0,
+      "boundary_centroid_x": null,
+      "boundary_count": 0,
+      "boundaries": [],
+      "instruction": "SCAN \u2014 no clear boundary detected",
+      "reason": "no reliable orange boundary response",
+      "confidence": 0.35
+    },
+    {
+      "t": 5.8,
+      "frame": 145,
+      "orange_area_ratio": 0.0,
+      "boundary_centroid_x": null,
+      "boundary_count": 0,
+      "boundaries": [],
+      "instruction": "SCAN \u2014 no clear boundary detected",
+      "reason": "no reliable orange boundary response",
+      "confidence": 0.35
+    },
+    {
+      "t": 6.0,
+      "frame": 150,
+      "orange_area_ratio": 0.0,
+      "boundary_centroid_x": null,
+      "boundary_count": 0,
+      "boundaries": [],
+      "instruction": "SCAN \u2014 no clear boundary detected",
+      "reason": "no reliable orange boundary response",
+      "confidence": 0.35
+    },
+    {
+      "t": 6.2,
+      "frame": 155,
+      "orange_area_ratio": 0.0,
+      "boundary_centroid_x": null,
+      "boundary_count": 0,
+      "boundaries": [],
+      "instruction": "SCAN \u2014 no clear boundary detected",
+      "reason": "no reliable orange boundary response",
+      "confidence": 0.35
+    },
+    {
+      "t": 6.4,
+      "frame": 160,
+      "orange_area_ratio": 0.0,
+      "boundary_centroid_x": null,
+      "boundary_count": 0,
+      "boundaries": [],
+      "instruction": "SCAN \u2014 no clear boundary detected",
+      "reason": "no reliable orange boundary response",
+      "confidence": 0.35
+    },
+    {
+      "t": 6.6,
+      "frame": 165,
+      "orange_area_ratio": 0.0,
+      "boundary_centroid_x": null,
+      "boundary_count": 0,
+      "boundaries": [],
+      "instruction": "SCAN \u2014 no clear boundary detected",
+      "reason": "no reliable orange boundary response",
+      "confidence": 0.35
+    },
+    {
+      "t": 6.8,
+      "frame": 170,
+      "orange_area_ratio": 0.0,
+      "boundary_centroid_x": null,
+      "boundary_count": 0,
+      "boundaries": [],
+      "instruction": "SCAN \u2014 no clear boundary detected",
+      "reason": "no reliable orange boundary response",
+      "confidence": 0.35
+    },
+    {
+      "t": 7.0,
+      "frame": 175,
+      "orange_area_ratio": 0.0,
+      "boundary_centroid_x": null,
+      "boundary_count": 0,
+      "boundaries": [],
+      "instruction": "SCAN \u2014 no clear boundary detected",
+      "reason": "no reliable orange boundary response",
+      "confidence": 0.35
+    },
+    {
+      "t": 7.2,
+      "frame": 180,
+      "orange_area_ratio": 0.0,
+      "boundary_centroid_x": null,
+      "boundary_count": 0,
+      "boundaries": [],
+      "instruction": "SCAN \u2014 no clear boundary detected",
+      "reason": "no reliable orange boundary response",
+      "confidence": 0.35
+    },
+    {
+      "t": 7.4,
+      "frame": 185,
+      "orange_area_ratio": 0.0,
+      "boundary_centroid_x": null,
+      "boundary_count": 0,
+      "boundaries": [],
+      "instruction": "SCAN \u2014 no clear boundary detected",
+      "reason": "no reliable orange boundary response",
+      "confidence": 0.35
+    },
+    {
+      "t": 7.6,
+      "frame": 190,
+      "orange_area_ratio": 0.0,
+      "boundary_centroid_x": null,
+      "boundary_count": 0,
+      "boundaries": [],
+      "instruction": "SCAN \u2014 no clear boundary detected",
+      "reason": "no reliable orange boundary response",
+      "confidence": 0.35
+    },
+    {
+      "t": 7.8,
+      "frame": 195,
+      "orange_area_ratio": 0.0,
+      "boundary_centroid_x": null,
+      "boundary_count": 0,
+      "boundaries": [],
+      "instruction": "SCAN \u2014 no clear boundary detected",
+      "reason": "no reliable orange boundary response",
+      "confidence": 0.35
+    },
+    {
+      "t": 8.0,
+      "frame": 200,
+      "orange_area_ratio": 0.000103,
+      "boundary_centroid_x": null,
+      "boundary_count": 0,
+      "boundaries": [],
+      "instruction": "SCAN \u2014 no clear boundary detected",
+      "reason": "no reliable orange boundary response",
+      "confidence": 0.353
+    },
+    {
+      "t": 8.2,
+      "frame": 205,
+      "orange_area_ratio": 0.000686,
+      "boundary_centroid_x": null,
+      "boundary_count": 0,
+      "boundaries": [],
+      "instruction": "SCAN \u2014 no clear boundary detected",
+      "reason": "no reliable orange boundary response",
+      "confidence": 0.367
+    },
+    {
+      "t": 8.4,
+      "frame": 210,
+      "orange_area_ratio": 0.000898,
+      "boundary_centroid_x": 0.2497,
+      "boundary_count": 1,
+      "boundaries": [
+        {
+          "x": 0.2361,
+          "y": 0.2519,
+          "w": 0.0278,
+          "h": 0.0247,
+          "area": 0.000554,
+          "cx": 0.2497,
+          "cy": 0.2624
+        }
+      ],
+      "instruction": "STEER RIGHT GENTLY",
+      "reason": "boundary mass is left of the camera center",
+      "confidence": 0.422
+    },
+    {
+      "t": 8.6,
+      "frame": 215,
+      "orange_area_ratio": 0.001015,
+      "boundary_centroid_x": 0.2468,
+      "boundary_count": 1,
+      "boundaries": [
+        {
+          "x": 0.2333,
+          "y": 0.2691,
+          "w": 0.0292,
+          "h": 0.0247,
+          "area": 0.000559,
+          "cx": 0.2468,
+          "cy": 0.2808
+        }
+      ],
+      "instruction": "STEER RIGHT GENTLY",
+      "reason": "boundary mass is left of the camera center",
+      "confidence": 0.425
+    },
+    {
+      "t": 8.8,
+      "frame": 220,
+      "orange_area_ratio": 0.000892,
+      "boundary_centroid_x": 0.2454,
+      "boundary_count": 1,
+      "boundaries": [
+        {
+          "x": 0.2319,
+          "y": 0.3111,
+          "w": 0.0292,
+          "h": 0.0247,
+          "area": 0.000562,
+          "cx": 0.2454,
+          "cy": 0.3226
+        }
+      ],
+      "instruction": "STEER RIGHT GENTLY",
+      "reason": "boundary mass is left of the camera center",
+      "confidence": 0.422
+    },
+    {
+      "t": 9.0,
+      "frame": 225,
+      "orange_area_ratio": 0.000888,
+      "boundary_centroid_x": 0.2321,
+      "boundary_count": 1,
+      "boundaries": [
+        {
+          "x": 0.2181,
+          "y": 0.3383,
+          "w": 0.0292,
+          "h": 0.0247,
+          "area": 0.000574,
+          "cx": 0.2321,
+          "cy": 0.3488
+        }
+      ],
+      "instruction": "STEER RIGHT GENTLY",
+      "reason": "boundary mass is left of the camera center",
+      "confidence": 0.422
+    },
+    {
+      "t": 9.2,
+      "frame": 230,
+      "orange_area_ratio": 0.000957,
+      "boundary_centroid_x": 0.2361,
+      "boundary_count": 1,
+      "boundaries": [
+        {
+          "x": 0.2222,
+          "y": 0.3481,
+          "w": 0.0292,
+          "h": 0.0247,
+          "area": 0.000552,
+          "cx": 0.2361,
+          "cy": 0.3582
+        }
+      ],
+      "instruction": "STEER RIGHT GENTLY",
+      "reason": "boundary mass is left of the camera center",
+      "confidence": 0.424
+    },
+    {
+      "t": 9.4,
+      "frame": 235,
+      "orange_area_ratio": 0.001111,
+      "boundary_centroid_x": 0.2412,
+      "boundary_count": 1,
+      "boundaries": [
+        {
+          "x": 0.225,
+          "y": 0.363,
+          "w": 0.0389,
+          "h": 0.0247,
+          "area": 0.00065,
+          "cx": 0.2412,
+          "cy": 0.3742
+        }
+      ],
+      "instruction": "STEER RIGHT GENTLY",
+      "reason": "boundary mass is left of the camera center",
+      "confidence": 0.428
+    },
+    {
+      "t": 9.6,
+      "frame": 240,
+      "orange_area_ratio": 0.00108,
+      "boundary_centroid_x": 0.2378,
+      "boundary_count": 1,
+      "boundaries": [
+        {
+          "x": 0.2208,
+          "y": 0.3506,
+          "w": 0.0403,
+          "h": 0.0222,
+          "area": 0.000646,
+          "cx": 0.2378,
+          "cy": 0.3596
+        }
+      ],
+      "instruction": "STEER RIGHT GENTLY",
+      "reason": "boundary mass is left of the camera center",
+      "confidence": 0.427
+    },
+    {
+      "t": 9.8,
+      "frame": 245,
+      "orange_area_ratio": 0.00131,
+      "boundary_centroid_x": 0.2547,
+      "boundary_count": 2,
+      "boundaries": [
+        {
+          "x": 0.2792,
+          "y": 0.3185,
+          "w": 0.0194,
+          "h": 0.0247,
+          "area": 0.000396,
+          "cx": 0.2882,
+          "cy": 0.3296
+        },
+        {
+          "x": 0.2181,
+          "y": 0.316,
+          "w": 0.0403,
+          "h": 0.0247,
+          "area": 0.000715,
+          "cx": 0.2361,
+          "cy": 0.3257
+        }
+      ],
+      "instruction": "STEER RIGHT GENTLY",
+      "reason": "boundary mass is left of the camera center",
+      "confidence": 0.483
+    },
+    {
+      "t": 10.0,
+      "frame": 250,
+      "orange_area_ratio": 0.000974,
+      "boundary_centroid_x": 0.24,
+      "boundary_count": 1,
+      "boundaries": [
+        {
+          "x": 0.2264,
+          "y": 0.3235,
+          "w": 0.0292,
+          "h": 0.0222,
+          "area": 0.000537,
+          "cx": 0.24,
+          "cy": 0.3332
+        }
+      ],
+      "instruction": "STEER RIGHT GENTLY",
+      "reason": "boundary mass is left of the camera center",
+      "confidence": 0.424
+    },
+    {
+      "t": 10.2,
+      "frame": 255,
+      "orange_area_ratio": 0.001221,
+      "boundary_centroid_x": 0.2455,
+      "boundary_count": 1,
+      "boundaries": [
+        {
+          "x": 0.2264,
+          "y": 0.3309,
+          "w": 0.0403,
+          "h": 0.0247,
+          "area": 0.00079,
+          "cx": 0.2455,
+          "cy": 0.3429
+        }
+      ],
+      "instruction": "STEER RIGHT GENTLY",
+      "reason": "boundary mass is left of the camera center",
+      "confidence": 0.431
+    },
+    {
+      "t": 10.4,
+      "frame": 260,
+      "orange_area_ratio": 0.001289,
+      "boundary_centroid_x": 0.2474,
+      "boundary_count": 1,
+      "boundaries": [
+        {
+          "x": 0.2278,
+          "y": 0.321,
+          "w": 0.0403,
+          "h": 0.0247,
+          "area": 0.00079,
+          "cx": 0.2474,
+          "cy": 0.3319
+        }
+      ],
+      "instruction": "STEER RIGHT GENTLY",
+      "reason": "boundary mass is left of the camera center",
+      "confidence": 0.432
+    },
+    {
+      "t": 10.6,
+      "frame": 265,
+      "orange_area_ratio": 0.001008,
+      "boundary_centroid_x": 0.2369,
+      "boundary_count": 1,
+      "boundaries": [
+        {
+          "x": 0.2236,
+          "y": 0.3259,
+          "w": 0.0292,
+          "h": 0.0247,
+          "area": 0.000573,
+          "cx": 0.2369,
+          "cy": 0.3374
+        }
+      ],
+      "instruction": "STEER RIGHT GENTLY",
+      "reason": "boundary mass is left of the camera center",
+      "confidence": 0.425
+    },
+    {
+      "t": 10.8,
+      "frame": 270,
+      "orange_area_ratio": 0.001001,
+      "boundary_centroid_x": 0.2268,
+      "boundary_count": 1,
+      "boundaries": [
+        {
+          "x": 0.2125,
+          "y": 0.3235,
+          "w": 0.0306,
+          "h": 0.0222,
+          "area": 0.000562,
+          "cx": 0.2268,
+          "cy": 0.3332
+        }
+      ],
+      "instruction": "STEER RIGHT GENTLY",
+      "reason": "boundary mass is left of the camera center",
+      "confidence": 0.425
+    },
+    {
+      "t": 11.0,
+      "frame": 275,
+      "orange_area_ratio": 0.001022,
+      "boundary_centroid_x": 0.2258,
+      "boundary_count": 1,
+      "boundaries": [
+        {
+          "x": 0.2125,
+          "y": 0.321,
+          "w": 0.0292,
+          "h": 0.0247,
+          "area": 0.000585,
+          "cx": 0.2258,
+          "cy": 0.3323
+        }
+      ],
+      "instruction": "STEER RIGHT GENTLY",
+      "reason": "boundary mass is left of the camera center",
+      "confidence": 0.426
+    },
+    {
+      "t": 11.2,
+      "frame": 280,
+      "orange_area_ratio": 0.001056,
+      "boundary_centroid_x": 0.2263,
+      "boundary_count": 1,
+      "boundaries": [
+        {
+          "x": 0.2125,
+          "y": 0.3358,
+          "w": 0.0292,
+          "h": 0.0247,
+          "area": 0.000588,
+          "cx": 0.2263,
+          "cy": 0.3474
+        }
+      ],
+      "instruction": "STEER RIGHT GENTLY",
+      "reason": "boundary mass is left of the camera center",
+      "confidence": 0.426
+    },
+    {
+      "t": 11.4,
+      "frame": 285,
+      "orange_area_ratio": 0.001224,
+      "boundary_centroid_x": 0.2245,
+      "boundary_count": 1,
+      "boundaries": [
+        {
+          "x": 0.2069,
+          "y": 0.3284,
+          "w": 0.0417,
+          "h": 0.0247,
+          "area": 0.000756,
+          "cx": 0.2245,
+          "cy": 0.3404
+        }
+      ],
+      "instruction": "STEER RIGHT GENTLY",
+      "reason": "boundary mass is left of the camera center",
+      "confidence": 0.431
+    },
+    {
+      "t": 11.6,
+      "frame": 290,
+      "orange_area_ratio": 0.001036,
+      "boundary_centroid_x": 0.2104,
+      "boundary_count": 1,
+      "boundaries": [
+        {
+          "x": 0.1958,
+          "y": 0.3136,
+          "w": 0.0306,
+          "h": 0.0247,
+          "area": 0.00058,
+          "cx": 0.2104,
+          "cy": 0.3236
+        }
+      ],
+      "instruction": "STEER RIGHT GENTLY",
+      "reason": "boundary mass is left of the camera center",
+      "confidence": 0.426
+    },
+    {
+      "t": 11.8,
+      "frame": 295,
+      "orange_area_ratio": 0.001344,
+      "boundary_centroid_x": 0.2048,
+      "boundary_count": 1,
+      "boundaries": [
+        {
+          "x": 0.1903,
+          "y": 0.3062,
+          "w": 0.0306,
+          "h": 0.0247,
+          "area": 0.000628,
+          "cx": 0.2048,
+          "cy": 0.3171
+        }
+      ],
+      "instruction": "STEER RIGHT GENTLY",
+      "reason": "boundary mass is left of the camera center",
+      "confidence": 0.434
+    },
+    {
+      "t": 12.0,
+      "frame": 300,
+      "orange_area_ratio": 0.001365,
+      "boundary_centroid_x": 0.2004,
+      "boundary_count": 1,
+      "boundaries": [
+        {
+          "x": 0.1861,
+          "y": 0.3012,
+          "w": 0.0306,
+          "h": 0.0247,
+          "area": 0.000609,
+          "cx": 0.2004,
+          "cy": 0.313
+        }
+      ],
+      "instruction": "STEER RIGHT GENTLY",
+      "reason": "boundary mass is left of the camera center",
+      "confidence": 0.434
+    },
+    {
+      "t": 12.2,
+      "frame": 305,
+      "orange_area_ratio": 0.001156,
+      "boundary_centroid_x": 0.1893,
+      "boundary_count": 1,
+      "boundaries": [
+        {
+          "x": 0.175,
+          "y": 0.2716,
+          "w": 0.0306,
+          "h": 0.0247,
+          "area": 0.000593,
+          "cx": 0.1893,
+          "cy": 0.2836
+        }
+      ],
+      "instruction": "STEER RIGHT GENTLY",
+      "reason": "boundary mass is left of the camera center",
+      "confidence": 0.429
+    },
+    {
+      "t": 12.4,
+      "frame": 310,
+      "orange_area_ratio": 0.001375,
+      "boundary_centroid_x": 0.4099,
+      "boundary_count": 2,
+      "boundaries": [
+        {
+          "x": 0.6181,
+          "y": 0.6099,
+          "w": 0.0278,
+          "h": 0.0346,
+          "area": 0.00043,
+          "cx": 0.6313,
+          "cy": 0.6252
+        },
+        {
+          "x": 0.1722,
+          "y": 0.2494,
+          "w": 0.0306,
+          "h": 0.0173,
+          "area": 0.000427,
+          "cx": 0.187,
+          "cy": 0.2567
+        }
+      ],
+      "instruction": "STEER RIGHT GENTLY",
+      "reason": "boundary mass is left of the camera center",
+      "confidence": 0.484
+    },
+    {
+      "t": 12.6,
+      "frame": 315,
+      "orange_area_ratio": 0.001447,
+      "boundary_centroid_x": 0.0957,
+      "boundary_count": 2,
+      "boundaries": [
+        {
+          "x": 0.0,
+          "y": 0.6,
+          "w": 0.0181,
+          "h": 0.0444,
+          "area": 0.00048,
+          "cx": 0.0074,
+          "cy": 0.6201
+        },
+        {
+          "x": 0.1792,
+          "y": 0.2494,
+          "w": 0.0306,
+          "h": 0.0173,
+          "area": 0.000432,
+          "cx": 0.1938,
+          "cy": 0.2568
+        }
+      ],
+      "instruction": "STEER RIGHT GENTLY",
+      "reason": "boundary mass is left of the camera center",
+      "confidence": 0.486
+    },
+    {
+      "t": 12.8,
+      "frame": 320,
+      "orange_area_ratio": 0.00238,
+      "boundary_centroid_x": 0.0756,
+      "boundary_count": 2,
+      "boundaries": [
+        {
+          "x": 0.0069,
+          "y": 0.5975,
+          "w": 0.0375,
+          "h": 0.0667,
+          "area": 0.001271,
+          "cx": 0.0238,
+          "cy": 0.623
+        },
+        {
+          "x": 0.1917,
+          "y": 0.2494,
+          "w": 0.0306,
+          "h": 0.0198,
+          "area": 0.000504,
+          "cx": 0.2062,
+          "cy": 0.258
+        }
+      ],
+      "instruction": "STEER RIGHT GENTLY",
+      "reason": "boundary mass is left of the camera center",
+      "confidence": 0.509
+    },
+    {
+      "t": 13.0,
+      "frame": 325,
+      "orange_area_ratio": 0.0,
+      "boundary_centroid_x": null,
+      "boundary_count": 0,
+      "boundaries": [],
+      "instruction": "SCAN \u2014 no clear boundary detected",
+      "reason": "no reliable orange boundary response",
+      "confidence": 0.35
+    }
+  ]
+}

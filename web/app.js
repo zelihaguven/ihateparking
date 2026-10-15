@@ -138,4 +138,4 @@ fetch('../artifacts/trace.json').then(response => { if (!response.ok) throw new 
   missionBadge.textContent = payload.metrics.controller_success ? 'SUCCESS' : 'FAILED';
   missionBadge.className = payload.metrics.controller_success ? 'badge good' : 'badge warn';
   resizeCanvas(); draw();
-}).catch(error => { loading.textContent = `Trace yüklenemedi: ${error.message}`; runStatus.textContent = 'TRACE ERROR'; });
+}).catch(error => { loading.textContent = `Trace unavailable: ${error.message}`; runStatus.textContent = 'TRACE ERROR'; });

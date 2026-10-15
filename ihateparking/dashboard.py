@@ -4,20 +4,23 @@ from __future__ import annotations
 from dataclasses import asdict
 import argparse
 import math
+import os
 from pathlib import Path
 import threading
-from typing import Any
+from typing import Any, Literal
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, HTTPException
 from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel, Field
 
 from .ai_perception import ObstacleEstimate, ParkingSlotEstimate
 from .dynamic_safety import DynamicReplanner, SafetyAction, SafetyConfig, SafetyDecision
 from .geometry import Pose, distance
 from .mock_carla_server import MockCarlaWorld
 from .planner import HybridAStar, PlanResult, PlannerConfig
+from .scenario_generator import ScenarioSpec
 from .stack_contracts import AutonomyMode, Gear, PerceptionFrame
 
 
@@ -25,12 +28,41 @@ ROOT = Path(__file__).resolve().parent.parent
 WEB_DIR = ROOT / "web"
 
 
+class ResetRequest(BaseModel):
+    seed: int = Field(default=100, ge=0, le=2_147_483_647)
+    kind: Literal[
+        "perpendicular_forward", "perpendicular_reverse", "parallel_forward",
+        "parallel_reverse", "angled_forward", "angled_reverse",
+    ] = "perpendicular_reverse"
+    dynamic_actor_count: int = Field(default=0, ge=0, le=6)
+
+
+class TickRequest(BaseModel):
+    dt: float = Field(default=0.10, ge=0.01, le=0.20)
+
+
+class ManualStepRequest(BaseModel):
+    speed_mps: float = Field(default=0.35, ge=0.0, le=0.70)
+    steering_angle_rad: float = Field(default=0.0, ge=-0.56, le=0.56)
+    gear: Literal["drive", "reverse", "park"] = "drive"
+    dt: float = Field(default=0.10, ge=0.01, le=0.20)
+
+
+class MpcDemoRequest(BaseModel):
+    horizon_steps: int = Field(default=4, ge=3, le=10)
+    max_iterations: int = Field(default=12, ge=5, le=60)
+    dt: float = Field(default=0.18, ge=0.10, le=0.25)
+    extra_clearance_m: float = Field(default=0.05, ge=0.0, le=0.10)
+    warm_start: bool = True
+    derivative_mode: Literal["finite_difference", "casadi_ad"] = "finite_difference"
+
+
 class DashboardSession:
     GOAL_POSITION_TOLERANCE_M = .25
     GOAL_YAW_TOLERANCE_RAD = math.radians(7.0)
 
-    def __init__(self, output_dir: str | Path = "artifacts/dashboard"):
-        self.output_dir = Path(output_dir)
+    def __init__(self, output_dir: str | Path | None = None):
+        self.output_dir = Path(output_dir or os.environ.get("IHATEPARKING_OUTPUT_DIR", "artifacts/dashboard"))
         self.world = MockCarlaWorld(self.output_dir / "mock_carla")
         self.initial_planner_config = PlannerConfig(
             xy_resolution=.8,
@@ -76,8 +108,9 @@ class DashboardSession:
     def reset(self, seed: int = 100, kind: str = "perpendicular_reverse", dynamic_actor_count: int = 0) -> dict[str, Any]:
         with self._lock:
             snapshot = self.world.reset(seed, kind, dynamic_actor_count)
+            scenario = self._require_scenario()
             planner_config = self.capture_planner_config if kind == "perpendicular_reverse" else self.initial_planner_config
-            self.current_plan = HybridAStar(self.world.scenario.to_world(), planner_config).plan(start=self.world.pose)
+            self.current_plan = HybridAStar(scenario.to_world(), planner_config).plan(start=self.world.pose)
             self.safety.replan_count = 0
             self.completed = False
             self.last_safety = SafetyDecision(SafetyAction.PROCEED, True, "initial plan ready", 999.0, .45, None)
@@ -88,7 +121,8 @@ class DashboardSession:
     def tick(self, dt: float = .10) -> dict[str, Any]:
         with self._lock:
             snapshot = self.world.snapshot()
-            if self.completed or self.world.scenario.to_world().at_goal(self.world.pose, self.GOAL_POSITION_TOLERANCE_M, self.GOAL_YAW_TOLERANCE_RAD):
+            scenario = self._require_scenario()
+            if self.completed or scenario.to_world().at_goal(self.world.pose, self.GOAL_POSITION_TOLERANCE_M, self.GOAL_YAW_TOLERANCE_RAD):
                 self.completed = True
                 self.world.speed_mps = 0.0
                 self.world.gear = Gear.PARK
@@ -97,7 +131,7 @@ class DashboardSession:
                 return self.state(self.world.snapshot())
             perception = self._perception_from_dict(snapshot["perception"])
             assessment = self.safety.assess_and_replan(
-                self.world.scenario.to_world(),
+                scenario.to_world(),
                 self.world.pose,
                 abs(self.world.speed_mps),
                 self.world.gear,
@@ -121,8 +155,9 @@ class DashboardSession:
     def manual_step(self, speed_mps: float, steering_angle_rad: float, gear: str, dt: float = .10) -> dict[str, Any]:
         with self._lock:
             snapshot = self.world.snapshot()
+            scenario = self._require_scenario()
             perception = self._perception_from_dict(snapshot["perception"])
-            self.last_safety = self.safety.monitor.evaluate(self.world.scenario.to_world(), self.world.pose, abs(self.world.speed_mps), self.world.gear, perception)
+            self.last_safety = self.safety.monitor.evaluate(scenario.to_world(), self.world.pose, abs(self.world.speed_mps), self.world.gear, perception)
             if self.last_safety.should_brake:
                 speed_mps, steering_angle_rad, gear = 0.0, 0.0, Gear.PARK.value
                 self._event("brake", self.last_safety.reason)
@@ -133,8 +168,14 @@ class DashboardSession:
         with self._lock:
             return self.state(self.world.snapshot())
 
-    def state(self, snapshot: dict[str, Any]) -> dict[str, Any]:
+    def _require_scenario(self) -> ScenarioSpec:
         scenario = self.world.scenario
+        if scenario is None:
+            raise RuntimeError("dashboard session has not been reset")
+        return scenario
+
+    def state(self, snapshot: dict[str, Any]) -> dict[str, Any]:
+        scenario = self._require_scenario()
         return {
             "snapshot": snapshot,
             "scene": {
@@ -151,13 +192,15 @@ class DashboardSession:
         }
 
     def _control_from_plan(self) -> tuple[Gear, float, float]:
-        if self.current_plan is None or not self.current_plan.success or len(self.current_plan.poses) < 2:
+        plan = self.current_plan
+        if plan is None or not plan.success or len(plan.poses) < 2:
             return Gear.PARK, 0.0, 0.0
+        scenario = self._require_scenario()
         pose = self.world.pose
-        closest = min(range(len(self.current_plan.poses)), key=lambda index: distance(pose, self.current_plan.poses[index]))
-        target_index = min(len(self.current_plan.poses) - 1, closest + 2)
-        goal = self.world.scenario.target_slot.goal_pose(self.world.scenario.vehicle)
-        final_approach = target_index >= len(self.current_plan.poses) - 2 or distance(pose, goal) < 1.5
+        closest = min(range(len(plan.poses)), key=lambda index: distance(pose, plan.poses[index]))
+        target_index = min(len(plan.poses) - 1, closest + 2)
+        goal = scenario.target_slot.goal_pose(scenario.vehicle)
+        final_approach = target_index >= len(plan.poses) - 2 or distance(pose, goal) < 1.5
         if final_approach:
             target = goal
             dx, dy = target.x - pose.x, target.y - pose.y
@@ -165,12 +208,12 @@ class DashboardSession:
             raw_gear = -1 if local_x < -0.05 else 1
             speed = .16
         else:
-            raw_gear = self.current_plan.gears[target_index]
-            target = self.current_plan.poses[target_index]
+            raw_gear = plan.gears[target_index]
+            target = plan.poses[target_index]
             speed = .35
         gear = Gear.REVERSE if raw_gear < 0 else Gear.DRIVE
         from .controller import pure_pursuit
-        steering = pure_pursuit(pose, target, raw_gear, self.world.scenario.vehicle.wheelbase, .6, self.world.scenario.vehicle.max_steering)
+        steering = pure_pursuit(pose, target, raw_gear, scenario.vehicle.wheelbase, .6, scenario.vehicle.max_steering)
         return gear, steering, speed
 
     @staticmethod
@@ -203,9 +246,18 @@ class DashboardSession:
         self.last_action = level
 
 
-app = FastAPI(title="ihateparking Dynamic Safety Console", version="0.2")
+app = FastAPI(title="ihateparking Dynamic Safety Console", version="0.3")
 session = DashboardSession()
+_mpc_run_lock = threading.Lock()
 app.mount("/static", StaticFiles(directory=str(WEB_DIR)), name="static")
+app.mount("/web", StaticFiles(directory=str(WEB_DIR), html=True), name="web")
+app.mount("/assets", StaticFiles(directory=str(ROOT / "assets")), name="assets")
+app.mount("/artifacts", StaticFiles(directory=str(ROOT / "artifacts")), name="artifacts")
+
+
+@app.get("/manus-routes.json", include_in_schema=False)
+def routes_manifest() -> FileResponse:
+    return FileResponse(ROOT / "manus-routes.json", media_type="application/json")
 
 
 @app.get("/", include_in_schema=False)
@@ -229,27 +281,65 @@ def get_state() -> dict[str, Any]:
 
 
 @app.post("/api/reset")
-async def reset(request: Request) -> dict[str, Any]:
-    body = await request.json()
-    return await run_in_threadpool(session.reset, int(body.get("seed", 100)), str(body.get("kind", "perpendicular_reverse")), int(body.get("dynamic_actor_count", 0)))
+async def reset(body: ResetRequest) -> dict[str, Any]:
+    return await run_in_threadpool(session.reset, body.seed, body.kind, body.dynamic_actor_count)
 
 
 @app.post("/api/tick")
-async def tick(request: Request) -> dict[str, Any]:
-    body = await request.json()
-    return await run_in_threadpool(session.tick, float(body.get("dt", .10)))
+async def tick(body: TickRequest) -> dict[str, Any]:
+    return await run_in_threadpool(session.tick, body.dt)
 
 
 @app.post("/api/step")
-async def step(request: Request) -> dict[str, Any]:
-    body = await request.json()
-    return await run_in_threadpool(session.manual_step, float(body.get("speed_mps", .35)), float(body.get("steering_angle_rad", 0.0)), str(body.get("gear", "drive")), float(body.get("dt", .10)))
+async def step(body: ManualStepRequest) -> dict[str, Any]:
+    return await run_in_threadpool(session.manual_step, body.speed_mps, body.steering_angle_rad, body.gear, body.dt)
+
+
+@app.post("/api/mpc/run")
+async def run_mpc_demo(body: MpcDemoRequest) -> dict[str, Any]:
+    if not _mpc_run_lock.acquire(blocking=False):
+        raise HTTPException(
+            status_code=429,
+            detail="An MPC simulation is already running on this worker; retry after it finishes.",
+        )
+
+    def execute() -> dict[str, Any]:
+        try:
+            from scripts.demo_constrained_mpc import (
+                MPCConfig,
+                comparison_payload,
+                run_comparison,
+            )
+        except ImportError as exc:
+            raise HTTPException(
+                status_code=503,
+                detail="The optional MPC demo dependencies are not installed on this server.",
+            ) from exc
+        config = MPCConfig(
+            horizon_steps=body.horizon_steps,
+            max_iterations=body.max_iterations,
+            dt=body.dt,
+            extra_clearance_m=body.extra_clearance_m,
+            warm_start=body.warm_start,
+            derivative_mode=body.derivative_mode,
+        )
+        try:
+            return comparison_payload(run_comparison(config))
+        except RuntimeError as exc:
+            if "SciPy is required" in str(exc) or "CasADi is required" in str(exc):
+                raise HTTPException(status_code=503, detail=str(exc)) from exc
+            raise
+
+    try:
+        return await run_in_threadpool(execute)
+    finally:
+        _mpc_run_lock.release()
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Serve the ihateparking dynamic safety dashboard")
     parser.add_argument("--host", default="0.0.0.0")
-    parser.add_argument("--port", type=int, default=8010)
+    parser.add_argument("--port", type=int, default=int(os.environ.get("PORT", "3000")))
     args = parser.parse_args()
     import uvicorn
     uvicorn.run(app, host=args.host, port=args.port, log_level="info")

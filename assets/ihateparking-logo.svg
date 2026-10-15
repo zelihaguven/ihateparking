@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="ihateparking mark">
+  <rect x="6" y="6" width="116" height="116" rx="24" fill="#071114" stroke="#72d8dc" stroke-width="3"/>
+  <path d="M43 99V29h26c17 0 27 9 27 23S86 75 69 75H57" fill="none" stroke="#9ce6bf" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M27 105h74" fill="none" stroke="#29444b" stroke-width="3" stroke-linecap="round"/>
+  <circle cx="94" cy="97" r="8" fill="#f3bf67"/>
+</svg>

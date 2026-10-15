@@ -3,6 +3,8 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="Human-in-the-loop video-assist prototype for parking-related visual cues." />
+  <link rel="icon" href="/assets/ihateparking-logo.svg" type="image/svg+xml" />
   <title>ihateparking — Video Assist</title>
   <link rel="stylesheet" href="./styles.css" />
   <link rel="stylesheet" href="./assist.css" />
@@ -11,10 +13,11 @@
   <main class="app-shell">
     <header class="topbar">
       <div class="brand-lockup"><div class="brand-mark" aria-hidden="true"><span></span><span></span><span></span></div><div><p class="eyebrow">VISION-TO-ACTION / V1</p><h1>ihateparking</h1></div></div>
-      <nav class="assist-nav"><a href="./">Planner replay</a><span class="active">Video assist</span><a href="./tutorial.html">Virtual lesson</a></nav>
+      <nav class="assist-nav"><a href="/">Live console</a><a href="./">Planner replay</a><span class="active">Video assist</span><a href="./tutorial.html">Virtual lesson</a></nav>
     </header>
+    <aside class="lab-disclaimer" role="note"><strong>RESEARCH PROTOTYPE — HUMAN-IN-THE-LOOP ONLY</strong><span>Guidance is computed from this sample clip; no vehicle controls are connected. This prototype is not production-certified and must not be used to operate a real vehicle.</span></aside>
 
-    <section class="assist-hero"><div><p class="eyebrow">HUMAN-IN-THE-LOOP PARKING ASSIST</p><h2>See the road. <em>Explain the next move.</em></h2><p class="lede">A real in-cabin clip is processed as a visual signal. The prototype turns detected cone boundaries into short, actionable English guidance — without pretending to control the vehicle.</p></div><div class="assist-pill"><span class="live-dot"></span><strong>FRAME ANALYSIS ACTIVE</strong></div></section>
+    <section class="assist-hero"><div><p class="eyebrow">HUMAN-IN-THE-LOOP PARKING ASSIST</p><h2>See the road. <em>Explain the next move.</em></h2><p class="lede">A sample in-cabin clip is processed as a visual signal. The prototype turns detected cone boundaries into short, actionable English guidance — without pretending to control a vehicle.</p></div><div class="assist-pill"><span class="live-dot"></span><strong>FRAME ANALYSIS ACTIVE</strong></div></section>
 
     <section class="assist-workspace">
       <div class="video-panel panel">
@@ -24,12 +27,12 @@
       </div>
 
       <aside class="side-stack">
-        <section class="panel instruction-panel"><div class="panel-head compact"><div><p class="eyebrow">ACTION POLICY</p><h3>What the assistant sees</h3></div><span class="badge good">SAFE MODE</span></div><div class="policy-line"><span class="policy-icon cone"></span><div><strong>Orange boundary</strong><small>detected from the camera frame</small></div></div><div class="policy-line"><span class="policy-icon steer"></span><div><strong>Steering suggestion</strong><small>direction only — no actuation</small></div></div><div class="policy-line"><span class="policy-icon stop"></span><div><strong>Safety stop</strong><small>triggered when the boundary is too close</small></div></div></section>
-        <section class="panel signal-panel"><div class="panel-head compact"><div><p class="eyebrow">LIVE FRAME SIGNAL</p><h3>Perception telemetry</h3></div><span class="pulse"></span></div><div class="signal-row"><span>video time</span><strong id="assist-time">0.0 s</strong></div><div class="signal-row"><span>boundary count</span><strong id="boundary-count">—</strong></div><div class="signal-row"><span>boundary center</span><strong id="boundary-center">—</strong></div><div class="signal-row"><span>mode</span><strong>human-in-the-loop</strong></div></section>
-        <section class="panel note-panel"><p class="eyebrow">CURRENT LIMITATION</p><p>This source has cones and a turn, but no complete reverse parking slot. The next dataset pass will replace the cone policy with slot geometry, rear-camera context and true reverse/straighten instructions.</p><div class="stack-label"><span>source</span><span>assets/pexels_parking_pov.mp4</span></div></section>
+        <section class="panel instruction-panel"><div class="panel-head compact"><div><p class="eyebrow">ACTION POLICY</p><h3>What the assistant sees</h3></div><span class="badge good">SAFE MODE</span></div><div class="policy-line"><span class="policy-icon cone"></span><div><strong>Orange boundary</strong><small>detected from the sample frame</small></div></div><div class="policy-line"><span class="policy-icon steer"></span><div><strong>Steering suggestion</strong><small>direction only — no actuation</small></div></div><div class="policy-line"><span class="policy-icon stop"></span><div><strong>Safety stop</strong><small>triggered when the boundary is too close</small></div></div></section>
+        <section class="panel signal-panel"><div class="panel-head compact"><div><p class="eyebrow">FRAME SIGNAL</p><h3>Perception telemetry</h3></div><span class="pulse"></span></div><div class="signal-row"><span>video time</span><strong id="assist-time">0.0 s</strong></div><div class="signal-row"><span>boundary count</span><strong id="boundary-count">—</strong></div><div class="signal-row"><span>boundary center</span><strong id="boundary-center">—</strong></div><div class="signal-row"><span>mode</span><strong>human-in-the-loop</strong></div></section>
+        <section class="panel note-panel"><p class="eyebrow">CURRENT LIMITATION</p><p>This source contains cones and a turn, but no complete reverse-parking slot. The signals are a deterministic demonstration, not a trained parking model. A future dataset needs a fixed rear/360 camera view and a continuous parking-slot sequence.</p><div class="stack-label"><span>sample source</span><span>assets/pexels_parking_pov.mp4</span></div></section>
       </aside>
     </section>
-    <footer class="footer"><span>ihateparking / English video-assist prototype</span><a href="./">Back to planner replay</a></footer>
+    <footer class="footer"><span>ihateparking / English video-assist prototype</span><a href="/">Back to live console</a></footer>
   </main>
   <script src="./assist.js"></script>
 </body>

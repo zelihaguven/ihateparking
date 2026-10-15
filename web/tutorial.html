@@ -3,6 +3,8 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="A self-generated synthetic parking tutorial illustrating the ihateparking planner and controller." />
+  <link rel="icon" href="/assets/ihateparking-logo.svg" type="image/svg+xml" />
   <title>ihateparking — Virtual Parking Lesson</title>
   <link rel="stylesheet" href="./styles.css" />
   <link rel="stylesheet" href="./tutorial.css" />
@@ -11,14 +13,15 @@
   <main class="app-shell">
     <header class="topbar">
       <div class="brand-lockup"><div class="brand-mark" aria-hidden="true"><span></span><span></span><span></span></div><div><p class="eyebrow">VIRTUAL DRIVING LESSON / V1</p><h1>ihateparking</h1></div></div>
-      <nav class="assist-nav"><a href="./">Planner replay</a><a href="./assist.html">Video assist</a><span class="active">Virtual lesson</span></nav>
+      <nav class="assist-nav"><a href="/">Live console</a><a href="./">Planner replay</a><a href="./assist.html">Video assist</a><span class="active">Virtual lesson</span></nav>
     </header>
+    <aside class="lab-disclaimer" role="note"><strong>RESEARCH PROTOTYPE — SYNTHETIC INSTRUCTION ONLY</strong><span>This animation illustrates a simulated maneuver; it is not live sensor footage, a real-vehicle instruction system, or production-certified software.</span></aside>
     <section class="tutorial-hero"><div><p class="eyebrow">ANIMATED PARKING GUIDE</p><h2>Learn the <em>next move</em> before you make it.</h2><p class="lede">A self-generated top-down driving lesson built from the same kinematic planner and closed-loop controller used by ihateparking v1.</p></div><div class="lesson-stamp"><strong>5</strong><span>clear steps<br />one safe slot</span></div></section>
     <section class="tutorial-workspace">
-      <div class="lesson-player panel"><div class="panel-head"><div><p class="eyebrow">SYNTHETIC INSTRUCTIONAL VIDEO</p><h3>Perpendicular parking, explained</h3></div><span class="source-chip">generated locally</span></div><video controls playsinline preload="metadata" src="../assets/ihateparking_virtual_parking_tutorial.mp4"></video><div class="player-meta"><span>Hybrid A* path planning</span><span>Pure Pursuit tracking</span><span>0 collision events</span></div></div>
-      <aside class="lesson-rail"><div class="lesson-step active"><span>01</span><div><strong>Approach the slot</strong><small>Slow down and align.</small></div></div><div class="lesson-step"><span>02</span><div><strong>Turn right gently</strong><small>Follow the highlighted arc.</small></div></div><div class="lesson-step"><span>03</span><div><strong>Keep the arc</strong><small>Clear the parked vehicles.</small></div></div><div class="lesson-step"><span>04</span><div><strong>Straighten the wheels</strong><small>Center the final pose.</small></div></div><div class="lesson-step"><span>05</span><div><strong>Stop — parked</strong><small>Zero collision events.</small></div></div><div class="lesson-note"><p class="eyebrow">WHY THIS MODE</p><p>Unlike a raw replay, this video exposes the reasoning layer: the vehicle path, steering input, current instruction and safety result all move together.</p></div></aside>
+      <div class="lesson-player panel"><div class="panel-head"><div><p class="eyebrow">SYNTHETIC INSTRUCTIONAL VIDEO</p><h3>Perpendicular parking, explained</h3></div><span class="source-chip">generated locally</span></div><video controls playsinline preload="metadata" src="../assets/ihateparking_virtual_parking_tutorial.mp4"></video><div class="player-meta"><span>Hybrid A* path planning</span><span>Pure Pursuit tracking</span><span>0 simulated collision events</span></div></div>
+      <aside class="lesson-rail"><div class="lesson-step active"><span>01</span><div><strong>Approach the slot</strong><small>Slow down and align.</small></div></div><div class="lesson-step"><span>02</span><div><strong>Turn right gently</strong><small>Follow the highlighted arc.</small></div></div><div class="lesson-step"><span>03</span><div><strong>Keep the arc</strong><small>Clear the parked vehicles.</small></div></div><div class="lesson-step"><span>04</span><div><strong>Straighten the wheels</strong><small>Center the final pose.</small></div></div><div class="lesson-step"><span>05</span><div><strong>Stop — parked</strong><small>Zero simulated contact events.</small></div></div><div class="lesson-note"><p class="eyebrow">WHY THIS MODE</p><p>Unlike a raw replay, this video exposes the reasoning layer: the vehicle path, steering input, current instruction and simulation outcome move together.</p></div></aside>
     </section>
-    <footer class="footer"><span>ihateparking / English virtual lesson</span><span>generated from the v1 simulation</span></footer>
+    <footer class="footer"><span>ihateparking / English virtual lesson</span><a href="/">Back to live console</a></footer>
   </main>
 </body>
 </html>

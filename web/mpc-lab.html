@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="Interactive, simulation-only comparison of polygon-constrained MPC and Pure Pursuit for a tight parking maneuver." />
+  <meta name="theme-color" content="#071114" />
+  <link rel="icon" href="/assets/ihateparking-logo.svg" type="image/svg+xml" />
+  <title>Constrained MPC Lab — ihateparking</title>
+  <link rel="stylesheet" href="/static/dashboard.css" />
+  <link rel="stylesheet" href="/static/mpc-lab.css" />
+</head>
+<body>
+  <main class="shell mpc-shell">
+    <header class="topbar">
+      <div class="brand"><span class="brand-mark" aria-hidden="true">IP</span><div><p class="eyebrow">INDEPENDENT AUTONOMY RESEARCH LAB</p><h1>ihateparking / constrained MPC</h1></div></div>
+      <a class="back-link" href="/">← Live console</a>
+    </header>
+
+    <nav class="site-nav" aria-label="Lab pages">
+      <a href="/">Live console</a>
+      <a href="/web/">Planner replay</a>
+      <a href="/web/assist.html">Video assist</a>
+      <a href="/web/tutorial.html">Virtual lesson</a>
+      <a class="active" href="/web/mpc-lab.html" aria-current="page">Constrained MPC lab</a>
+      <a href="/docs">API schema</a>
+    </nav>
+
+    <aside class="prototype-warning" role="note" aria-label="Research prototype notice">
+      <strong>SIMULATION ONLY — NOT VEHICLE CONTROL</strong>
+      <span>This synthetic, static-obstacle reverse-parking experiment has no CARLA, ROS 2, sensor, CAN or actuator connection. It is not safety-certified and must not be used to control a real car.</span>
+    </aside>
+
+    <section class="hero mpc-hero">
+      <div><p class="eyebrow">KINEMATIC BICYCLE · POLYGON CLEARANCE · SLSQP</p><h2>Test the solve budget, not a safety claim.</h2><p class="lede">Run the project’s Python controller against the same 2.5 m reverse-in scene used by the Pure Pursuit baseline. Change horizon and iteration limits, then inspect both paths and measured compute latency.</p></div>
+      <div class="hero-stamp"><strong>2.5 m</strong><span>STATIC<br />REVERSE-IN</span></div>
+    </section>
+
+    <section class="panel mpc-controls" aria-labelledby="controls-title">
+      <div class="section-heading"><div><p class="eyebrow">EXPERIMENT PARAMETERS</p><h2 id="controls-title">Configure a paired run</h2></div><p>One run at a time per worker. Results are generated in memory and are not saved to a history.</p></div>
+      <div class="control-grid">
+        <label>Horizon steps<select id="horizon"><option value="4" selected>4 — quick profile</option><option value="6">6 — medium</option><option value="8">8 — reference</option><option value="10">10 — extended</option></select><small>Decision variables scale with horizon.</small></label>
+        <label>SLSQP iteration cap<select id="iterations"><option value="8">8</option><option value="12" selected>12 — quick profile</option><option value="20">20</option><option value="40">40 — reference</option><option value="60">60</option></select><small>A cap does not guarantee convergence.</small></label>
+        <label>Derivative mode<select id="derivative-mode"><option value="finite_difference" selected>Finite-difference baseline</option><option value="casadi_ad">CasADi automatic Jacobians</option></select><small>Both modes use SciPy SLSQP and the same hard constraints.</small></label>
+        <label>Simulation step<select id="dt"><option value="0.10">0.10 s</option><option value="0.18" selected>0.18 s</option><option value="0.20">0.20 s</option><option value="0.25">0.25 s</option></select><small>Also shown as the demo deadline.</small></label>
+        <label>Extra clearance <output id="clearance-value">0.05 m</output><input id="extra-clearance" type="range" min="0" max="0.10" step="0.01" value="0.05" /><small>Applied to both controller collision envelopes.</small></label>
+        <label class="toggle-control"><span>Shifted warm start</span><input id="warm-start" type="checkbox" checked /><small>Seed each SLSQP call with the prior feasible control sequence shifted one step; collision constraints are still checked.</small></label>
+      </div>
+      <div class="control-actions">
+        <div class="preset-actions"><button id="fast-preset" class="button secondary" type="button">Load quick profile · 4 × 12</button><button id="reference-preset" class="button secondary" type="button">Load reference · 8 × 40</button></div>
+        <button id="run-comparison" class="button primary" type="button">Run paired simulation</button>
+      </div>
+      <p id="run-status" class="run-status" role="status" aria-live="polite">Ready. Start a run to generate fresh trajectories and timing.</p>
+    </section>
+
+    <section id="results" class="results-section" aria-labelledby="results-title" hidden>
+      <div class="section-heading results-heading"><div><p class="eyebrow">LATEST IN-MEMORY RUN</p><h2 id="results-title">Paired controller results</h2></div><button id="download-json" class="button secondary" type="button" disabled>Download run JSON</button></div>
+      <div class="metric-grid">
+        <article class="panel result-card"><p class="eyebrow">PURE PURSUIT BASELINE</p><h3 id="pp-status">—</h3><p id="pp-message" class="result-message">—</p><div class="result-line"><span>contacts</span><strong id="pp-collisions">—</strong></div><div class="result-line"><span>minimum clearance</span><strong id="pp-clearance">—</strong></div></article>
+        <article class="panel result-card"><p class="eyebrow">POLYGON-CONSTRAINED MPC</p><h3 id="mpc-status">—</h3><p id="mpc-message" class="result-message">—</p><div class="result-line"><span>contacts</span><strong id="mpc-collisions">—</strong></div><div class="result-line"><span>minimum clearance</span><strong id="mpc-clearance">—</strong></div></article>
+        <article class="panel result-card latency-card"><p class="eyebrow">FULL CONTROLLER-CALL LATENCY</p><h3 id="latency-status">—</h3><p id="latency-message" class="result-message">Includes Python preparation, SLSQP, feasibility checks and the independent next-footprint guard. One-time model setup is reported separately.</p><div class="result-line"><span>mean / p95 / p99</span><strong id="latency-percentiles">—</strong></div><div class="result-line"><span>missed sim-step budgets</span><strong id="deadline-misses">—</strong></div><div class="result-line"><span>optimizer-only p95</span><strong id="optimizer-p95">—</strong></div><div class="result-line"><span>one-time setup / explicit Jacobian calls</span><strong id="solver-diagnostics">—</strong></div></article>
+      </div>
+
+      <div class="plot-grid">
+        <section class="panel plot-panel"><div class="panel-heading"><div><p class="eyebrow">SHARED STATIC SCENE</p><h3>Executed trajectories</h3></div><span class="mono">x/y · metres</span></div><canvas id="trajectory-canvas" aria-label="Top-down comparison of the Pure Pursuit and constrained MPC trajectories"></canvas><div class="plot-legend"><span><i class="legend-ref"></i>reference</span><span><i class="legend-pp"></i>Pure Pursuit</span><span><i class="legend-mpc"></i>constrained MPC</span><span><i class="legend-obstacle"></i>static obstacles</span><span><i class="legend-slot"></i>target slot</span></div></section>
+        <section class="panel plot-panel"><div class="panel-heading"><div><p class="eyebrow">COMPUTE BUDGET</p><h3>Latency per control call</h3></div><span class="mono">milliseconds</span></div><canvas id="latency-canvas" aria-label="Per-step controller-call latency with simulation and project control-period reference lines"></canvas><p class="plot-note">The 180 ms line is this experiment’s selected simulation-step budget. The architecture’s real-system control target is 20–50 Hz (50–20 ms); it is not met unless the measured latency supports it.</p></section>
+      </div>
+      <p id="safety-note" class="safety-note"></p>
+    </section>
+
+    <section id="solver-options" class="solver-section" aria-labelledby="solver-title">
+      <div class="section-heading"><div><p class="eyebrow">NEXT OPTIMIZATION STEPS</p><h2 id="solver-title">What to change for real-time MPC</h2></div><p>The selector compares finite differences with CasADi automatic Jacobians supplied to the same SciPy SLSQP solver. acados and OSQP remain candidates, not selectable implementations.</p></div>
+      <div class="solver-grid">
+        <article class="panel solver-card"><p class="eyebrow">1 / RETAIN THE BASELINE</p><h3>Profile and reduce callback work</h3><ul><li>The toggle above compares a shifted previous feasible solution with the geometric Pure Pursuit seed; it remains only an initial guess, not a relaxed constraint.</li><li>Precompute obstacle polygons/axes and path references; profile finite-difference objective and constraint evaluations.</li><li>Supply analytic or automatic-differentiation Jacobians; then validate derivatives at polygon feature changes.</li><li>Reduce the horizon only when collision, goal-capture and disturbance tests still pass.</li></ul><a href="https://docs.scipy.org/doc/scipy/reference/optimize.minimize-slsqp.html" target="_blank" rel="noreferrer">SciPy SLSQP reference →</a></article>
+        <article class="panel solver-card recommended"><p class="eyebrow">2 / PRIMARY REAL-TIME CANDIDATE</p><h3>CasADi + acados SQP-RTI</h3><p>CasADi can provide sparse algorithmic derivatives for a structured bicycle-model OCP. acados supports SQP real-time iterations split into preparation and feedback phases, designed to reduce control delay. Generate and benchmark the solver for the target CPU; do not assume a deadline from library choice alone.</p><a href="https://web.casadi.org/docs/" target="_blank" rel="noreferrer">CasADi documentation →</a><a href="https://docs.acados.org/features/index.html" target="_blank" rel="noreferrer">acados RTI features →</a></article>
+        <article class="panel solver-card"><p class="eyebrow">3 / CONVEXIFIED ALTERNATIVE</p><h3>OSQP for sequential QPs</h3><p>OSQP is a candidate for a warm-started convex QP after local linearization/convexification of vehicle dynamics and obstacle-clearance constraints. It is not a drop-in solver for the current nonlinear polygon-constrained problem. Keep an independent exact-footprint safety check and reject infeasible commands.</p><a href="https://osqp.org/docs/examples/mpc.html" target="_blank" rel="noreferrer">OSQP MPC example →</a></article>
+      </div>
+      <aside class="real-car-note"><strong>Real-car boundary:</strong> the project’s architecture calls for 20–50 Hz control (20–50 ms periods). Passing the 180 ms simulation-step line is not enough. Before any vehicle integration, require target-hardware p99/worst-case deadline evidence, a watchdog and independent safe-stop path, swept-volume or continuous-time collision validation, vehicle-specific system identification, and hardware-in-the-loop and closed-course validation.</aside>
+    </section>
+
+    <footer><span>ihateparking / constrained-MPC research lab</span><span>same Python experiment · transient results · no vehicle connection</span></footer>
+  </main>
+  <script src="/static/mpc-lab.js" defer></script>
+</body>
+</html>
