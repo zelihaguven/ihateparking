@@ -6,6 +6,7 @@ import argparse
 from dataclasses import asdict
 import hashlib
 import json
+import math
 from pathlib import Path
 import sys
 
@@ -14,7 +15,12 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from ihateparking.dynamic_safety import SafetyConfig
 from ihateparking.lightweight_perception import TrainingConfig, train_model
 from ihateparking.planner import PlannerConfig
+from ihateparking.scenario_sweep import DEFAULT_MAX_EXPANSIONS
 from ihateparking.scenario_generator import ScenarioGenerator
+
+
+# Mirrors ihateparking.dashboard without importing the optional FastAPI extra.
+DASHBOARD_PLANNER_EXPANSIONS = 12_000
 
 
 def sha256(path: Path) -> str:
@@ -51,20 +57,16 @@ def export_pipeline(output_dir: str | Path, scenario_count: int = 24, seed: int 
             "note": "The planner has no learned weights; these are reproducible search parameters.",
             "config": asdict(PlannerConfig()),
         },
-        "dashboard_robust_profile": {
-            "config": asdict(PlannerConfig(
-                xy_resolution=.8, yaw_bins=16, primitive_length=1.2,
-                primitive_sample=.4, steering_samples=5,
-                goal_position_tolerance=.7, goal_yaw_tolerance=.48869,
-                max_expansions=30_000,
-            )),
+        "benchmark_profile": {
+            "note": "Used by ihateparking.scenario_sweep for the 100-seed success-rate benchmark.",
+            "config": asdict(PlannerConfig(max_expansions=DEFAULT_MAX_EXPANSIONS)),
         },
-        "dashboard_capture_profile": {
+        "dashboard_profile": {
+            "note": "Default search with Reeds-Shepp analytic expansion to the exact goal; the cap bounds reset latency.",
             "config": asdict(PlannerConfig(
-                xy_resolution=.65, yaw_bins=16, primitive_length=.75,
-                primitive_sample=.25, steering_samples=5,
-                goal_position_tolerance=.35, goal_yaw_tolerance=.20944,
-                max_expansions=180,
+                max_expansions=DASHBOARD_PLANNER_EXPANSIONS,
+                goal_position_tolerance=.25,
+                goal_yaw_tolerance=math.radians(7.0),
             )),
         },
         "dynamic_safety": asdict(SafetyConfig()),
