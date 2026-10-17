@@ -89,6 +89,9 @@ planner.py     Hybrid A* search with kinematic motion primitives
 reeds_shepp.py Reeds-Shepp curves for the analytic expansion
 controller.py  Segment-aware PlanTracker, Pure Pursuit law + simulator
 scenario_sweep.py Multi-seed plan-and-execute benchmark
+holonomic_heuristic.py Obstacle-aware grid distance for the Hybrid A* heuristic
+parking_lot.py Seeded multi-row lot with mixed bay types and occupancy
+autopark.py    Bay-level parking: chooses the manoeuvre, plans, executes
 render.py      Static visualization for experiments
 run.py         Reproducible CLI entry point + browser trace export
 video_assist.py OpenCV-based footage perception and English guidance signals
@@ -212,6 +215,21 @@ generator flips the slot heading so the rear-axle goal faces out of the bay
 (perpendicular reverse ends facing the lane; parallel reverse keeps the
 direction of travel). A start pose that would overlap a parked car is slid
 along the lane until it has 0.30 m clearance.
+
+## Autopark: tell it which bay, it works out how
+
+```bash
+python3 -m ihateparking.autopark --seed 3 --list      # bays and occupancy
+python3 -m ihateparking.autopark --seed 3 --bay C4    # park in C4
+python3 -m ihateparking.autopark --seed 3             # nearest free bay
+```
+
+In a seeded 21-bay lot (parallel, perpendicular and angled rows; parked cars
+in about half the bays) the caller names only the bay. The vehicle refuses
+an occupied bay. Otherwise it plans nose-in and tail-in (or both kerb
+directions), picks the best collision-free plan and drives it in closed
+loop. On every free bay of five lots it parked 54 of 54 with no collisions.
+See [`docs/autopark.md`](docs/autopark.md).
 
 ## Scenario sweep benchmark
 
