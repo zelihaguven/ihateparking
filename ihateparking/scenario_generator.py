@@ -14,8 +14,11 @@ from pathlib import Path
 import random
 from typing import Iterable
 
-from .geometry import Pose
+from .geometry import Pose, wrap_angle
 from .world import ParkingSlot, ParkingWorld, RectangleObstacle, VehicleSpec
+
+
+START_CLEARANCE_M = 0.30
 
 
 class ScenarioKind(str, Enum):
@@ -25,6 +28,13 @@ class ScenarioKind(str, Enum):
     PARALLEL_REVERSE = "parallel_reverse"
     ANGLED_FORWARD = "angled_forward"
     ANGLED_REVERSE = "angled_reverse"
+
+
+_REVERSE_KINDS = frozenset({
+    ScenarioKind.PERPENDICULAR_REVERSE,
+    ScenarioKind.PARALLEL_REVERSE,
+    ScenarioKind.ANGLED_REVERSE,
+})
 
 
 @dataclass(frozen=True)
@@ -199,7 +209,12 @@ class ScenarioGenerator:
                 start = Pose(3.0 + lateral_offset, lane_y, 0.0)
             gear_sequence = ("drive", "reverse")
 
+        if config.kind in _REVERSE_KINDS:
+            # Reverse manoeuvres finish tail-in: the rear-axle goal faces out
+            # of the bay. The slot rectangle itself is symmetric.
+            slot = ParkingSlot(slot.center, slot.length, slot.width, wrap_angle(slot.yaw + math.pi))
         start = self._perturb_pose(start, config, rng)
+        start = self._clear_start(start, bounds, vehicle, static)
         return ScenarioSpec(
             scenario_id=f"{config.kind.value}_{config.seed:06d}",
             seed=config.seed,
@@ -233,6 +248,31 @@ class ScenarioGenerator:
         records = [item.to_dict() for item in self.generate_suite(count, seed)]
         path.write_text(json.dumps(records, indent=2), encoding="utf-8")
         return path
+
+    @staticmethod
+    def _clear_start(
+        start: Pose,
+        bounds: tuple[float, float, float, float],
+        vehicle: VehicleSpec,
+        static: tuple[RectangleObstacle, ...],
+    ) -> Pose:
+        """Slide a blocked start pose along its lane, away from the bays.
+
+        Angled rows can reach into the lane, so a sampled start may overlap a
+        parked car. The search is deterministic and keeps the heading.
+        """
+        probe = ParkingWorld(bounds, list(static), ParkingSlot((0.0, 0.0), 1.0, 1.0), start, vehicle)
+        backward = (-math.cos(start.yaw), -math.sin(start.yaw))
+        for offset in (0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0):
+            for lane_shift in (0.0, -0.4, -0.8):
+                candidate = Pose(
+                    start.x + backward[0] * offset,
+                    max(2.0, start.y + lane_shift),
+                    start.yaw,
+                )
+                if not probe.is_collision(candidate, extra_margin=START_CLEARANCE_M):
+                    return candidate
+        raise ValueError("could not place a collision-free start pose for the scenario")
 
     @staticmethod
     def _perturb_pose(pose: Pose, config: ScenarioConfig, rng: random.Random) -> Pose:
