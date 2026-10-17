@@ -17,6 +17,7 @@ dependencies = [
 ihateparking = "ihateparking.run:main"
 ihateparking-dashboard = "ihateparking.dashboard:main"
 ihateparking-pedestrian-stress = "ihateparking.pedestrian_stress_test:main"
+ihateparking-sweep = "ihateparking.scenario_sweep:main"
 
 [project.optional-dependencies]
 mpc = [

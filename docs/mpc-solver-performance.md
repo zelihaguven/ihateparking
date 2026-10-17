@@ -32,6 +32,12 @@ The 180 ms value is only the demo’s selected `dt`; it is **not** a suitable re
 
 The Pure Pursuit comparison can encounter a predicted unsafe next pose; the guard rejects it before it is appended or applied. That is a rejected-command stop, not a physical contact. The MPC result and controller choice do not prove general safety or superiority: this fixed scene has no moving actors, sensing/localization error, delayed data, tire dynamics or actuator lag.
 
+### Correction: reverse Pure Pursuit sign (2026-10-15)
+
+Earlier versions of this lab reported that the Pure Pursuit baseline was stopped by the collision guard in this 2.5 m reverse-in scene. That outcome came from a sign error in `pure_pursuit`: in reverse it negated the arc curvature, which makes a rear-axle bicycle model diverge from the path (a 0.4 m lateral offset grew to 7.8 m in a straight-line check). For a rear-axle reference the arc curvature d(yaw)/ds is the same in either gear; only the heading-correction term changes sign. `tests/test_scenario_sweep.py` now holds a regression test for this.
+
+With the corrected law, the baseline parks this scene: on a 2026-10-15 run with the default lab settings (4-step horizon, 12 iterations, `dt=0.18 s`) Pure Pursuit completed in 11.9 s simulated time with 0.257 m minimum raw polygon clearance, and the finite-difference MPC completed in 8.5 s with 0.260 m. The comparison is therefore about manoeuvre time, smoothness and constraint handling, not one controller succeeding where the other fails. The MPC also uses Pure Pursuit to seed its first initial guess, so the paired latency table above predates the fix and should be re-measured before it is quoted.
+
 ## Callback profiling and derivative checks
 
 The previous path repeatedly rebuilt intermediate rollout and static obstacle data through SLSQP callbacks. The current NumPy baseline now:
