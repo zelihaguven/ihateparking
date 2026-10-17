@@ -143,7 +143,10 @@ class DashboardSession:
             if self._pending_plans:
                 return self.state(snapshot)
             scenario = self._require_scenario()
-            if self.completed or scenario.to_world().at_goal(self.world.pose, self.GOAL_POSITION_TOLERANCE_M, self.GOAL_YAW_TOLERANCE_RAD):
+            # Drive the plan to its end (it finishes on the exact goal) before
+            # judging the pose; stopping at the first tolerance entry parks crooked.
+            plan_done = self.tracker is None or self.tracker.finished
+            if self.completed or (plan_done and scenario.to_world().at_goal(self.world.pose, self.GOAL_POSITION_TOLERANCE_M, self.GOAL_YAW_TOLERANCE_RAD)):
                 self.completed = True
                 self.world.speed_mps = 0.0
                 self.world.gear = Gear.PARK
