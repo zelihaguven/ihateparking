@@ -747,6 +747,7 @@ def rollout_from_pure_pursuit(
             max_time=25.0,
             goal_position_tolerance=0.10,
             goal_yaw_tolerance=math.radians(5.0),
+            tracking_law="pure_pursuit",
         ),
     )
     clearances = [world_clearance(world, pose) for pose in result.poses]

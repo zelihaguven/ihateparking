@@ -91,3 +91,28 @@ def point_in_bounds(polygon: np.ndarray, bounds: tuple[float, float, float, floa
         and polygon[:, 1].min() >= ymin + margin
         and polygon[:, 1].max() <= ymax - margin
     )
+
+
+def _point_segment_distance(point: np.ndarray, start: np.ndarray, end: np.ndarray) -> float:
+    edge = end - start
+    length_sq = float(edge @ edge)
+    if length_sq <= 1e-18:
+        return float(np.linalg.norm(point - start))
+    t = max(0.0, min(1.0, float((point - start) @ edge) / length_sq))
+    return float(np.linalg.norm(point - (start + t * edge)))
+
+
+def polygon_distance(first: np.ndarray, second: np.ndarray) -> float:
+    """Euclidean distance between two convex polygons; 0 when they touch.
+
+    For disjoint convex polygons the closest pair always involves a vertex of
+    one polygon and an edge of the other.
+    """
+    if polygons_intersect(first, second):
+        return 0.0
+    best = math.inf
+    for polygon, other in ((first, second), (second, first)):
+        for start, end in zip(other, np.vstack([other[1:], other[:1]])):
+            for vertex in polygon:
+                best = min(best, _point_segment_distance(vertex, start, end))
+    return best
