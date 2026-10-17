@@ -95,7 +95,7 @@ class ExactGoalPlanningTests(unittest.TestCase):
 
 
 class BlockedGoalTests(unittest.TestCase):
-    def test_blocked_goal_falls_back_to_a_tolerance_search(self) -> None:
+    def test_blocked_goal_is_replaced_by_nearest_free_pose_in_tolerance(self) -> None:
         # The dynamic replanner inserts perceived actors into the world; one
         # standing at the bay end must not make planning fail outright.
         world = ScenarioGenerator().generate(ScenarioConfig(seed=2, kind=ScenarioKind.PERPENDICULAR_FORWARD)).to_world()
@@ -105,8 +105,8 @@ class BlockedGoalTests(unittest.TestCase):
         self.assertTrue(blocked.is_collision(goal, extra_margin=0.05))
         plan = HybridAStar(blocked, PlannerConfig(max_expansions=20_000)).plan()
         self.assertTrue(plan.success, plan.message)
-        self.assertNotIn("Reeds-Shepp", plan.message)
         self.assertTrue(blocked.at_goal(plan.poses[-1]))
+        self.assertFalse(blocked.is_collision(plan.poses[-1]))
 
 
 class SweepTests(unittest.TestCase):

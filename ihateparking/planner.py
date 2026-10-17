@@ -7,6 +7,7 @@ import math
 from typing import Optional
 
 from .geometry import Pose, angle_error, distance
+from .holonomic_heuristic import DistanceField, build_distance_field
 from .reeds_shepp import ReedsSheppPath, reeds_shepp_paths, sample_path
 from .world import ParkingWorld
 
@@ -43,6 +44,10 @@ class PlannerConfig:
     # After a node first lands inside the goal tolerance, keep searching this
     # many expansions for an exact analytic connection before settling.
     exact_goal_extra_expansions: int = 3_000
+    # Obstacle-aware grid distance to the goal, combined with the straight-line
+    # heuristic by max(); needed when the goal is behind a row of cars.
+    obstacle_heuristic: bool = True
+    heuristic_resolution: float = 0.5
 
 
 @dataclass
@@ -74,6 +79,7 @@ class HybridAStar:
         self.world = world
         self.config = config or PlannerConfig()
         self._steering_values = self._make_steering_values()
+        self._distance_field: Optional[DistanceField] = None
 
     def _make_steering_values(self) -> list[float]:
         maximum = self.world.vehicle.max_steering
@@ -143,6 +149,28 @@ class HybridAStar:
             previous = sample
         return poses, gears, steerings
 
+    def _nearest_free_goal(self, goal: Pose) -> Optional[Pose]:
+        """Closest collision-free pose within the goal tolerance, if any."""
+        cfg = self.config
+        c, s = math.cos(goal.yaw), math.sin(goal.yaw)
+        candidates = []
+        steps = 7
+        for i in range(-steps, steps + 1):
+            along = cfg.goal_position_tolerance * 0.95 * i / steps
+            for j in range(-2, 3):
+                across = cfg.goal_position_tolerance * 0.45 * j / 2
+                if math.hypot(along, across) > cfg.goal_position_tolerance * 0.95:
+                    continue
+                for k in range(-2, 3):
+                    yaw = goal.yaw + cfg.goal_yaw_tolerance * 0.9 * k / 2
+                    candidate = Pose(goal.x + c * along - s * across, goal.y + s * along + c * across, yaw)
+                    cost = math.hypot(along, across) + 0.35 * abs(yaw - goal.yaw)
+                    candidates.append((cost, candidate))
+        for _, candidate in sorted(candidates, key=lambda item: item[0]):
+            if not self._blocked(candidate):
+                return candidate
+        return None
+
     def _key(self, pose: Pose) -> tuple[int, int, int]:
         cfg = self.config
         x_bin = round(pose.x / cfg.xy_resolution)
@@ -152,7 +180,12 @@ class HybridAStar:
         return x_bin, y_bin, yaw_bin
 
     def _heuristic(self, pose: Pose, goal: Pose) -> float:
-        return distance(pose, goal) + 0.35 * abs(angle_error(goal.yaw, pose.yaw))
+        base = distance(pose, goal) + 0.35 * abs(angle_error(goal.yaw, pose.yaw))
+        if self._distance_field is None:
+            return base
+        grid = self._distance_field.lookup(pose.x, pose.y)
+        # A rear axle can sit inside the inflated disc band; fall back there.
+        return base if math.isinf(grid) else max(base, grid)
 
     def _propagate(self, pose: Pose, gear: int, steering: float) -> list[Pose]:
         cfg = self.config
@@ -180,8 +213,15 @@ class HybridAStar:
         if self.world.is_collision(start):
             return PlanResult(False, [], [], [], math.inf, 0, "start pose is in collision")
         # A goal blocked by e.g. an inserted dynamic obstacle cannot be reached
-        # exactly; fall back to the tolerance-only search instead of failing.
+        # exactly. Aim instead at the nearest free pose inside the goal
+        # tolerance; if there is none, fall back to the tolerance-only search.
+        if self._blocked(goal):
+            goal = self._nearest_free_goal(goal) or goal
         exact_goal_reachable = not self._blocked(goal)
+        self._distance_field = (
+            build_distance_field(self.world, (goal.x, goal.y), self.config.heuristic_resolution)
+            if self.config.obstacle_heuristic else None
+        )
 
         nodes: list[_Node] = [_Node(start, 0.0, None, 0, 0.0)]
         queue: list[tuple[float, int]] = [(self._heuristic(start, goal), 0)]
