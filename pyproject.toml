@@ -19,9 +19,13 @@ ihateparking-dashboard = "ihateparking.dashboard:main"
 ihateparking-pedestrian-stress = "ihateparking.pedestrian_stress_test:main"
 ihateparking-sweep = "ihateparking.scenario_sweep:main"
 ihateparking-autopark = "ihateparking.autopark:main"
+ihateparking-mission = "ihateparking.mission:main"
 
 [project.optional-dependencies]
 mpc = [
+  "scipy>=1.11",
+]
+perception = [
   "scipy>=1.11",
 ]
 mpc-ad = [

@@ -80,6 +80,7 @@ class HybridAStar:
         self.config = config or PlannerConfig()
         self._steering_values = self._make_steering_values()
         self._distance_field: Optional[DistanceField] = None
+        self._clearance = self.config.clearance_margin
 
     def _make_steering_values(self) -> list[float]:
         maximum = self.world.vehicle.max_steering
@@ -91,7 +92,7 @@ class HybridAStar:
         ]
 
     def _blocked(self, pose: Pose) -> bool:
-        return self.world.is_collision(pose, extra_margin=self.config.clearance_margin)
+        return self.world.is_collision(pose, extra_margin=self._clearance)
 
     def _analytic_radius(self, steering_fraction: float) -> float:
         steering = self.world.vehicle.max_steering * steering_fraction
@@ -212,6 +213,10 @@ class HybridAStar:
         goal = goal or self.world.slot.goal_pose(self.world.vehicle)
         if self.world.is_collision(start):
             return PlanResult(False, [], [], [], math.inf, 0, "start pose is in collision")
+        # If the start already sits inside the extra planning clearance (e.g.
+        # structure seen only on arrival), every first move would be refused;
+        # fall back to the world margin alone for this search.
+        self._clearance = 0.0 if self.world.is_collision(start, extra_margin=self.config.clearance_margin) else self.config.clearance_margin
         # A goal blocked by e.g. an inserted dynamic obstacle cannot be reached
         # exactly. Aim instead at the nearest free pose inside the goal
         # tolerance; if there is none, fall back to the tolerance-only search.

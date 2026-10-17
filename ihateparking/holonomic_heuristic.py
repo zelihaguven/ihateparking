@@ -42,6 +42,9 @@ class DistanceField:
 def _blocked_mask(world: ParkingWorld, xs: np.ndarray, ys: np.ndarray, inflation: float) -> np.ndarray:
     xmin, xmax, ymin, ymax = world.bounds
     blocked = (xs < xmin + inflation) | (xs > xmax - inflation) | (ys < ymin + inflation) | (ys > ymax - inflation)
+    # A map-based world (occupancy grid) answers directly.
+    if hasattr(world, "blocked_mask"):
+        return blocked | world.blocked_mask(xs, ys, inflation)
     for obstacle in world.obstacles:
         c, s = math.cos(obstacle.yaw), math.sin(obstacle.yaw)
         dx, dy = xs - obstacle.center[0], ys - obstacle.center[1]

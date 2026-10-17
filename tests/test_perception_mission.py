@@ -1,0 +1,125 @@
+import math
+import unittest
+
+import numpy as np
+
+from ihateparking.geometry import Pose, polygons_intersect
+from ihateparking.lidar import LidarConfig, scan, sensor_origin
+from ihateparking.mission import evaluate_parking, run_mission
+from ihateparking.occupancy_map import FREE, OCCUPIED, OccupancyGrid
+from ihateparking.procedural_lot import generate_lot
+from ihateparking.slot_detector import detect_slots
+from ihateparking.world import ParkingWorld, RectangleObstacle, VehicleSpec
+
+EXACT = LidarConfig(beams=360, range_noise_std=0.0, dropout=0.0)
+
+
+def _march(origin, angle, obstacles, max_range, step=0.005):
+    for k in range(1, int(max_range / step)):
+        x, y = origin[0] + math.cos(angle) * k * step, origin[1] + math.sin(angle) * k * step
+        for obstacle in obstacles:
+            c, s = math.cos(obstacle.yaw), math.sin(obstacle.yaw)
+            dx, dy = x - obstacle.center[0], y - obstacle.center[1]
+            if abs(c * dx + s * dy) <= obstacle.length / 2 and abs(-s * dx + c * dy) <= obstacle.width / 2:
+                return k * step
+    return math.inf
+
+
+class LidarTests(unittest.TestCase):
+    def test_ranges_match_ray_marching(self) -> None:
+        obstacles = [RectangleObstacle("a", (6.0, 1.0), 4.5, 1.9, 0.4), RectangleObstacle("b", (-3.0, -5.0), 0.3, 12.0, 0.0)]
+        pose = Pose(0.0, 0.0, 0.2)
+        result = scan(pose, obstacles, VehicleSpec(), EXACT, np.random.default_rng(0))
+        for index in range(0, 360, 9):
+            expected = _march(result.origin, result.angles[index], obstacles, EXACT.max_range)
+            if math.isinf(expected):
+                self.assertFalse(result.hits[index])
+            else:
+                self.assertAlmostEqual(result.ranges[index], expected, delta=0.01)
+
+    def test_beam_parallel_to_a_wall_does_not_hit_it(self) -> None:
+        # Regression: an exactly parallel beam used to report range 0.
+        wall = RectangleObstacle("wall", (0.0, 5.0), 20.0, 0.3, 0.0)
+        result = scan(Pose(0.0, 0.0, 0.0), [wall], VehicleSpec(), EXACT, np.random.default_rng(0))
+        self.assertGreater(result.ranges[result.hits].min(), 4.0)
+
+
+class OccupancyGridTests(unittest.TestCase):
+    def test_scan_marks_free_space_and_the_obstacle(self) -> None:
+        wall = RectangleObstacle("wall", (0.0, 6.0), 30.0, 0.3, 0.0)
+        pose = Pose(0.0, 0.0, 0.0)
+        grid = OccupancyGrid((0.0, 0.0))
+        for _ in range(3):
+            grid.integrate(scan(pose, [wall], VehicleSpec(), EXACT, np.random.default_rng(0)))
+        states = grid.states()
+        ox, oy = sensor_origin(pose, VehicleSpec())
+        row, col = grid.to_cell(ox, oy + 3.0)
+        self.assertEqual(states[row, col], FREE)
+        row, col = grid.to_cell(ox, 5.9)
+        self.assertEqual(states[row, col], OCCUPIED)
+
+    def test_dropouts_do_not_punch_free_space_through_walls(self) -> None:
+        wall = RectangleObstacle("wall", (0.0, 6.0), 60.0, 0.3, 0.0)
+        noisy = LidarConfig(dropout=0.2)
+        grid = OccupancyGrid((0.0, 0.0))
+        rng = np.random.default_rng(3)
+        for _ in range(20):
+            grid.integrate(scan(Pose(0.0, 0.0, 0.0), [wall], VehicleSpec(), noisy, rng))
+        states = grid.states()
+        rows, cols = np.nonzero(states == FREE)
+        _, ys = grid.cell_center(rows, cols)
+        self.assertLess(ys.max(), 6.2)
+
+
+class SlotDetectorTests(unittest.TestCase):
+    def test_detections_on_unseen_lots_are_real_free_bays(self) -> None:
+        checked = 0
+        for seed in (101, 102, 103, 104):
+            lot = generate_lot(seed)
+            world = ParkingWorld(lot.bounds, list(lot.obstacles), lot.bays[0].slot, lot.start, lot.vehicle)
+            grid = OccupancyGrid((lot.start.x, lot.start.y))
+            rng = np.random.default_rng(seed)
+            for d in np.arange(-20.0, 20.1, 1.0):
+                pose = Pose(lot.start.x + d * math.cos(lot.start.yaw), lot.start.y + d * math.sin(lot.start.yaw), lot.start.yaw)
+                if not world.is_collision(pose):
+                    grid.integrate(scan(pose, lot.obstacles, lot.vehicle, rng=rng))
+            for candidate in detect_slots(grid, lot.vehicle):
+                pose = candidate.goal(candidate.axis_yaw, lot.vehicle)
+                verdict = evaluate_parking(lot, pose)
+                with self.subTest(seed=seed, center=candidate.center):
+                    self.assertTrue(verdict["in_bay"], verdict)
+                checked += 1
+        self.assertGreater(checked, 0)
+
+
+class ProceduralLotTests(unittest.TestCase):
+    def test_lots_differ_and_are_consistent(self) -> None:
+        first, second = generate_lot(1), generate_lot(2)
+        self.assertNotEqual(first.rotation, second.rotation)
+        for seed in range(20):
+            lot = generate_lot(seed)
+            fixed = [item for item in lot.obstacles if not item.name.startswith("car")]
+            cars = [item for item in lot.obstacles if item.name.startswith("car")]
+            world = ParkingWorld(lot.bounds, list(lot.obstacles), lot.bays[0].slot, lot.start, lot.vehicle)
+            with self.subTest(seed=seed):
+                self.assertFalse(world.is_collision(lot.start))
+                self.assertFalse(any(polygons_intersect(car.polygon(), item.polygon()) for car in cars for item in fixed))
+
+
+class MissionTests(unittest.TestCase):
+    def test_parks_in_an_unseen_lot_using_only_lidar(self) -> None:
+        lot = generate_lot(8)
+        result = run_mission(lot, seed=8)
+        self.assertEqual(result.outcome, "PARKED", result.message)
+        self.assertTrue(result.success, result.evaluation)
+        self.assertEqual(result.collisions, 0)
+        self.assertGreaterEqual(result.evaluation["overlap"], 0.8)
+
+    def test_evaluation_rejects_a_pose_in_the_aisle(self) -> None:
+        lot = generate_lot(8)
+        verdict = evaluate_parking(lot, lot.start)
+        self.assertFalse(verdict["in_bay"])
+
+
+if __name__ == "__main__":
+    unittest.main()

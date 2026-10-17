@@ -20,7 +20,7 @@ COPY deployment/export ./deployment/export
 COPY manus-routes.json ./manus-routes.json
 
 RUN python -m pip install --upgrade pip \
-    && python -m pip install '.[dashboard,vision,mpc,mpc-ad]' \
+    && python -m pip install '.[dashboard,vision,mpc,mpc-ad,perception]' \
     && useradd --create-home --uid 10001 ihateparking \
     && mkdir -p /tmp/ihateparking-runtime \
     && chown -R ihateparking:ihateparking /app /tmp/ihateparking-runtime
