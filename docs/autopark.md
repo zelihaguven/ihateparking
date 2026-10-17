@@ -13,6 +13,12 @@ python3 -m ihateparking.autopark --seed 3             # nearest free bay
 Each run prints a JSON summary and writes a figure to
 `artifacts/autopark/autopark.png` (`--output` changes the path).
 
+The same logic runs in the web app at `/web/autopark.html`: click a bay (or
+use the bay list) and the page shows the options the car weighed, the chosen
+manoeuvre and an animated replay. `POST /api/autopark/run` shares the
+single-run lock with the other compute-heavy endpoints and answers 429 while
+another run is in progress.
+
 ## The lot
 
 `ihateparking.parking_lot.build_lot(seed, occupancy=0.5)` builds a 40 × 28 m

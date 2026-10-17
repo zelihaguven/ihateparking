@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="Pick a bay in a synthetic parking lot; the simulated car decides how to park there, plans the manoeuvre and drives it in closed loop." />
+  <meta name="theme-color" content="#071114" />
+  <link rel="icon" href="/assets/ihateparking-logo.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="/static/dashboard.css" />
+  <link rel="stylesheet" href="/static/parking-search.css" />
+  <link rel="stylesheet" href="/static/autopark.css" />
+  <title>Autopark Lab — ihateparking</title>
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <div class="brand"><span class="brand-mark" aria-hidden="true">IP</span><div><p class="eyebrow">BAY-LEVEL AUTONOMOUS PARKING</p><h1>ihateparking</h1></div></div>
+      <div class="connection"><span class="dot live"></span><span>SIMULATION ONLY</span></div>
+    </header>
+
+    <nav class="site-nav" aria-label="Lab pages">
+      <a href="/">Live console</a>
+      <a class="active" href="/web/autopark.html" aria-current="page">Autopark</a>
+      <a href="/web/parking-search.html">Parking suitability</a>
+      <a href="/web/mpc-lab.html">Constrained MPC lab</a>
+      <a href="/web/">Planner replay</a>
+      <a href="/docs">API schema</a>
+    </nav>
+
+    <aside class="prototype-warning" role="note" aria-label="Simulation limitation">
+      <strong>RESEARCH PROTOTYPE — SYNTHETIC LOT</strong>
+      <span>Parked cars are known exactly; there are no sensors, moving actors or vehicle connection. This is not production-certified autonomy or a vehicle-control interface.</span>
+    </aside>
+
+    <section class="hero search-hero">
+      <div>
+        <p class="eyebrow">CHOOSE A BAY → ENUMERATE HEADINGS → PLAN EACH → DRIVE THE BEST</p>
+        <h2>Point at a bay. The car works out how.</h2>
+        <p class="lede">Click any bay in the lot. You choose only the destination: the car tries nose-in and tail-in (or both directions along the kerb), plans each with Hybrid A*, keeps plans that end exactly on the goal, picks the cheapest and drives it with the collision guard on. Occupied bays are refused without moving.</p>
+      </div>
+      <div class="hero-stamp"><strong>21</strong><span>BAYS<br />3 ROW TYPES</span></div>
+    </section>
+
+    <section class="toolbar panel search-toolbar" aria-label="Autopark controls">
+      <label for="seed-input">Lot seed
+        <input id="seed-input" type="number" value="3" min="0" max="2147483647" step="1" />
+      </label>
+      <label for="occupancy-select">Occupancy
+        <select id="occupancy-select">
+          <option value="0.3">30% of bays taken</option>
+          <option value="0.5" selected>50% of bays taken</option>
+          <option value="0.7">70% of bays taken</option>
+        </select>
+      </label>
+      <label for="bay-select">Target bay
+        <select id="bay-select" aria-describedby="bay-hint"></select>
+      </label>
+      <button id="park-button" class="button primary" type="button">Park here</button>
+      <button id="nearest-button" class="button secondary" type="button">Find nearest free bay</button>
+      <span id="run-status" class="run-status" role="status" aria-live="polite">LOADING LOT…</span>
+    </section>
+
+    <section class="search-layout" aria-label="Autopark result">
+      <section class="panel scene-panel">
+        <div class="panel-heading"><div><p class="eyebrow">TOP-DOWN LOT · CLICK A BAY</p><h3 id="lot-title">Parking lot</h3></div><span id="decision-badge" class="badge neutral">READY</span></div>
+        <div class="lot-canvas-wrap"><canvas id="lot-canvas" aria-label="Top-down parking lot. Click a bay to park in it." tabindex="-1"></canvas></div>
+        <div class="legend search-legend"><span><i class="key ego"></i>ego</span><span><i class="key static"></i>parked car</span><span><i class="key slot"></i>target bay</span><span><i class="key plan"></i>planned path</span><span><i class="key dynamic"></i>refused / failed</span></div>
+        <p id="bay-hint" class="scene-caption">Free bays highlight on hover. Planning a bay in the back row can take up to about 30 seconds; the result then replays at four times real speed.</p>
+        <div class="replay-controls">
+          <button id="replay-button" class="button secondary" type="button" disabled>Replay</button>
+          <label for="speed-select">Replay speed
+            <select id="speed-select"><option value="2">2×</option><option value="4" selected>4×</option><option value="8">8×</option></select>
+          </label>
+        </div>
+      </section>
+
+      <aside class="search-side">
+        <section id="decision-panel" class="panel decision-panel" data-verdict="idle" aria-live="polite">
+          <p class="eyebrow">VEHICLE DECISION</p>
+          <h2 id="decision-title">PICK A BAY</h2>
+          <p id="decision-message" class="decision-message">The page sends only the bay id. The backend decides the manoeuvre.</p>
+        </section>
+
+        <section class="panel metrics-panel">
+          <div class="panel-heading"><div><p class="eyebrow">OPTIONS THE CAR CONSIDERED</p><h3>Plans per final heading</h3></div></div>
+          <table class="options-table" aria-label="Approach options">
+            <thead><tr><th scope="col">Heading</th><th scope="col">Cost</th><th scope="col">Exact</th><th scope="col">Plan time</th></tr></thead>
+            <tbody id="options-body"><tr><td colspan="4">—</td></tr></tbody>
+          </table>
+        </section>
+
+        <section class="panel metrics-panel">
+          <div class="panel-heading"><div><p class="eyebrow">CLOSED-LOOP RESULT</p><h3>Executed manoeuvre</h3></div></div>
+          <div class="metric-row"><span>chosen manoeuvre</span><strong id="chosen">—</strong></div>
+          <div class="metric-row"><span>gear changes</span><strong id="gear-changes">—</strong></div>
+          <div class="metric-row"><span>simulated time</span><strong id="manoeuvre-time">—</strong></div>
+          <div class="metric-row"><span>final position error</span><strong id="final-error">—</strong></div>
+          <div class="metric-row"><span>final heading error</span><strong id="final-yaw">—</strong></div>
+          <div class="metric-row"><span>collisions</span><strong id="collisions">—</strong></div>
+        </section>
+      </aside>
+    </section>
+
+    <section class="panel limitation-panel">
+      <p class="eyebrow">HONEST LIMITATION</p>
+      <p>Empty bays count as drivable space, so routes may cut across them; a real lot needs lane and direction rules. The lot is static and the parked cars are ground truth, not detections. On every free bay of five 50%-occupied lots the planner parked 54 of 54 with no collisions and at most 11.2 cm / 2.1° final error. That is simulation evidence only.</p>
+    </section>
+
+    <footer><span>ihateparking / bay-level autonomous parking</span><span>Hybrid A* · Reeds-Shepp · obstacle-aware heuristic · path tracking</span></footer>
+  </main>
+  <script src="/static/autopark.js" defer></script>
+</body>
+</html>

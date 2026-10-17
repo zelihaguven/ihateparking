@@ -9,7 +9,7 @@ from pathlib import Path
 import threading
 from typing import Any, Literal
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -67,6 +67,12 @@ class ParkingSearchRequest(BaseModel):
 
 
 DASHBOARD_PLANNER_EXPANSIONS = 12_000
+
+
+class AutoparkRequest(BaseModel):
+    seed: int = Field(default=3, ge=0, le=2_147_483_647)
+    occupancy: float = Field(default=0.5, ge=0.0, le=0.9)
+    bay: str | None = Field(default=None, pattern=r"^[A-C][1-9]$")
 
 
 class DashboardSession:
@@ -363,6 +369,35 @@ async def run_parking_search_demo(body: ParkingSearchRequest) -> dict[str, Any]:
         from ihateparking.parking_search import run_parking_search
 
         return await run_in_threadpool(run_parking_search, body.seed, body.case)
+    finally:
+        _heavy_simulation_lock.release()
+
+
+@app.get("/api/autopark/lot")
+def autopark_lot(
+    seed: int = Query(default=3, ge=0, le=2_147_483_647),
+    occupancy: float = Query(default=0.5, ge=0.0, le=0.9),
+) -> dict[str, Any]:
+    from ihateparking.autopark import lot_payload
+    from ihateparking.parking_lot import build_lot
+
+    return lot_payload(build_lot(seed, occupancy))
+
+
+@app.post("/api/autopark/run")
+async def run_autopark_demo(body: AutoparkRequest) -> dict[str, Any]:
+    if not _heavy_simulation_lock.acquire(blocking=False):
+        raise HTTPException(
+            status_code=429,
+            detail="Another compute-intensive simulation is running on this worker; retry after it finishes.",
+        )
+    try:
+        from ihateparking.autopark import run_autopark
+
+        try:
+            return await run_in_threadpool(run_autopark, body.seed, body.occupancy, body.bay)
+        except KeyError as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
     finally:
         _heavy_simulation_lock.release()
 

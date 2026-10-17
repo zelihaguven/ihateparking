@@ -67,5 +67,48 @@ class AutoparkDecisionTests(unittest.TestCase):
         self.assertEqual(len(ranked), len(build_lot(0).free_bays))
 
 
+class AutoparkApiTests(unittest.TestCase):
+    def setUp(self) -> None:
+        from fastapi.testclient import TestClient
+
+        from ihateparking.dashboard import app
+
+        self.client = TestClient(app)
+
+    def test_page_is_served_and_declared(self) -> None:
+        page = self.client.get("/web/autopark.html")
+        self.assertEqual(page.status_code, 200)
+        self.assertIn("Autopark Lab", page.text)
+        routes = {route["path"] for route in self.client.get("/manus-routes.json").json()["routes"]}
+        self.assertIn("/web/autopark.html", routes)
+
+    def test_lot_geometry_matches_the_backend_lot(self) -> None:
+        payload = self.client.get("/api/autopark/lot", params={"seed": 3}).json()
+        lot = build_lot(3)
+        self.assertEqual(len(payload["bays"]), len(lot.bays))
+        self.assertEqual({bay["id"] for bay in payload["bays"] if bay["occupied"]}, set(lot.occupied))
+        self.assertEqual(len(payload["obstacles"]), len(lot.obstacles))
+
+    def test_occupied_bay_is_refused_through_the_api(self) -> None:
+        lot = build_lot(3)
+        occupied = sorted(lot.occupied)[0]
+        payload = self.client.post("/api/autopark/run", json={"seed": 3, "bay": occupied}).json()
+        self.assertEqual(payload["decision"], "REFUSED")
+        self.assertEqual(payload["attempts"][0]["trace"], [])
+
+    def test_park_through_the_api_returns_a_trace(self) -> None:
+        payload = self.client.post("/api/autopark/run", json={"seed": 0, "bay": "A1"}).json()
+        attempt = payload["attempts"][-1]
+        self.assertEqual(payload["decision"], "PARKED")
+        self.assertGreater(len(attempt["trace"]), 10)
+        self.assertGreater(len(attempt["plan"]), 2)
+        self.assertGreater(attempt["dt_s"], 0.0)
+
+    def test_invalid_requests_are_rejected(self) -> None:
+        self.assertEqual(self.client.post("/api/autopark/run", json={"seed": 3, "bay": "Z1"}).status_code, 422)
+        self.assertEqual(self.client.post("/api/autopark/run", json={"seed": 3, "occupancy": 1.0}).status_code, 422)
+        self.assertEqual(self.client.get("/api/autopark/lot", params={"seed": -1}).status_code, 422)
+
+
 if __name__ == "__main__":
     unittest.main()

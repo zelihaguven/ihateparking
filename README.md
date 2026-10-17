@@ -231,6 +231,11 @@ directions), picks the best collision-free plan and drives it in closed
 loop. On every free bay of five lots it parked 54 of 54 with no collisions.
 See [`docs/autopark.md`](docs/autopark.md).
 
+In the web app, open `/web/autopark.html` and click a bay. The page calls
+`POST /api/autopark/run` with `{"seed": 3, "occupancy": 0.5, "bay": "B8"}`
+(omit `bay` to take the nearest free bay) and replays the executed trace;
+`GET /api/autopark/lot?seed=3` returns the lot geometry.
+
 ## Scenario sweep benchmark
 
 Plan and execute every manoeuvre over 100 seeds each and report success rate,

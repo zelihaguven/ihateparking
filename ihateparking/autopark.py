@@ -238,6 +238,73 @@ def find_and_park(lot: ParkingLot, start: Pose = DEFAULT_START, max_bays: int = 
     return attempts
 
 
+def _pose_dict(pose: Pose) -> dict:
+    return {"x": round(pose.x, 4), "y": round(pose.y, 4), "yaw": round(pose.yaw, 5)}
+
+
+def lot_payload(lot: ParkingLot, start: Pose = DEFAULT_START) -> dict:
+    """JSON-ready lot geometry for a browser view."""
+    return {
+        "seed": lot.seed,
+        "bounds": list(lot.bounds),
+        "start": _pose_dict(start),
+        "vehicle": {
+            "length": lot.vehicle.length,
+            "width": lot.vehicle.width,
+            "rear_overhang": lot.vehicle.rear_overhang,
+        },
+        "bays": [
+            {
+                "id": bay.bay_id,
+                "kind": bay.kind,
+                "occupied": bay.bay_id in lot.occupied,
+                "polygon": [[round(float(x), 4), round(float(y), 4)] for x, y in bay.slot.polygon()],
+                "center": list(bay.center),
+            }
+            for bay in lot.bays
+        ],
+        "obstacles": [
+            {"name": item.name, "polygon": [[round(float(x), 4), round(float(y), 4)] for x, y in item.polygon()]}
+            for item in lot.obstacles
+        ],
+    }
+
+
+def result_payload(result: AutoparkResult) -> dict:
+    """Summary plus the plan and executed trace of one attempt."""
+    payload = result.summary()
+    payload["goal"] = _pose_dict(result.chosen.goal) if result.chosen else None
+    payload["plan"] = (
+        [_pose_dict(pose) for pose in result.chosen.plan.poses]
+        if result.chosen is not None and result.chosen.plan is not None else []
+    )
+    if result.simulation is not None:
+        simulation = result.simulation
+        gears = [simulation.gears[0] if simulation.gears else 0, *simulation.gears]
+        payload["trace"] = [
+            {**_pose_dict(pose), "gear": gear}
+            for pose, gear in zip(simulation.poses, gears)
+        ]
+        payload["dt_s"] = round(simulation.time / max(1, len(simulation.poses) - 1), 4)
+    else:
+        payload["trace"] = []
+        payload["dt_s"] = None
+    return payload
+
+
+def run_autopark(seed: int, occupancy: float = 0.5, bay_id: str | None = None) -> dict:
+    """Build the lot, park in ``bay_id`` (or the nearest free bay) and serialize."""
+    lot = build_lot(seed, occupancy)
+    attempts = [park_in_bay(lot, bay_id)] if bay_id else find_and_park(lot)
+    return {
+        "lot": lot_payload(lot),
+        "requested_bay": bay_id,
+        "attempts": [result_payload(item) for item in attempts],
+        "decision": attempts[-1].decision if attempts else "NO_FREE_BAY",
+        "research_note": "Synthetic lot with ground-truth parked cars; not a real-vehicle interface.",
+    }
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Park in a bay of a synthetic lot; the vehicle chooses the manoeuvre")
     parser.add_argument("--seed", type=int, default=3, help="lot occupancy seed")
