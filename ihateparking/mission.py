@@ -299,6 +299,7 @@ def evaluate_parking(lot: ProceduralLot, pose: Pose) -> dict:
         "bay_was_free": not bay.occupied,
         "overlap": round(fraction, 3),
         "axis_error_deg": round(axis_error, 1),
+        "center_error_m": round(float(np.hypot(*(center - np.array(bay.slot.center)))), 3),
     }
 
 
@@ -486,6 +487,11 @@ def _plan_still_clear(grid: OccupancyGrid, vehicle, pose: Pose, plan: Optional[P
     return True
 
 
+def _median(values) -> Optional[float]:
+    values = list(values)
+    return float(np.median(values)) if values else None
+
+
 def _run_seed(seed: int) -> dict:
     from .procedural_lot import generate_lot
 
@@ -501,6 +507,7 @@ def _run_seed(seed: int) -> dict:
         "distance_m": round(result.distance_m, 1),
         "collisions": result.collisions,
         "evaluation": result.evaluation,
+        "message": result.message,
         "wall_s": round(_time.perf_counter() - started, 1),
     }
 
@@ -553,6 +560,11 @@ def main(argv: list[str] | None = None) -> int:
         "parked_in_wrong_place": sum(1 for row in parked if not row["success"]),
         "collisions": sum(row["collisions"] for row in rows),
         "median_time_s_when_parked": float(np.median([row["time_s"] for row in parked])) if parked else None,
+        "max_time_s_when_parked": max((row["time_s"] for row in parked), default=None),
+        "median_center_error_m": _median(row["evaluation"]["center_error_m"] for row in parked),
+        "max_center_error_m": max((row["evaluation"]["center_error_m"] for row in parked), default=None),
+        "median_axis_error_deg": _median(row["evaluation"]["axis_error_deg"] for row in parked),
+        "max_axis_error_deg": max((row["evaluation"]["axis_error_deg"] for row in parked), default=None),
     }
     path = Path(args.json)
     path.parent.mkdir(parents=True, exist_ok=True)
