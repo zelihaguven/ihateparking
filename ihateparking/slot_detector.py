@@ -163,6 +163,9 @@ WALL_RUN_M = 3.0
 NEAR_BACK_M = 0.6
 NEAR_BACK_COVERAGE = 0.5
 WALL_CONTINUATION = 0.3
+MAX_CENTERING_SHIFT_M = 0.8
+PARALLEL_GAP_SEARCH_M = 6.0
+PARALLEL_END_GAP_M = 0.6
 
 
 def _coverage(m: _AlignedMap, iv, iu, along_u: bool, a0: float, a1: float, b0: float, b1: float, state: int = OCCUPIED) -> np.ndarray:
@@ -305,7 +308,7 @@ def _refine(grid: OccupancyGrid, states: np.ndarray, edge_dir: np.ndarray, vehic
     neighbours give its true axis to within a few degrees.
     """
     if candidate.row != "side_by_side":
-        return candidate
+        return _center_end_to_end(grid, states, vehicle, candidate, max_unknown)
     yaw = candidate.axis_yaw
     u = np.array([math.cos(yaw), math.sin(yaw)])
     v = np.array([-math.sin(yaw), math.cos(yaw)])
@@ -329,18 +332,70 @@ def _refine(grid: OccupancyGrid, states: np.ndarray, edge_dir: np.ndarray, vehic
     refined = mean if abs(wrap_angle(mean - yaw)) <= math.pi / 2 else mean + math.pi
     if abs(wrap_angle(refined - yaw)) > math.radians(25.0):
         return None
-    samples_u, samples_v = np.meshgrid(np.arange(-half_l - SIDE_CLEARANCE_M, half_l + SIDE_CLEARANCE_M + 1e-9, 0.15), np.arange(-half_w, half_w + 1e-9, 0.15))
-    c, s = math.cos(refined), math.sin(refined)
+    # Without line markings the bay is best estimated as the middle of the
+    # gap between the two neighbours, not wherever the lattice anchor fell.
+    u = np.array([math.cos(refined), math.sin(refined)])
+    v = np.array([-math.sin(refined), math.cos(refined)])
+    left = _free_run(grid, states, center, v, u, vehicle.width / 2, FLANK_SEARCH_M + SIDE_CLEARANCE_M, half_l - SIDE_CLEARANCE_M)
+    right = _free_run(grid, states, center, -v, u, vehicle.width / 2, FLANK_SEARCH_M + SIDE_CLEARANCE_M, half_l - SIDE_CLEARANCE_M)
+    if left is not None and right is not None:
+        center = center + v * float(np.clip((left - right) / 2.0, -MAX_CENTERING_SHIFT_M, MAX_CENTERING_SHIFT_M))
+    if not _footprint_clear(grid, states, center, refined, half_l + SIDE_CLEARANCE_M, half_w, max_unknown):
+        return None
+    return SlotCandidate((float(center[0]), float(center[1])), wrap_angle(refined), candidate.row, candidate.score)
+
+
+def _center_end_to_end(grid: OccupancyGrid, states: np.ndarray, vehicle: VehicleSpec, candidate: SlotCandidate, max_unknown: float) -> SlotCandidate | None:
+    """Centre a parallel bay between its end cars when only one car fits."""
+    yaw = candidate.axis_yaw
+    u = np.array([math.cos(yaw), math.sin(yaw)])
+    v = np.array([-math.sin(yaw), math.cos(yaw)])
+    center = np.array(candidate.center)
+    half_w = vehicle.width / 2
+    ahead = _free_run(grid, states, center, u, v, vehicle.length / 2, PARALLEL_GAP_SEARCH_M, half_w)
+    behind = _free_run(grid, states, center, -u, v, vehicle.length / 2, PARALLEL_GAP_SEARCH_M, half_w)
+    if ahead is None or behind is None:
+        return candidate
+    gap = ahead + behind + vehicle.length
+    if gap >= 2.0 * vehicle.length + 2.0 * PARALLEL_END_GAP_M:
+        return candidate  # room for two cars: stay snug behind one end car
+    moved = center + u * (ahead - behind) / 2.0
+    if not _footprint_clear(grid, states, moved, yaw, vehicle.length / 2 + SIDE_CLEARANCE_M, half_w + SIDE_CLEARANCE_M, max_unknown):
+        return candidate
+    return SlotCandidate((float(moved[0]), float(moved[1])), yaw, candidate.row, candidate.score)
+
+
+def _free_run(grid: OccupancyGrid, states: np.ndarray, center: np.ndarray, direction: np.ndarray, across: np.ndarray, start: float, reach: float, half_span: float) -> float | None:
+    """Median free distance beyond ``start`` along ``direction`` before an occupied cell.
+
+    Rays are spread over +-``half_span`` along ``across``; None when fewer
+    than half of them meet anything within ``reach``.
+    """
+    res = grid.config.resolution
+    steps = np.arange(0.0, reach, res / 2.0)
+    offsets = np.arange(-half_span, half_span + 1e-9, 0.15)
+    points = center + offsets[:, None, None] * across + (start + steps)[None, :, None] * direction
+    rows, cols = grid.to_cell(points[..., 0], points[..., 1])
+    inside = (rows >= 0) & (rows < grid.shape[0]) & (cols >= 0) & (cols < grid.shape[1])
+    occupied = np.zeros(rows.shape, dtype=bool)
+    occupied[inside] = states[rows[inside], cols[inside]] == OCCUPIED
+    hit = occupied.any(axis=1)
+    if hit.sum() < max(1, len(offsets) // 2):
+        return None
+    return float(np.median(steps[np.argmax(occupied[hit], axis=1)]))
+
+
+def _footprint_clear(grid: OccupancyGrid, states: np.ndarray, center: np.ndarray, yaw: float, half_l: float, half_w: float, max_unknown: float) -> bool:
+    samples_u, samples_v = np.meshgrid(np.arange(-half_l, half_l + 1e-9, 0.15), np.arange(-half_w, half_w + 1e-9, 0.15))
+    c, s = math.cos(yaw), math.sin(yaw)
     xs = center[0] + c * samples_u - s * samples_v
     ys = center[1] + s * samples_u + c * samples_v
     rows, cols = grid.to_cell(xs.ravel(), ys.ravel())
     inside = (rows >= 0) & (rows < grid.shape[0]) & (cols >= 0) & (cols < grid.shape[1])
     if not inside.all():
-        return None
+        return False
     cells = states[rows, cols]
-    if np.any(cells == OCCUPIED) or np.mean(cells == UNKNOWN) > max_unknown:
-        return None
-    return SlotCandidate(candidate.center, wrap_angle(refined), candidate.row, candidate.score)
+    return not (np.any(cells == OCCUPIED) or np.mean(cells == UNKNOWN) > max_unknown)
 
 
 def _non_maximum_suppression(raw: list[tuple[float, SlotCandidate]]) -> list[SlotCandidate]:
