@@ -37,27 +37,29 @@ Raw results: [benchmarks/](benchmarks/).
    straddles two bays.
 3. **NO_SPACE_FOUND is the biggest loss** (~24%). Not analysed per lot yet.
 
-## Done
+## Done (dev set 6000–6059, full missions)
 
-- Bay centring between neighbours (aa85b60): dev 45/60 unchanged, median centre error 26 -> 22 cm.
+| Commit | Change | Correct park | Wrong | Median / max centre error | Median / max time |
+|--------|--------|--------------|-------|---------------------------|-------------------|
+| 6193952 | baseline | 45/60 (75%) | 1 | 26 / 84 cm | 48 / 264 s |
+| aa85b60 | centre bays between neighbours | 45/60 | 1 | 22 / 84 cm | 47 / 264 s |
+| de3afc3 | detect bays in angled rows | 53/60 (88%) | 1 | — | — |
+| 0f81706 | more row directions; parallel bays pulled to the kerb | 54/60 (90%) | 0 | 16 / 51 cm | 39 / 187 s |
+| e4b2013 | bays in runs of free bays (row lattice) | 55/60 (92%) | 0 | 15 / 47 cm | 35 / 187 s |
+| 042dc32 | recovery to seen-free space; waypoints to far frontiers | measuring | | | |
 
-## Failure classification (dev set, 15 failed lots)
+Detector quality is checked in seconds on aisle-sweep maps (dev 6000–6119, held-out 8000–8199):
+e4b2013 is 208/208 and 327/327 correct (precision 100%).
 
-In almost every NO_SPACE_FOUND lot the car had fully **seen** free bays; the detector rejected them.
+## Open failures (dev)
 
-1. **Angled bays are never detected**, even fully seen and flanked on both sides (6003, 6016,
-   6018, 6037, 6046). Cause (hypothesis, being verified): in angled rows neighbours are staggered
-   along the bay axis by width/tan(angle) (1-2.7 m), so one neighbour pokes past the bay mouth
-   (read as a wall continuing) and the other sits back (fails the per-half flank coverage); the
-   kerb meets the bay obliquely, failing the 0.6 m near-back rule.
-2. **Lots with no two-flanked free bay** (6010, 6048, 6059, partly 6001/6006): free bays come in
-   runs, which the two-flank rule rejects by design. Needs row/lattice evidence.
-3. Wrong park 6055: parallel bay in a long gap.
+- 6010, 6059: no two-flanked free bay; runs of free bays in **angled** rows are not yet placed
+  (row lattice works for perpendicular rows only so far).
+- 6035: angled run of two free bays; a parallel bay closed by a car on one end and a wall on
+  the other is rejected; recovery repeats to the same open spot.
 
 ## Next steps (PRD step 1)
 
-1. Make side-by-side rules tolerate angled-row stagger and oblique kerbs; check detector precision stays 100%.
-2. Long parallel gaps: infer bay pitch/phase from parked cars in the row instead of snugging.
-3. Classify every NO_SPACE_FOUND on the dev set (free bay never seen / seen but rejected /
-   unreachable) with figures, then fix the largest class.
-4. Repeat until dev ≥ 95% with 0 wrong parks, then run acceptance set 7000–7099 once.
+1. Row lattice for angled rows; parallel bay closed by a car and a wall.
+2. Stop recovery from cycling to the same spot.
+3. When dev >= 95% with 0 wrong parks: run acceptance set 7000–7099 once.
