@@ -72,6 +72,7 @@ class MissionConfig:
     inspection_candidates: int = 2
     inspection_standoff_m: float = 3.5
     escape_margin_m: float = 0.03
+    waypoint_reach_m: float = 10.0
     frontier_attempts: int = 6
     lookahead_check_m: float = 5.0
 
@@ -199,6 +200,39 @@ def _frontier_goal(grid: OccupancyGrid, world: MapWorld, pose: Pose, config: Mis
     return None, target
 
 
+def _waypoint_towards(world: MapWorld, pose: Pose, target: tuple[float, float], reach: float) -> Optional[Pose]:
+    """A collision-free pose about ``reach`` metres along the shortest route to ``target``.
+
+    Walks down the obstacle-aware distance field from the target back towards
+    the car; None when the target is already close or not connected.
+    """
+    field = build_distance_field(world, (pose.x, pose.y), resolution=0.5, inflation=world.vehicle.width / 2)
+    distances = field.distances
+    col = int(round((target[0] - field.origin[0]) / field.resolution))
+    row = int(round((target[1] - field.origin[1]) / field.resolution))
+    if not (0 <= row < distances.shape[0] and 0 <= col < distances.shape[1]) or not np.isfinite(distances[row, col]):
+        return None
+    if distances[row, col] <= reach + 2.0:
+        return None
+    path = [(row, col)]
+    while distances[row, col] > reach:
+        neighbours = [(row + dr, col + dc) for dr in (-1, 0, 1) for dc in (-1, 0, 1) if (dr or dc) and 0 <= row + dr < distances.shape[0] and 0 <= col + dc < distances.shape[1]]
+        row, col = min(neighbours, key=lambda cell: distances[cell])
+        path.append((row, col))
+    x = field.origin[0] + col * field.resolution
+    y = field.origin[1] + row * field.resolution
+    # Face along the route, onwards to the target.
+    ahead_row, ahead_col = path[max(0, len(path) - 6)]
+    heading = math.atan2(ahead_row - row, ahead_col - col) if (ahead_row, ahead_col) != (row, col) else math.atan2(target[1] - y, target[0] - x)
+    offset = world.vehicle.length / 2 - world.vehicle.rear_overhang
+    for turn in (0, 30, -30, 60, -60, 90, -90):
+        yaw = heading + math.radians(turn)
+        goal = Pose(x - offset * math.cos(yaw), y - offset * math.sin(yaw), wrap_angle(yaw))
+        if not world.is_collision(goal):
+            return goal
+    return None
+
+
 def _inspection_plan(grid: OccupancyGrid, world: MapWorld, pose: Pose, config: MissionConfig, inspected: list[tuple[float, float]], rejected: list[tuple[float, float]]) -> Optional[PlanResult]:
     """Plan to a viewpoint in front of the nearest promising, uninspected gap."""
     vehicle = world.vehicle
@@ -243,13 +277,15 @@ def _recover(grid: OccupancyGrid, world: MapWorld, pose: Pose, config: MissionCo
 
 
 def _open_space_plan(grid: OccupancyGrid, plan_world: MapWorld, check_world: MapWorld, pose: Pose, config: MissionConfig, planner: PlannerConfig) -> tuple[Optional[PlanResult], Optional[Pose]]:
-    """Short move to the most open reachable place within 8 m.
+    """Short move to the most open reachable seen-free place within 8 m.
 
     Goals must be free in ``check_world`` (full margin); the route is planned
     in ``plan_world``, which may use a reduced margin to get the car out.
     """
     world = check_world
-    rows, cols = np.nonzero(world.distance >= config.frontier_clearance_m)
+    # Only space the sensor has seen free: in the optimistic world unknown
+    # space beyond a wall is the "most open" and unreachable.
+    rows, cols = np.nonzero((world.distance >= config.frontier_clearance_m) & (world.states == FREE))
     if rows.size == 0:
         return None, None
     xs, ys = grid.cell_center(rows, cols)
@@ -401,6 +437,13 @@ def run_mission(lot: ProceduralLot, config: MissionConfig = MissionConfig(), see
                         unreachable.append(centroid)
                         continue
                     attempt = HybridAStar(optimistic, config.explore_planner).plan(start=pose, goal=goal)
+                    if not attempt.success:
+                        # A far frontier (round the end of a row) is beyond the
+                        # coarse search: head for a point part-way along the
+                        # obstacle-aware route instead.
+                        waypoint = _waypoint_towards(optimistic, pose, (goal.x, goal.y), config.waypoint_reach_m)
+                        if waypoint is not None:
+                            attempt = HybridAStar(optimistic, config.explore_planner).plan(start=pose, goal=waypoint)
                     if attempt.success:
                         plan = attempt
                         unreachable.clear()
