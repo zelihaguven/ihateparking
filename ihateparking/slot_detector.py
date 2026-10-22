@@ -44,7 +44,7 @@ END_SEARCH_M = 2.5
 OPEN_FRACTION = 0.75
 ANCHOR_STRIDE = 2  # test every second lattice cell
 NMS_RADIUS_M = 2.0
-MAX_AXES = 4
+MAX_AXES = 8
 PARALLEL_EDGE = 99  # pseudo-state: occupied cell whose edge runs along the lattice axis
 PARALLEL_TOLERANCE = math.radians(10.0)
 
@@ -97,7 +97,7 @@ def dominant_axes(states: np.ndarray, max_axes: int = MAX_AXES) -> list[float]:
     peaks = []
     for _ in range(max_axes):
         index = int(np.argmax(histogram))
-        if histogram[index] <= 0 or (peaks and histogram[index] < 0.15 * peaks[0][1]):
+        if histogram[index] <= 0 or (peaks and histogram[index] < 0.05 * peaks[0][1]):
             break
         peaks.append(((edges[index] + edges[index + 1]) / 2, histogram[index]))
         for offset in range(-4, 5):  # suppress +-8 degrees
@@ -169,6 +169,7 @@ WALL_CONTINUATION = 0.3
 MAX_CENTERING_SHIFT_M = 0.8
 PARALLEL_GAP_SEARCH_M = 6.0
 PARALLEL_END_GAP_M = 0.6
+KERB_GAP_M = 0.3
 
 
 def _coverage(m: _AlignedMap, iv, iu, along_u: bool, a0: float, a1: float, b0: float, b1: float, state: int = OCCUPIED) -> np.ndarray:
@@ -311,7 +312,7 @@ def _refine(grid: OccupancyGrid, states: np.ndarray, edge_dir: np.ndarray, vehic
     neighbours give its true axis to within a few degrees.
     """
     if candidate.row != "side_by_side":
-        return _center_end_to_end(grid, states, vehicle, candidate, max_unknown)
+        return _center_end_to_end(grid, states, edge_dir, vehicle, candidate, max_unknown)
     yaw = candidate.axis_yaw
     u = np.array([math.cos(yaw), math.sin(yaw)])
     v = np.array([-math.sin(yaw), math.cos(yaw)])
@@ -348,13 +349,35 @@ def _refine(grid: OccupancyGrid, states: np.ndarray, edge_dir: np.ndarray, vehic
     return SlotCandidate((float(center[0]), float(center[1])), wrap_angle(refined), candidate.row, candidate.score)
 
 
-def _center_end_to_end(grid: OccupancyGrid, states: np.ndarray, vehicle: VehicleSpec, candidate: SlotCandidate, max_unknown: float) -> SlotCandidate | None:
+def _center_end_to_end(grid: OccupancyGrid, states: np.ndarray, edge_dir: np.ndarray, vehicle: VehicleSpec, candidate: SlotCandidate, max_unknown: float) -> SlotCandidate | None:
     """Centre a parallel bay between its end cars when only one car fits."""
     yaw = candidate.axis_yaw
     u = np.array([math.cos(yaw), math.sin(yaw)])
     v = np.array([-math.sin(yaw), math.cos(yaw)])
     center = np.array(candidate.center)
     half_w = vehicle.width / 2
+    # Pull in to the kerb as a driver would; the kerb rules alone allow the
+    # car to stand up to a metre out, half in the aisle.
+    reach = KERB_SEARCH_M + SIDE_CLEARANCE_M + 0.3
+    span = vehicle.length / 2 - SIDE_CLEARANCE_M
+    for side in (v, -v):
+        if _free_run(grid, states, center, side, u, half_w, reach, span) is None or _free_run(grid, states, center, -side, u, half_w, reach, span) is not None:
+            continue
+        # Align with the kerb first: a few degrees off and a corner touches
+        # it before the car is close.
+        yaw = _kerb_yaw(grid, states, edge_dir, center, side, u, half_w, reach, span, yaw)
+        u = np.array([math.cos(yaw), math.sin(yaw)])
+        side = np.array([-math.sin(yaw), math.cos(yaw)]) * (1.0 if side @ v > 0 else -1.0)
+        v = side if side @ v > 0 else -side
+        kerb = _free_run(grid, states, center, side, u, half_w, reach, span)
+        if kerb is not None:
+            for shift in np.arange(kerb - KERB_GAP_M, 0.0, -0.1):
+                moved = center + side * shift
+                if _footprint_clear(grid, states, moved, yaw, vehicle.length / 2 + SIDE_CLEARANCE_M, half_w + 0.1, max_unknown):
+                    center = moved
+                    break
+        break
+    candidate = SlotCandidate((float(center[0]), float(center[1])), wrap_angle(yaw), candidate.row, candidate.score)
     ahead = _free_run(grid, states, center, u, v, vehicle.length / 2, PARALLEL_GAP_SEARCH_M, half_w)
     behind = _free_run(grid, states, center, -u, v, vehicle.length / 2, PARALLEL_GAP_SEARCH_M, half_w)
     if ahead is None or behind is None:
@@ -366,6 +389,21 @@ def _center_end_to_end(grid: OccupancyGrid, states: np.ndarray, vehicle: Vehicle
     if not _footprint_clear(grid, states, moved, yaw, vehicle.length / 2 + SIDE_CLEARANCE_M, half_w + SIDE_CLEARANCE_M, max_unknown):
         return candidate
     return SlotCandidate((float(moved[0]), float(moved[1])), yaw, candidate.row, candidate.score)
+
+
+def _kerb_yaw(grid: OccupancyGrid, states: np.ndarray, edge_dir: np.ndarray, center: np.ndarray, side: np.ndarray, u: np.ndarray, start: float, reach: float, span: float, yaw: float) -> float:
+    """Heading along the kerb beside ``center``, or ``yaw`` when it is unclear."""
+    along, across = np.meshgrid(np.arange(-span, span, 0.15), np.arange(start, start + reach, 0.15))
+    points = center + along.ravel()[:, None] * u + across.ravel()[:, None] * side
+    rows, cols = grid.to_cell(points[:, 0], points[:, 1])
+    inside = (rows >= 0) & (rows < grid.shape[0]) & (cols >= 0) & (cols < grid.shape[1])
+    rows, cols = rows[inside], cols[inside]
+    angles = edge_dir[rows, cols][states[rows, cols] == OCCUPIED]
+    if angles.size < 8:
+        return yaw
+    mean = 0.5 * math.atan2(np.mean(np.sin(2 * angles)), np.mean(np.cos(2 * angles)))
+    snapped = mean if abs(wrap_angle(mean - yaw)) <= math.pi / 2 else mean + math.pi
+    return snapped if abs(wrap_angle(snapped - yaw)) <= math.radians(10.0) else yaw
 
 
 def _free_run(grid: OccupancyGrid, states: np.ndarray, center: np.ndarray, direction: np.ndarray, across: np.ndarray, start: float, reach: float, half_span: float) -> float | None:
