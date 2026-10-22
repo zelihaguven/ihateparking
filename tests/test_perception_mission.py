@@ -8,6 +8,7 @@ from ihateparking.lidar import LidarConfig, scan, sensor_origin
 from ihateparking.mission import evaluate_parking, run_mission
 from ihateparking.occupancy_map import FREE, OCCUPIED, OccupancyGrid
 from ihateparking.procedural_lot import generate_lot
+from ihateparking.row_lattice import fit_lattice
 from ihateparking.slot_detector import detect_slots
 from ihateparking.world import ParkingWorld, RectangleObstacle, VehicleSpec
 
@@ -94,9 +95,25 @@ class SlotDetectorTests(unittest.TestCase):
             with self.subTest(seed=seed):
                 self.assertIn("angled", kinds)
 
+    def test_finds_bays_in_a_run_of_free_bays(self) -> None:
+        # Bays with no parked neighbour on one or both sides are placed from
+        # the lattice of the row's parked cars.
+        for seed in (123, 131):
+            lot, grid = _aisle_sweep(seed)
+            found = []
+            for candidate in detect_slots(grid, lot.vehicle):
+                verdict = evaluate_parking(lot, candidate.goal(candidate.axis_yaw, lot.vehicle))
+                bay = next((b for b in lot.bays if b.bay_id == verdict.get("bay")), None)
+                if bay is None or not verdict["in_bay"]:
+                    continue
+                neighbours = [o for o in lot.bays if o is not bay and o.kind == bay.kind and math.dist(o.slot.center, bay.slot.center) < bay.slot.width * 1.45]
+                found.append(sum(o.occupied for o in neighbours))
+            with self.subTest(seed=seed):
+                self.assertTrue(any(flanks < 2 for flanks in found), found)
+
     def test_detections_on_unseen_lots_are_real_free_bays(self) -> None:
         checked = 0
-        for seed in (101, 102, 103, 104, 105, 112):
+        for seed in (101, 102, 103, 104, 105, 112, 123, 131):
             lot, grid = _aisle_sweep(seed)
             for candidate in detect_slots(grid, lot.vehicle):
                 pose = candidate.goal(candidate.axis_yaw, lot.vehicle)
@@ -105,6 +122,20 @@ class SlotDetectorTests(unittest.TestCase):
                     self.assertTrue(verdict["in_bay"], verdict)
                 checked += 1
         self.assertGreater(checked, 0)
+
+
+class RowLatticeTests(unittest.TestCase):
+    def test_fit_recovers_bay_width_and_phase_from_jittered_cars(self) -> None:
+        rng = np.random.default_rng(0)
+        bays = [k for k in range(-6, 7) if k not in (0, 1, 2)]  # a run of three free bays
+        centres = [0.4 + 2.62 * k + rng.uniform(-0.45, 0.45) for k in bays]
+        width, phase = fit_lattice(centres)
+        self.assertAlmostEqual(width, 2.62, delta=0.05)
+        self.assertAlmostEqual((phase - 0.4 + width / 2) % width - width / 2, 0.0, delta=0.2)
+
+    def test_fit_rejects_irregular_spacing(self) -> None:
+        self.assertIsNone(fit_lattice([0.0, 2.1, 5.9, 7.3, 11.8]))
+        self.assertIsNone(fit_lattice([0.0, 2.6, 5.2]))  # too few cars
 
 
 class ProceduralLotTests(unittest.TestCase):

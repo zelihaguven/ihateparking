@@ -30,6 +30,7 @@ import numpy as np
 from scipy import ndimage
 
 from .geometry import Pose, wrap_angle
+from . import row_lattice
 from .occupancy_map import FREE, OCCUPIED, UNKNOWN, OccupancyGrid
 from .world import VehicleSpec
 
@@ -170,6 +171,8 @@ MAX_CENTERING_SHIFT_M = 0.8
 PARALLEL_GAP_SEARCH_M = 6.0
 PARALLEL_END_GAP_M = 0.6
 KERB_GAP_M = 0.3
+RUN_PROBE_SPACING_M = 1.0
+RUN_SCORE_PENALTY = 10.0
 
 
 def _coverage(m: _AlignedMap, iv, iu, along_u: bool, a0: float, a1: float, b0: float, b1: float, state: int = OCCUPIED) -> np.ndarray:
@@ -188,8 +191,11 @@ def _coverage(m: _AlignedMap, iv, iu, along_u: bool, a0: float, a1: float, b0: f
     return hits / max(1, len(edges))
 
 
-def _side_by_side(m: _AlignedMap, iv, iu, half_l: float, half_w: float, near_back_needed: float = NEAR_BACK_COVERAGE) -> list[tuple[np.ndarray, float, np.ndarray]]:
-    """Anchors passing the side-by-side rules, for a back at +u and at -u."""
+def _side_by_side(m: _AlignedMap, iv, iu, half_l: float, half_w: float, near_back_needed: float = NEAR_BACK_COVERAGE) -> list[tuple[np.ndarray, np.ndarray, float, np.ndarray]]:
+    """Anchors passing the side-by-side rules, for a back at +u and at -u.
+
+    Returns (both flanks seen, enclosed but missing a flank, back, score).
+    """
     inner_l = half_l - SIDE_CLEARANCE_M
     inner_w = half_w - SIDE_CLEARANCE_M
     flank_strips = ((half_w, half_w + FLANK_SEARCH_M), (-half_w - FLANK_SEARCH_M, -half_w))
@@ -213,10 +219,12 @@ def _side_by_side(m: _AlignedMap, iv, iu, half_l: float, half_w: float, near_bac
         # ambiguous bay without line markings; accepting a single flank was
         # measured to halve precision (aisle and row-end false positives).
         flank_ok = np.ones(iv.shape, dtype=bool)
+        no_wall = np.ones(iv.shape, dtype=bool)
         flank_score = np.zeros(iv.shape)
         for strip, cover, run in zip(flank_strips, flank_cover, flank_run):
             continues = _coverage(m, iv, iu, True, *beyond, *strip, PARALLEL_EDGE)
-            flank_ok &= (cover >= FLANK_COVERAGE) & (run >= FLANK_RUN_M) & (continues < WALL_CONTINUATION)
+            no_wall &= continues < WALL_CONTINUATION
+            flank_ok &= (cover >= FLANK_COVERAGE) & (run >= FLANK_RUN_M)
             flank_score += cover
         back_cover = _coverage(m, iv, iu, False, -inner_w, inner_w, *back_box)
         front_free = m.box(FREE, iv, iu, *front_box, -inner_w, inner_w) / m.area(*front_box, -inner_w, inner_w)
@@ -225,8 +233,10 @@ def _side_by_side(m: _AlignedMap, iv, iu, half_l: float, half_w: float, near_bac
         # until the car has seen it.
         near_box = (half_l, half_l + NEAR_BACK_M) if back > 0 else (-half_l - NEAR_BACK_M, -half_l)
         near_back = _coverage(m, iv, iu, False, -inner_w, inner_w, *near_box)
-        ok = (back_cover >= BACK_COVERAGE) & (near_back >= near_back_needed) & (front_free >= OPEN_FRACTION) & flank_ok
-        results.append((ok, back, back_cover + flank_score + 2.0 * near_back))
+        # Without both flanks the anchor may still sit in a run of free bays;
+        # the row's parked cars decide that (``row_lattice``).
+        enclosed = (back_cover >= BACK_COVERAGE) & (near_back >= near_back_needed) & (front_free >= OPEN_FRACTION) & no_wall
+        results.append((enclosed & flank_ok, enclosed & ~flank_ok, back, back_cover + flank_score + 2.0 * near_back))
     return results
 
 
@@ -273,6 +283,7 @@ def detect_slots(grid: OccupancyGrid, vehicle: VehicleSpec, tentative: bool = Fa
     half_l = vehicle.length / 2 + SIDE_CLEARANCE_M
     half_w = vehicle.width / 2 + SIDE_CLEARANCE_M
     raw: list[tuple[float, SlotCandidate]] = []
+    in_run: list[tuple[float, SlotCandidate]] = []
     axes = dominant_axes(states)
     edge_dir = edge_directions(states)
     tried: list[float] = []
@@ -291,18 +302,45 @@ def detect_slots(grid: OccupancyGrid, vehicle: VehicleSpec, tentative: bool = Fa
             if not clear.any():
                 continue
             # Side-by-side: ego length along the lattice u axis.
-            for ok, back, snug in _side_by_side(m, iv, iu, half_l, half_w, near_back_needed):
-                hits = np.nonzero(clear & ok)[0]
+            for ok, open_flank, back, snug in _side_by_side(m, iv, iu, half_l, half_w, near_back_needed):
                 heading = axis if back > 0 else axis + math.pi
+                hits = np.nonzero(clear & ok)[0]
                 for point, score in zip(m.world(iv[hits], iu[hits]), snug[hits]):
                     raw.append((float(score), SlotCandidate((float(point[0]), float(point[1])), wrap_angle(heading), "side_by_side", float(score))))
+                hits = np.nonzero(clear & open_flank)[0]
+                for point, score in zip(m.world(iv[hits], iu[hits]), snug[hits]):
+                    in_run.append((float(score), SlotCandidate((float(point[0]), float(point[1])), wrap_angle(heading), "side_by_side", float(score))))
             # Parallel: ego length also along u, kerb on a long side.
             for ok, _kerb, snug in _end_to_end(m, iv, iu, half_l, half_w):
                 hits = np.nonzero(clear & ok)[0]
                 for point, score in zip(m.world(iv[hits], iu[hits]), snug[hits]):
                     raw.append((float(score), SlotCandidate((float(point[0]), float(point[1])), wrap_angle(axis), "end_to_end", float(score))))
-    refined = [_refine(grid, states, edge_dir, vehicle, candidate, max_unknown) for _, candidate in raw]
-    return _non_maximum_suppression([(score, item) for (score, _), item in zip(raw, refined) if item is not None])
+    refined = [(score, _refine(grid, states, edge_dir, vehicle, candidate, max_unknown)) for score, candidate in raw]
+    # Bays in a run of free bays rank below gaps between two cars.
+    for _, candidate in _non_maximum_suppression(in_run, RUN_PROBE_SPACING_M, keep_scores=True):
+        placed = _place_in_run(grid, states, edge_dir, vehicle, candidate, max_unknown)
+        if placed is not None:
+            refined.append((placed.score - RUN_SCORE_PENALTY, placed))
+    return [item for item in _non_maximum_suppression([(score, item) for score, item in refined if item is not None])]
+
+
+def _place_in_run(grid: OccupancyGrid, states: np.ndarray, edge_dir: np.ndarray, vehicle: VehicleSpec, candidate: SlotCandidate, max_unknown: float) -> SlotCandidate | None:
+    """Snap an anchor missing a flank to its bay in a run of free bays, or None."""
+    yaw = candidate.axis_yaw
+    u = np.array([math.cos(yaw), math.sin(yaw)])  # nose-in: the back is at +u
+    center = np.array(candidate.center)
+    half_l = vehicle.length / 2
+    r = row_lattice.row_direction(grid, states, edge_dir, center, u, half_l + SIDE_CLEARANCE_M, half_l + BACK_SEARCH_M, vehicle.width / 2)
+    cars = row_lattice.car_centres(grid, states, edge_dir, center, u, r, (-half_l - 0.8, half_l - 0.3), (-half_l - 4.0, -half_l - 3.2))
+    if cars is None:
+        return None
+    offset = row_lattice.snap_to_row(cars, abs(float(r @ np.array([-u[1], u[0]]))), vehicle.width)
+    if offset is None:
+        return None
+    placed = center + offset * r
+    if not _footprint_clear(grid, states, placed, yaw, half_l + SIDE_CLEARANCE_M, vehicle.width / 2 + SIDE_CLEARANCE_M, max_unknown):
+        return None
+    return SlotCandidate((float(placed[0]), float(placed[1])), yaw, candidate.row, candidate.score)
 
 
 def _refine(grid: OccupancyGrid, states: np.ndarray, edge_dir: np.ndarray, vehicle: VehicleSpec, candidate: SlotCandidate, max_unknown: float = MAX_UNKNOWN_FRACTION) -> SlotCandidate | None:
@@ -439,9 +477,9 @@ def _footprint_clear(grid: OccupancyGrid, states: np.ndarray, center: np.ndarray
     return not (np.any(cells == OCCUPIED) or np.mean(cells == UNKNOWN) > max_unknown)
 
 
-def _non_maximum_suppression(raw: list[tuple[float, SlotCandidate]]) -> list[SlotCandidate]:
-    kept: list[SlotCandidate] = []
-    for _, candidate in sorted(raw, key=lambda item: -item[0]):
-        if all(math.dist(candidate.center, other.center) > NMS_RADIUS_M for other in kept):
-            kept.append(candidate)
-    return kept
+def _non_maximum_suppression(raw: list[tuple[float, SlotCandidate]], radius: float = NMS_RADIUS_M, keep_scores: bool = False):
+    kept: list[tuple[float, SlotCandidate]] = []
+    for score, candidate in sorted(raw, key=lambda item: -item[0]):
+        if all(math.dist(candidate.center, other.center) > radius for _, other in kept):
+            kept.append((score, candidate))
+    return kept if keep_scores else [candidate for _, candidate in kept]
