@@ -58,8 +58,21 @@ e4b2013 is 208/208 and 327/327 correct (precision 100%).
 - 6035: angled run of two free bays; a parallel bay closed by a car on one end and a wall on
   the other is rejected; recovery repeats to the same open spot.
 
-## Next steps (PRD step 1)
+## Acceptance (042dc32, unseen lots 7000–7099, run once)
 
-1. Row lattice for angled rows; parallel bay closed by a car and a wall.
-2. Stop recovery from cycling to the same spot.
-3. Dev reached 97% with 0 wrong parks at 042dc32: acceptance set 7000–7099 is running on that commit.
+| PRD metric | Target | Result | |
+|---|---|---|---|
+| Correct park | ≥ 95% | **99/100** (1 NO_SPACE_FOUND, stopped safely) | met |
+| Wrong place | 0 | 0 | met |
+| Collisions | 0 | 0 | met |
+| Centre error | ≤ 20 cm | median 19.3 cm, max 55 cm; 48 of 99 parks above 20 cm | met as a median only |
+| Axis error | ≤ 5° | median 2.2°, max 14.1°; 16 of 99 parks above 5° | met as a median only |
+| Time when parked | ≤ 90 / 240 s | median 37 s, max 224 s | met |
+
+Bays parked in: 63 perpendicular, 36 angled, 0 parallel (parallel parking is barely exercised).
+
+## Next steps
+
+1. Decide with the user whether centre/axis targets are medians or per-park limits; if
+   per-park, tighten the final alignment (target choice and approach).
+2. PRD step 2: pose estimation from noisy odometry + LiDAR.
