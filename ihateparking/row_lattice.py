@@ -26,39 +26,36 @@ MIN_LATTICE_CARS = 4
 LATTICE_COHERENCE = 0.75
 LATTICE_MAX_RMS_M = 0.4
 LATTICE_MARGIN_M = 0.1  # the bay may overlap a closing car's outline by this much
-WHOLE_CAR_WIDTH_M = (1.6, 2.2)
+WHOLE_CAR_WIDTH_M = (1.6, 2.4)  # a car's width plus a few degrees of skew over its length
+ANGLED_ROW_RANGE = (math.radians(20.0), math.radians(75.0))
 SIDE_ALIGNMENT = math.radians(15.0)
 MAX_SNAP_M = 1.0
-ROW_DIRECTION_TOLERANCE = math.radians(50.0)
 CLOSING_SIDE_M = 2.5  # a closing car's side seen along the bay depth
 MAX_CAR_SIDE_M = 6.0
 WALL_PROBE_EXTRA_M = 3.5
 
 
-def row_direction(grid: OccupancyGrid, states: np.ndarray, edge_dir: np.ndarray, center: np.ndarray, u: np.ndarray, back_from: float, back_to: float, half_w: float) -> np.ndarray:
-    """Unit vector along the row, from the edge behind the bay.
+def row_candidates(u: np.ndarray, axes: list[float]) -> list[np.ndarray]:
+    """Possible row directions for a bay with axis ``u``.
 
-    The back edge (kerb, wall or the opposite row's fronts) runs along the
-    row. In a perpendicular row that is square to the bay axis; in an angled
-    row it is not. Falls back to square when the back gives no clear answer.
+    Square to the bay in a perpendicular row; in an angled row, the kerb or
+    aisle direction, which is one of the map's dominant edge directions at
+    20-75 degrees to the bay axis.
     """
     v = np.array([-u[1], u[0]])
-    along, across = np.meshgrid(np.arange(back_from, back_to, 0.15), np.arange(-half_w * 2.0, half_w * 2.0, 0.15))
-    points = center + along.ravel()[:, None] * u + across.ravel()[:, None] * v
-    rows, cols = grid.to_cell(points[:, 0], points[:, 1])
-    inside = (rows >= 0) & (rows < grid.shape[0]) & (cols >= 0) & (cols < grid.shape[1])
-    rows, cols = rows[inside], cols[inside]
-    angles = edge_dir[rows, cols][states[rows, cols] == OCCUPIED]
-    if angles.size < 8 or np.hypot(np.mean(np.cos(2 * angles)), np.mean(np.sin(2 * angles))) < 0.6:
-        return v
-    mean = 0.5 * math.atan2(np.mean(np.sin(2 * angles)), np.mean(np.cos(2 * angles)))
-    direction = np.array([math.cos(mean), math.sin(mean)])
-    if direction @ v < 0:
-        direction = -direction
-    # The row cannot run along the bay axis.
-    if abs(wrap_angle(2 * (mean - math.atan2(v[1], v[0])))) / 2 > ROW_DIRECTION_TOLERANCE:
-        return v
-    return direction
+    candidates = [v]
+    bay = math.atan2(u[1], u[0])
+    for axis in axes:
+        angle = abs((axis - bay + math.pi / 2) % math.pi - math.pi / 2)
+        if ANGLED_ROW_RANGE[0] <= angle <= ANGLED_ROW_RANGE[1]:
+            direction = np.array([math.cos(axis), math.sin(axis)])
+            candidates.append(direction if direction @ v > 0 else -direction)
+    return candidates
+
+
+def whole_cars(cars: list[tuple[float, float, bool]], across: float) -> list[float]:
+    """Centres (in bay-width units along the bay normal) of cars seen across their full width."""
+    return [(first + last) / 2.0 * across for first, last, _ in cars if WHOLE_CAR_WIDTH_M[0] <= (last - first) * across <= WHOLE_CAR_WIDTH_M[1]]
 
 
 def car_centres(grid: OccupancyGrid, states: np.ndarray, edge_dir: np.ndarray, center: np.ndarray, u: np.ndarray, r: np.ndarray, depth: tuple[float, float], aisle: tuple[float, float]) -> list[tuple[float, float, bool]] | None:
@@ -146,7 +143,7 @@ def snap_to_row(cars: list[tuple[float, float, bool]], across: float, car_width:
     last_behind, first_ahead = max(behind), min(ahead)
     if not (last_behind[2] and first_ahead[2]):
         return None
-    lattice = fit_lattice([(first + last) / 2.0 * across for first, last, _ in cars if WHOLE_CAR_WIDTH_M[0] <= (last - first) * across <= WHOLE_CAR_WIDTH_M[1]])
+    lattice = fit_lattice(whole_cars(cars, across))
     if lattice is None:
         return None
     width, phase = lattice

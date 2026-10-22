@@ -318,23 +318,34 @@ def detect_slots(grid: OccupancyGrid, vehicle: VehicleSpec, tentative: bool = Fa
     refined = [(score, _refine(grid, states, edge_dir, vehicle, candidate, max_unknown)) for score, candidate in raw]
     # Bays in a run of free bays rank below gaps between two cars.
     for _, candidate in _non_maximum_suppression(in_run, RUN_PROBE_SPACING_M, keep_scores=True):
-        placed = _place_in_run(grid, states, edge_dir, vehicle, candidate, max_unknown)
+        placed = _place_in_run(grid, states, edge_dir, axes, vehicle, candidate, max_unknown)
         if placed is not None:
             refined.append((placed.score - RUN_SCORE_PENALTY, placed))
     return [item for item in _non_maximum_suppression([(score, item) for score, item in refined if item is not None])]
 
 
-def _place_in_run(grid: OccupancyGrid, states: np.ndarray, edge_dir: np.ndarray, vehicle: VehicleSpec, candidate: SlotCandidate, max_unknown: float) -> SlotCandidate | None:
+def _place_in_run(grid: OccupancyGrid, states: np.ndarray, edge_dir: np.ndarray, axes: list[float], vehicle: VehicleSpec, candidate: SlotCandidate, max_unknown: float) -> SlotCandidate | None:
     """Snap an anchor missing a flank to its bay in a run of free bays, or None."""
     yaw = candidate.axis_yaw
     u = np.array([math.cos(yaw), math.sin(yaw)])  # nose-in: the back is at +u
     center = np.array(candidate.center)
     half_l = vehicle.length / 2
-    r = row_lattice.row_direction(grid, states, edge_dir, center, u, half_l + SIDE_CLEARANCE_M, half_l + BACK_SEARCH_M, vehicle.width / 2)
-    cars = row_lattice.car_centres(grid, states, edge_dir, center, u, r, (-half_l - 0.8, half_l - 0.3), (-half_l - 4.0, -half_l - 3.2))
-    if cars is None:
+    v = np.array([-u[1], u[0]])
+    best = None
+    # The row direction is the one along which the parked cars line up as
+    # whole, regular outlines.
+    for r in row_lattice.row_candidates(u, axes):
+        cars = row_lattice.car_centres(grid, states, edge_dir, center, u, r, (-half_l - 0.8, half_l - 0.3), (-half_l - 4.0, -half_l - 3.2))
+        if cars is None:
+            continue
+        across = abs(float(r @ v))
+        count = len(row_lattice.whole_cars(cars, across))
+        if best is None or count > best[0]:
+            best = (count, r, cars, across)
+    if best is None:
         return None
-    offset = row_lattice.snap_to_row(cars, abs(float(r @ np.array([-u[1], u[0]]))), vehicle.width)
+    _, r, cars, across = best
+    offset = row_lattice.snap_to_row(cars, across, vehicle.width)
     if offset is None:
         return None
     placed = center + offset * r
