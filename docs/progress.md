@@ -46,14 +46,14 @@ Raw results: [benchmarks/](benchmarks/).
 | de3afc3 | detect bays in angled rows | 53/60 (88%) | 1 | — | — |
 | 0f81706 | more row directions; parallel bays pulled to the kerb | 54/60 (90%) | 0 | 16 / 51 cm | 39 / 187 s |
 | e4b2013 | bays in runs of free bays (row lattice) | 55/60 (92%) | 0 | 15 / 47 cm | 35 / 187 s |
-| 042dc32 | recovery to seen-free space; waypoints to far frontiers | measuring | | | |
+| 042dc32 | recovery to seen-free space; waypoints to far frontiers | **58/60 (97%)** | 0 | 18 / 47 cm | 42 / 181 s |
 
 Detector quality is checked in seconds on aisle-sweep maps (dev 6000–6119, held-out 8000–8199):
 e4b2013 is 208/208 and 327/327 correct (precision 100%).
 
 ## Open failures (dev)
 
-- 6010, 6059: no two-flanked free bay; runs of free bays in **angled** rows are not yet placed
+- 6010: no two-flanked free bay; runs of free bays in **angled** rows are not yet placed
   (row lattice works for perpendicular rows only so far).
 - 6035: angled run of two free bays; a parallel bay closed by a car on one end and a wall on
   the other is rejected; recovery repeats to the same open spot.
@@ -62,4 +62,4 @@ e4b2013 is 208/208 and 327/327 correct (precision 100%).
 
 1. Row lattice for angled rows; parallel bay closed by a car and a wall.
 2. Stop recovery from cycling to the same spot.
-3. When dev >= 95% with 0 wrong parks: run acceptance set 7000–7099 once.
+3. Dev reached 97% with 0 wrong parks at 042dc32: acceptance set 7000–7099 is running on that commit.

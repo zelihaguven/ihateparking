@@ -1,0 +1,1144 @@
+{
+  "summary": {
+    "lots": 60,
+    "success": 58,
+    "outcomes": {
+      "PARKED": 58,
+      "NO_SPACE_FOUND": 2
+    },
+    "parked_in_wrong_place": 0,
+    "collisions": 0,
+    "median_time_s_when_parked": 42.15,
+    "max_time_s_when_parked": 181.2,
+    "median_center_error_m": 0.1795,
+    "max_center_error_m": 0.47,
+    "median_axis_error_deg": 2.5,
+    "max_axis_error_deg": 9.4
+  },
+  "missions": [
+    {
+      "seed": 6000,
+      "outcome": "PARKED",
+      "success": true,
+      "time_s": 29.9,
+      "distance_m": 21.3,
+      "collisions": 0,
+      "evaluation": {
+        "in_bay": true,
+        "bay": "P16",
+        "bay_kind": "perpendicular",
+        "bay_was_free": true,
+        "overlap": 1.0,
+        "axis_error_deg": 3.9,
+        "center_error_m": 0.074
+      },
+      "message": "parked after 29.9 s and 21.3 m",
+      "wall_s": 39.3
+    },
+    {
+      "seed": 6001,
+      "outcome": "PARKED",
+      "success": true,
+      "time_s": 151.6,
+      "distance_m": 115.1,
+      "collisions": 0,
+      "evaluation": {
+        "in_bay": true,
+        "bay": "P24",
+        "bay_kind": "perpendicular",
+        "bay_was_free": true,
+        "overlap": 1.0,
+        "axis_error_deg": 0.0,
+        "center_error_m": 0.133
+      },
+      "message": "parked after 151.6 s and 115.1 m",
+      "wall_s": 130.7
+    },
+    {
+      "seed": 6002,
+      "outcome": "PARKED",
+      "success": true,
+      "time_s": 88.5,
+      "distance_m": 69.2,
+      "collisions": 0,
+      "evaluation": {
+        "in_bay": true,
+        "bay": "P18",
+        "bay_kind": "perpendicular",
+        "bay_was_free": true,
+        "overlap": 1.0,
+        "axis_error_deg": 1.9,
+        "center_error_m": 0.127
+      },
+      "message": "parked after 88.5 s and 69.2 m",
+      "wall_s": 60.9
+    },
+    {
+      "seed": 6003,
+      "outcome": "PARKED",
+      "success": true,
+      "time_s": 29.2,
+      "distance_m": 20.7,
+      "collisions": 0,
+      "evaluation": {
+        "in_bay": true,
+        "bay": "A26",
+        "bay_kind": "angled",
+        "bay_was_free": true,
+        "overlap": 1.0,
+        "axis_error_deg": 2.7,
+        "center_error_m": 0.127
+      },
+      "message": "parked after 29.2 s and 20.7 m",
+      "wall_s": 7.2
+    },
+    {
+      "seed": 6004,
+      "outcome": "PARKED",
+      "success": true,
+      "time_s": 27.7,
+      "distance_m": 19.6,
+      "collisions": 0,
+      "evaluation": {
+        "in_bay": true,
+        "bay": "P04",
+        "bay_kind": "perpendicular",
+        "bay_was_free": true,
+        "overlap": 1.0,
+        "axis_error_deg": 1.6,
+        "center_error_m": 0.069
+      },
+      "message": "parked after 27.7 s and 19.6 m",
+      "wall_s": 37.2
+    },
+    {
+      "seed": 6005,
+      "outcome": "PARKED",
+      "success": true,
+      "time_s": 149.4,
+      "distance_m": 115.8,
+      "collisions": 0,
+      "evaluation": {
+        "in_bay": true,
+        "bay": "P09",
+        "bay_kind": "perpendicular",
+        "bay_was_free": true,
+        "overlap": 1.0,
+        "axis_error_deg": 1.4,
+        "center_error_m": 0.405
+      },
+      "message": "parked after 149.4 s and 115.8 m",
+      "wall_s": 121.4
+    },
+    {
+      "seed": 6006,
+      "outcome": "PARKED",
+      "success": true,
+      "time_s": 97.6,
+      "distance_m": 73.0,
+      "collisions": 0,
+      "evaluation": {
+        "in_bay": true,
+        "bay": "P09",
+        "bay_kind": "perpendicular",
+        "bay_was_free": true,
+        "overlap": 1.0,
+        "axis_error_deg": 2.3,
+        "center_error_m": 0.222
+      },
+      "message": "parked after 97.6 s and 73.0 m",
+      "wall_s": 50.4
+    },
+    {
+      "seed": 6007,
+      "outcome": "PARKED",
+      "success": true,
+      "time_s": 148.3,
+      "distance_m": 113.2,
+      "collisions": 0,
+      "evaluation": {
+        "in_bay": true,
+        "bay": "A21",
+        "bay_kind": "angled",
+        "bay_was_free": true,
+        "overlap": 0.991,
+        "axis_error_deg": 9.0,
+        "center_error_m": 0.259
+      },
+      "message": "parked after 148.3 s and 113.2 m",
+      "wall_s": 71.5
+    },
+    {
+      "seed": 6008,
+      "outcome": "PARKED",
+      "success": true,
+      "time_s": 65.1,
+      "distance_m": 47.4,
+      "collisions": 0,
+      "evaluation": {
+        "in_bay": true,
+        "bay": "A12",
+        "bay_kind": "angled",
+        "bay_was_free": true,
+        "overlap": 1.0,
+        "axis_error_deg": 0.4,
+        "center_error_m": 0.3
+      },
+      "message": "parked after 65.1 s and 47.4 m",
+      "wall_s": 37.3
+    },
+    {
+      "seed": 6009,
+      "outcome": "PARKED",
+      "success": true,
+      "time_s": 22.8,
+      "distance_m": 16.9,
+      "collisions": 0,
+      "evaluation": {
+        "in_bay": true,
+        "bay": "A41",
+        "bay_kind": "angled",
+        "bay_was_free": true,
+        "overlap": 1.0,
+        "axis_error_deg": 2.5,
+        "center_error_m": 0.466
+      },
+      "message": "parked after 22.8 s and 16.9 m",
+      "wall_s": 25.4
+    },
+    {
+      "seed": 6010,
+      "outcome": "NO_SPACE_FOUND",
+      "success": false,
+      "time_s": 186.2,
+      "distance_m": 123.9,
+      "collisions": 0,
+      "evaluation": {},
+      "message": "no verified bay and no reachable frontier left; the vehicle stops",
+      "wall_s": 246.4
+    },
+    {
+      "seed": 6011,
+      "outcome": "PARKED",
+      "success": true,
+      "time_s": 25.6,
+      "distance_m": 17.9,
+      "collisions": 0,
+      "evaluation": {
+        "in_bay": true,
+        "bay": "A12",
+        "bay_kind": "angled",
+        "bay_was_free": true,
+        "overlap": 1.0,
+        "axis_error_deg": 6.2,
+        "center_error_m": 0.098
+      },
+      "message": "parked after 25.6 s and 17.9 m",
+      "wall_s": 9.9
+    },
+    {
+      "seed": 6012,
+      "outcome": "PARKED",
+      "success": true,
+      "time_s": 167.4,
+      "distance_m": 128.8,
+      "collisions": 0,
+      "evaluation": {
+        "in_bay": true,
+        "bay": "P40",
+        "bay_kind": "perpendicular",
+        "bay_was_free": true,
+        "overlap": 1.0,
+        "axis_error_deg": 2.8,
+        "center_error_m": 0.286
+      },
+      "message": "parked after 167.4 s and 128.8 m",
+      "wall_s": 138.4
+    },
+    {
+      "seed": 6013,
+      "outcome": "PARKED",
+      "success": true,
+      "time_s": 49.9,
+      "distance_m": 36.1,
+      "collisions": 0,
+      "evaluation": {
+        "in_bay": true,
+        "bay": "P34",
+        "bay_kind": "perpendicular",
+        "bay_was_free": true,
+        "overlap": 1.0,
+        "axis_error_deg": 1.2,
+        "center_error_m": 0.331
+      },
+      "message": "parked after 49.9 s and 36.1 m",
+      "wall_s": 37.9
+    },
+    {
+      "seed": 6014,
+      "outcome": "PARKED",
+      "success": true,
+      "time_s": 55.5,
+      "distance_m": 40.6,
+      "collisions": 0,
+      "evaluation": {
+        "in_bay": true,
+        "bay": "A42",
+        "bay_kind": "angled",
+        "bay_was_free": true,
+        "overlap": 1.0,
+        "axis_error_deg": 4.1,
+        "center_error_m": 0.16
+      },
+      "message": "parked after 55.5 s and 40.6 m",
+      "wall_s": 60.8
+    },
+    {
+      "seed": 6015,
+      "outcome": "PARKED",
+      "success": true,
+      "time_s": 26.8,
+      "distance_m": 18.8,
+      "collisions": 0,
+      "evaluation": {
+        "in_bay": true,
+        "bay": "P45",
+        "bay_kind": "perpendicular",
+        "bay_was_free": true,
+        "overlap": 1.0,
+        "axis_error_deg": 1.4,
+        "center_error_m": 0.103
+      },
+      "message": "parked after 26.8 s and 18.8 m",
+      "wall_s": 21.7
+    },
+    {
+      "seed": 6016,
+      "outcome": "PARKED",
+      "success": true,
+      "time_s": 107.9,
+      "distance_m": 80.1,
+      "collisions": 0,
+      "evaluation": {
+        "in_bay": true,
+        "bay": "A26",
+        "bay_kind": "angled",
+        "bay_was_free": true,
+        "overlap": 1.0,
+        "axis_error_deg": 0.4,
+        "center_error_m": 0.335
+      },
+      "message": "parked after 107.9 s and 80.1 m",
+      "wall_s": 118.7
+    },
+    {
+      "seed": 6017,
+      "outcome": "PARKED",
+      "success": true,
+      "time_s": 181.2,
+      "distance_m": 133.0,
+      "collisions": 0,
+      "evaluation": {
+        "in_bay": true,
+        "bay": "A35",
+        "bay_kind": "angled",
+        "bay_was_free": true,
+        "overlap": 1.0,
+        "axis_error_deg": 2.9,
+        "center_error_m": 0.127
+      },
+      "message": "parked after 181.2 s and 133.0 m",
+      "wall_s": 178.9
+    },
+    {
+      "seed": 6018,
+      "outcome": "PARKED",
+      "success": true,
+      "time_s": 47.2,
+      "distance_m": 35.2,
+      "collisions": 0,
+      "evaluation": {
+        "in_bay": true,
+        "bay": "A16",
+        "bay_kind": "angled",
+        "bay_was_free": true,
+        "overlap": 1.0,
+        "axis_error_deg": 2.6,
+        "center_error_m": 0.191
+      },
+      "message": "parked after 47.2 s and 35.2 m",
+      "wall_s": 38.0
+    },
+    {
+      "seed": 6019,
+      "outcome": "PARKED",
+      "success": true,
+      "time_s": 17.9,
+      "distance_m": 10.5,
+      "collisions": 0,
+      "evaluation": {
+        "in_bay": true,
+        "bay": "P04",
+        "bay_kind": "perpendicular",
+        "bay_was_free": true,
+        "overlap": 0.961,
+        "axis_error_deg": 1.1,
+        "center_error_m": 0.388
+      },
+      "message": "parked after 17.9 s and 10.5 m",
+      "wall_s": 8.7
+    },
+    {
+      "seed": 6020,
+      "outcome": "PARKED",
+      "success": true,
+      "time_s": 42.0,
+      "distance_m": 31.1,
+      "collisions": 0,
+      "evaluation": {
+        "in_bay": true,
+        "bay": "A18",
+        "bay_kind": "angled",
+        "bay_was_free": true,
+        "overlap": 1.0,
+        "axis_error_deg": 0.1,
+        "center_error_m": 0.179
+      },
+      "message": "parked after 42.0 s and 31.1 m",
+      "wall_s": 45.5
+    },
+    {
+      "seed": 6021,
+      "outcome": "PARKED",
+      "success": true,
+      "time_s": 44.5,
+      "distance_m": 31.8,
+      "collisions": 0,
+      "evaluation": {
+        "in_bay": true,
+        "bay": "P10",
+        "bay_kind": "perpendicular",
+        "bay_was_free": true,
+        "overlap": 1.0,
+        "axis_error_deg": 1.3,
+        "center_error_m": 0.079
+      },
+      "message": "parked after 44.5 s and 31.8 m",
+      "wall_s": 16.1
+    },
+    {
+      "seed": 6022,
+      "outcome": "PARKED",
+      "success": true,
+      "time_s": 48.6,
+      "distance_m": 34.0,
+      "collisions": 0,
+      "evaluation": {
+        "in_bay": true,
+        "bay": "P34",
+        "bay_kind": "perpendicular",
+        "bay_was_free": true,
+        "overlap": 1.0,
+        "axis_error_deg": 1.1,
+        "center_error_m": 0.145
+      },
+      "message": "parked after 48.6 s and 34.0 m",
+      "wall_s": 60.1
+    },
+    {
+      "seed": 6023,
+      "outcome": "PARKED",
+      "success": true,
+      "time_s": 87.3,
+      "distance_m": 64.7,
+      "collisions": 0,
+      "evaluation": {
+        "in_bay": true,
+        "bay": "P25",
+        "bay_kind": "perpendicular",
+        "bay_was_free": true,
+        "overlap": 1.0,
+        "axis_error_deg": 0.1,
+        "center_error_m": 0.324
+      },
+      "message": "parked after 87.3 s and 64.7 m",
+      "wall_s": 70.2
+    },
+    {
+      "seed": 6024,
+      "outcome": "PARKED",
+      "success": true,
+      "time_s": 83.0,
+      "distance_m": 57.5,
+      "collisions": 0,
+      "evaluation": {
+        "in_bay": true,
+        "bay": "P20",
+        "bay_kind": "perpendicular",
+        "bay_was_free": true,
+        "overlap": 1.0,
+        "axis_error_deg": 3.2,
+        "center_error_m": 0.167
+      },
+      "message": "parked after 83.0 s and 57.5 m",
+      "wall_s": 85.3
+    },
+    {
+      "seed": 6025,
+      "outcome": "PARKED",
+      "success": true,
+      "time_s": 52.2,
+      "distance_m": 33.0,
+      "collisions": 0,
+      "evaluation": {
+        "in_bay": true,
+        "bay": "P14",
+        "bay_kind": "perpendicular",
+        "bay_was_free": true,
+        "overlap": 0.987,
+        "axis_error_deg": 4.5,
+        "center_error_m": 0.231
+      },
+      "message": "parked after 52.2 s and 33.0 m",
+      "wall_s": 57.1
+    },
+    {
+      "seed": 6026,
+      "outcome": "PARKED",
+      "success": true,
+      "time_s": 23.5,
+      "distance_m": 17.5,
+      "collisions": 0,
+      "evaluation": {
+        "in_bay": true,
+        "bay": "A36",
+        "bay_kind": "angled",
+        "bay_was_free": true,
+        "overlap": 1.0,
+        "axis_error_deg": 2.9,
+        "center_error_m": 0.092
+      },
+      "message": "parked after 23.5 s and 17.5 m",
+      "wall_s": 32.4
+    },
+    {
+      "seed": 6027,
+      "outcome": "PARKED",
+      "success": true,
+      "time_s": 75.0,
+      "distance_m": 54.8,
+      "collisions": 0,
+      "evaluation": {
+        "in_bay": true,
+        "bay": "P46",
+        "bay_kind": "perpendicular",
+        "bay_was_free": true,
+        "overlap": 0.991,
+        "axis_error_deg": 6.7,
+        "center_error_m": 0.18
+      },
+      "message": "parked after 75.0 s and 54.8 m",
+      "wall_s": 41.2
+    },
+    {
+      "seed": 6028,
+      "outcome": "PARKED",
+      "success": true,
+      "time_s": 159.9,
+      "distance_m": 119.0,
+      "collisions": 0,
+      "evaluation": {
+        "in_bay": true,
+        "bay": "A43",
+        "bay_kind": "angled",
+        "bay_was_free": true,
+        "overlap": 1.0,
+        "axis_error_deg": 7.0,
+        "center_error_m": 0.089
+      },
+      "message": "parked after 159.9 s and 119.0 m",
+      "wall_s": 108.9
+    },
+    {
+      "seed": 6029,
+      "outcome": "PARKED",
+      "success": true,
+      "time_s": 13.4,
+      "distance_m": 8.1,
+      "collisions": 0,
+      "evaluation": {
+        "in_bay": true,
+        "bay": "P07",
+        "bay_kind": "perpendicular",
+        "bay_was_free": true,
+        "overlap": 0.97,
+        "axis_error_deg": 8.3,
+        "center_error_m": 0.385
+      },
+      "message": "parked after 13.4 s and 8.1 m",
+      "wall_s": 2.0
+    },
+    {
+      "seed": 6030,
+      "outcome": "PARKED",
+      "success": true,
+      "time_s": 39.6,
+      "distance_m": 27.8,
+      "collisions": 0,
+      "evaluation": {
+        "in_bay": true,
+        "bay": "P27",
+        "bay_kind": "perpendicular",
+        "bay_was_free": true,
+        "overlap": 1.0,
+        "axis_error_deg": 1.4,
+        "center_error_m": 0.139
+      },
+      "message": "parked after 39.6 s and 27.8 m",
+      "wall_s": 22.3
+    },
+    {
+      "seed": 6031,
+      "outcome": "PARKED",
+      "success": true,
+      "time_s": 28.7,
+      "distance_m": 20.4,
+      "collisions": 0,
+      "evaluation": {
+        "in_bay": true,
+        "bay": "P18",
+        "bay_kind": "perpendicular",
+        "bay_was_free": true,
+        "overlap": 1.0,
+        "axis_error_deg": 1.9,
+        "center_error_m": 0.24
+      },
+      "message": "parked after 28.7 s and 20.4 m",
+      "wall_s": 19.0
+    },
+    {
+      "seed": 6032,
+      "outcome": "PARKED",
+      "success": true,
+      "time_s": 28.4,
+      "distance_m": 20.1,
+      "collisions": 0,
+      "evaluation": {
+        "in_bay": true,
+        "bay": "P44",
+        "bay_kind": "perpendicular",
+        "bay_was_free": true,
+        "overlap": 1.0,
+        "axis_error_deg": 1.6,
+        "center_error_m": 0.066
+      },
+      "message": "parked after 28.4 s and 20.1 m",
+      "wall_s": 14.3
+    },
+    {
+      "seed": 6033,
+      "outcome": "PARKED",
+      "success": true,
+      "time_s": 33.4,
+      "distance_m": 22.9,
+      "collisions": 0,
+      "evaluation": {
+        "in_bay": true,
+        "bay": "P17",
+        "bay_kind": "perpendicular",
+        "bay_was_free": true,
+        "overlap": 1.0,
+        "axis_error_deg": 1.2,
+        "center_error_m": 0.268
+      },
+      "message": "parked after 33.4 s and 22.9 m",
+      "wall_s": 24.6
+    },
+    {
+      "seed": 6034,
+      "outcome": "PARKED",
+      "success": true,
+      "time_s": 93.8,
+      "distance_m": 68.2,
+      "collisions": 0,
+      "evaluation": {
+        "in_bay": true,
+        "bay": "P21",
+        "bay_kind": "perpendicular",
+        "bay_was_free": true,
+        "overlap": 1.0,
+        "axis_error_deg": 2.3,
+        "center_error_m": 0.288
+      },
+      "message": "parked after 93.8 s and 68.2 m",
+      "wall_s": 64.4
+    },
+    {
+      "seed": 6035,
+      "outcome": "NO_SPACE_FOUND",
+      "success": false,
+      "time_s": 186.2,
+      "distance_m": 137.4,
+      "collisions": 0,
+      "evaluation": {},
+      "message": "no verified bay and no reachable frontier left; the vehicle stops",
+      "wall_s": 122.2
+    },
+    {
+      "seed": 6036,
+      "outcome": "PARKED",
+      "success": true,
+      "time_s": 25.1,
+      "distance_m": 17.5,
+      "collisions": 0,
+      "evaluation": {
+        "in_bay": true,
+        "bay": "P16",
+        "bay_kind": "perpendicular",
+        "bay_was_free": true,
+        "overlap": 0.957,
+        "axis_error_deg": 0.0,
+        "center_error_m": 0.33
+      },
+      "message": "parked after 25.1 s and 17.5 m",
+      "wall_s": 13.4
+    },
+    {
+      "seed": 6037,
+      "outcome": "PARKED",
+      "success": true,
+      "time_s": 22.9,
+      "distance_m": 15.8,
+      "collisions": 0,
+      "evaluation": {
+        "in_bay": true,
+        "bay": "A14",
+        "bay_kind": "angled",
+        "bay_was_free": true,
+        "overlap": 1.0,
+        "axis_error_deg": 4.7,
+        "center_error_m": 0.078
+      },
+      "message": "parked after 22.9 s and 15.8 m",
+      "wall_s": 33.9
+    },
+    {
+      "seed": 6038,
+      "outcome": "PARKED",
+      "success": true,
+      "time_s": 30.1,
+      "distance_m": 20.2,
+      "collisions": 0,
+      "evaluation": {
+        "in_bay": true,
+        "bay": "P12",
+        "bay_kind": "perpendicular",
+        "bay_was_free": true,
+        "overlap": 1.0,
+        "axis_error_deg": 0.7,
+        "center_error_m": 0.169
+      },
+      "message": "parked after 30.1 s and 20.2 m",
+      "wall_s": 23.1
+    },
+    {
+      "seed": 6039,
+      "outcome": "PARKED",
+      "success": true,
+      "time_s": 31.8,
+      "distance_m": 22.8,
+      "collisions": 0,
+      "evaluation": {
+        "in_bay": true,
+        "bay": "P46",
+        "bay_kind": "perpendicular",
+        "bay_was_free": true,
+        "overlap": 1.0,
+        "axis_error_deg": 1.1,
+        "center_error_m": 0.32
+      },
+      "message": "parked after 31.8 s and 22.8 m",
+      "wall_s": 34.5
+    },
+    {
+      "seed": 6040,
+      "outcome": "PARKED",
+      "success": true,
+      "time_s": 35.3,
+      "distance_m": 25.6,
+      "collisions": 0,
+      "evaluation": {
+        "in_bay": true,
+        "bay": "P33",
+        "bay_kind": "perpendicular",
+        "bay_was_free": true,
+        "overlap": 1.0,
+        "axis_error_deg": 0.6,
+        "center_error_m": 0.101
+      },
+      "message": "parked after 35.3 s and 25.6 m",
+      "wall_s": 49.7
+    },
+    {
+      "seed": 6041,
+      "outcome": "PARKED",
+      "success": true,
+      "time_s": 42.3,
+      "distance_m": 32.6,
+      "collisions": 0,
+      "evaluation": {
+        "in_bay": true,
+        "bay": "P26",
+        "bay_kind": "perpendicular",
+        "bay_was_free": true,
+        "overlap": 1.0,
+        "axis_error_deg": 4.6,
+        "center_error_m": 0.209
+      },
+      "message": "parked after 42.3 s and 32.6 m",
+      "wall_s": 18.6
+    },
+    {
+      "seed": 6042,
+      "outcome": "PARKED",
+      "success": true,
+      "time_s": 44.4,
+      "distance_m": 31.7,
+      "collisions": 0,
+      "evaluation": {
+        "in_bay": true,
+        "bay": "A26",
+        "bay_kind": "angled",
+        "bay_was_free": true,
+        "overlap": 0.97,
+        "axis_error_deg": 4.8,
+        "center_error_m": 0.384
+      },
+      "message": "parked after 44.4 s and 31.7 m",
+      "wall_s": 22.6
+    },
+    {
+      "seed": 6043,
+      "outcome": "PARKED",
+      "success": true,
+      "time_s": 84.9,
+      "distance_m": 64.1,
+      "collisions": 0,
+      "evaluation": {
+        "in_bay": true,
+        "bay": "P08",
+        "bay_kind": "perpendicular",
+        "bay_was_free": true,
+        "overlap": 1.0,
+        "axis_error_deg": 3.5,
+        "center_error_m": 0.112
+      },
+      "message": "parked after 84.9 s and 64.1 m",
+      "wall_s": 66.3
+    },
+    {
+      "seed": 6044,
+      "outcome": "PARKED",
+      "success": true,
+      "time_s": 31.7,
+      "distance_m": 22.7,
+      "collisions": 0,
+      "evaluation": {
+        "in_bay": true,
+        "bay": "P30",
+        "bay_kind": "perpendicular",
+        "bay_was_free": true,
+        "overlap": 1.0,
+        "axis_error_deg": 3.3,
+        "center_error_m": 0.267
+      },
+      "message": "parked after 31.7 s and 22.7 m",
+      "wall_s": 15.8
+    },
+    {
+      "seed": 6045,
+      "outcome": "PARKED",
+      "success": true,
+      "time_s": 32.0,
+      "distance_m": 21.8,
+      "collisions": 0,
+      "evaluation": {
+        "in_bay": true,
+        "bay": "P20",
+        "bay_kind": "perpendicular",
+        "bay_was_free": true,
+        "overlap": 1.0,
+        "axis_error_deg": 0.1,
+        "center_error_m": 0.035
+      },
+      "message": "parked after 32.0 s and 21.8 m",
+      "wall_s": 13.2
+    },
+    {
+      "seed": 6046,
+      "outcome": "PARKED",
+      "success": true,
+      "time_s": 31.7,
+      "distance_m": 22.8,
+      "collisions": 0,
+      "evaluation": {
+        "in_bay": true,
+        "bay": "A04",
+        "bay_kind": "angled",
+        "bay_was_free": true,
+        "overlap": 1.0,
+        "axis_error_deg": 6.2,
+        "center_error_m": 0.072
+      },
+      "message": "parked after 31.7 s and 22.8 m",
+      "wall_s": 43.3
+    },
+    {
+      "seed": 6047,
+      "outcome": "PARKED",
+      "success": true,
+      "time_s": 30.8,
+      "distance_m": 22.1,
+      "collisions": 0,
+      "evaluation": {
+        "in_bay": true,
+        "bay": "P15",
+        "bay_kind": "perpendicular",
+        "bay_was_free": true,
+        "overlap": 0.996,
+        "axis_error_deg": 3.7,
+        "center_error_m": 0.311
+      },
+      "message": "parked after 30.8 s and 22.1 m",
+      "wall_s": 35.6
+    },
+    {
+      "seed": 6048,
+      "outcome": "PARKED",
+      "success": true,
+      "time_s": 53.4,
+      "distance_m": 41.4,
+      "collisions": 0,
+      "evaluation": {
+        "in_bay": true,
+        "bay": "A09",
+        "bay_kind": "angled",
+        "bay_was_free": true,
+        "overlap": 1.0,
+        "axis_error_deg": 1.0,
+        "center_error_m": 0.072
+      },
+      "message": "parked after 53.4 s and 41.4 m",
+      "wall_s": 17.8
+    },
+    {
+      "seed": 6049,
+      "outcome": "PARKED",
+      "success": true,
+      "time_s": 22.6,
+      "distance_m": 16.8,
+      "collisions": 0,
+      "evaluation": {
+        "in_bay": true,
+        "bay": "A17",
+        "bay_kind": "angled",
+        "bay_was_free": true,
+        "overlap": 1.0,
+        "axis_error_deg": 1.1,
+        "center_error_m": 0.11
+      },
+      "message": "parked after 22.6 s and 16.8 m",
+      "wall_s": 31.0
+    },
+    {
+      "seed": 6050,
+      "outcome": "PARKED",
+      "success": true,
+      "time_s": 79.2,
+      "distance_m": 58.3,
+      "collisions": 0,
+      "evaluation": {
+        "in_bay": true,
+        "bay": "P08",
+        "bay_kind": "perpendicular",
+        "bay_was_free": true,
+        "overlap": 1.0,
+        "axis_error_deg": 0.4,
+        "center_error_m": 0.227
+      },
+      "message": "parked after 79.2 s and 58.3 m",
+      "wall_s": 59.4
+    },
+    {
+      "seed": 6051,
+      "outcome": "PARKED",
+      "success": true,
+      "time_s": 34.2,
+      "distance_m": 24.8,
+      "collisions": 0,
+      "evaluation": {
+        "in_bay": true,
+        "bay": "P47",
+        "bay_kind": "perpendicular",
+        "bay_was_free": true,
+        "overlap": 1.0,
+        "axis_error_deg": 3.5,
+        "center_error_m": 0.222
+      },
+      "message": "parked after 34.2 s and 24.8 m",
+      "wall_s": 46.1
+    },
+    {
+      "seed": 6052,
+      "outcome": "PARKED",
+      "success": true,
+      "time_s": 73.9,
+      "distance_m": 52.3,
+      "collisions": 0,
+      "evaluation": {
+        "in_bay": true,
+        "bay": "A38",
+        "bay_kind": "angled",
+        "bay_was_free": true,
+        "overlap": 1.0,
+        "axis_error_deg": 5.6,
+        "center_error_m": 0.135
+      },
+      "message": "parked after 73.9 s and 52.3 m",
+      "wall_s": 22.1
+    },
+    {
+      "seed": 6053,
+      "outcome": "PARKED",
+      "success": true,
+      "time_s": 33.8,
+      "distance_m": 20.6,
+      "collisions": 0,
+      "evaluation": {
+        "in_bay": true,
+        "bay": "A42",
+        "bay_kind": "angled",
+        "bay_was_free": true,
+        "overlap": 1.0,
+        "axis_error_deg": 0.8,
+        "center_error_m": 0.152
+      },
+      "message": "parked after 33.8 s and 20.6 m",
+      "wall_s": 17.3
+    },
+    {
+      "seed": 6054,
+      "outcome": "PARKED",
+      "success": true,
+      "time_s": 23.7,
+      "distance_m": 17.6,
+      "collisions": 0,
+      "evaluation": {
+        "in_bay": true,
+        "bay": "A17",
+        "bay_kind": "angled",
+        "bay_was_free": true,
+        "overlap": 0.917,
+        "axis_error_deg": 9.4,
+        "center_error_m": 0.47
+      },
+      "message": "parked after 23.7 s and 17.6 m",
+      "wall_s": 32.0
+    },
+    {
+      "seed": 6055,
+      "outcome": "PARKED",
+      "success": true,
+      "time_s": 51.8,
+      "distance_m": 35.3,
+      "collisions": 0,
+      "evaluation": {
+        "in_bay": true,
+        "bay": "P11",
+        "bay_kind": "perpendicular",
+        "bay_was_free": true,
+        "overlap": 1.0,
+        "axis_error_deg": 2.5,
+        "center_error_m": 0.199
+      },
+      "message": "parked after 51.8 s and 35.3 m",
+      "wall_s": 15.6
+    },
+    {
+      "seed": 6056,
+      "outcome": "PARKED",
+      "success": true,
+      "time_s": 24.3,
+      "distance_m": 17.0,
+      "collisions": 0,
+      "evaluation": {
+        "in_bay": true,
+        "bay": "P37",
+        "bay_kind": "perpendicular",
+        "bay_was_free": true,
+        "overlap": 0.961,
+        "axis_error_deg": 3.4,
+        "center_error_m": 0.376
+      },
+      "message": "parked after 24.3 s and 17.0 m",
+      "wall_s": 5.1
+    },
+    {
+      "seed": 6057,
+      "outcome": "PARKED",
+      "success": true,
+      "time_s": 145.7,
+      "distance_m": 111.3,
+      "collisions": 0,
+      "evaluation": {
+        "in_bay": true,
+        "bay": "P12",
+        "bay_kind": "perpendicular",
+        "bay_was_free": true,
+        "overlap": 1.0,
+        "axis_error_deg": 4.0,
+        "center_error_m": 0.388
+      },
+      "message": "parked after 145.7 s and 111.3 m",
+      "wall_s": 91.2
+    },
+    {
+      "seed": 6058,
+      "outcome": "PARKED",
+      "success": true,
+      "time_s": 30.1,
+      "distance_m": 20.2,
+      "collisions": 0,
+      "evaluation": {
+        "in_bay": true,
+        "bay": "A44",
+        "bay_kind": "angled",
+        "bay_was_free": true,
+        "overlap": 1.0,
+        "axis_error_deg": 5.8,
+        "center_error_m": 0.014
+      },
+      "message": "parked after 30.1 s and 20.2 m",
+      "wall_s": 28.6
+    },
+    {
+      "seed": 6059,
+      "outcome": "PARKED",
+      "success": true,
+      "time_s": 113.5,
+      "distance_m": 84.4,
+      "collisions": 0,
+      "evaluation": {
+        "in_bay": true,
+        "bay": "A20",
+        "bay_kind": "angled",
+        "bay_was_free": true,
+        "overlap": 1.0,
+        "axis_error_deg": 5.1,
+        "center_error_m": 0.091
+      },
+      "message": "parked after 113.5 s and 84.4 m",
+      "wall_s": 46.4
+    }
+  ]
+}
