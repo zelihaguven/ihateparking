@@ -71,18 +71,33 @@ class OccupancyGridTests(unittest.TestCase):
         self.assertLess(ys.max(), 6.2)
 
 
+def _aisle_sweep(seed: int):
+    """The lot and the map from driving straight along the start aisle."""
+    lot = generate_lot(seed)
+    world = ParkingWorld(lot.bounds, list(lot.obstacles), lot.bays[0].slot, lot.start, lot.vehicle)
+    grid = OccupancyGrid((lot.start.x, lot.start.y))
+    rng = np.random.default_rng(seed)
+    for d in np.arange(-20.0, 20.1, 1.0):
+        pose = Pose(lot.start.x + d * math.cos(lot.start.yaw), lot.start.y + d * math.sin(lot.start.yaw), lot.start.yaw)
+        if not world.is_collision(pose):
+            grid.integrate(scan(pose, lot.obstacles, lot.vehicle, rng=rng))
+    return lot, grid
+
+
 class SlotDetectorTests(unittest.TestCase):
+    def test_finds_bays_in_angled_rows(self) -> None:
+        # Regression: staggered neighbours in angled rows used to be read as
+        # a wall and a missing flank, so angled bays were never detected.
+        for seed in (105, 112):
+            lot, grid = _aisle_sweep(seed)
+            kinds = [evaluate_parking(lot, c.goal(c.axis_yaw, lot.vehicle)).get("bay_kind") for c in detect_slots(grid, lot.vehicle)]
+            with self.subTest(seed=seed):
+                self.assertIn("angled", kinds)
+
     def test_detections_on_unseen_lots_are_real_free_bays(self) -> None:
         checked = 0
-        for seed in (101, 102, 103, 104):
-            lot = generate_lot(seed)
-            world = ParkingWorld(lot.bounds, list(lot.obstacles), lot.bays[0].slot, lot.start, lot.vehicle)
-            grid = OccupancyGrid((lot.start.x, lot.start.y))
-            rng = np.random.default_rng(seed)
-            for d in np.arange(-20.0, 20.1, 1.0):
-                pose = Pose(lot.start.x + d * math.cos(lot.start.yaw), lot.start.y + d * math.sin(lot.start.yaw), lot.start.yaw)
-                if not world.is_collision(pose):
-                    grid.integrate(scan(pose, lot.obstacles, lot.vehicle, rng=rng))
+        for seed in (101, 102, 103, 104, 105, 112):
+            lot, grid = _aisle_sweep(seed)
             for candidate in detect_slots(grid, lot.vehicle):
                 pose = candidate.goal(candidate.axis_yaw, lot.vehicle)
                 verdict = evaluate_parking(lot, pose)

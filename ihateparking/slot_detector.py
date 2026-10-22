@@ -155,13 +155,16 @@ class _AlignedMap:
 
 
 COVERAGE_BIN_M = 0.5
-FLANK_COVERAGE = 0.6
+FLANK_COVERAGE = 0.3
+FLANK_RUN_M = 3.0
+FLANK_STAGGER_M = 3.0
 BACK_COVERAGE = 0.75
 KERB_COVERAGE = 0.85
 END_COVERAGE = 0.4
-WALL_RUN_M = 3.0
+WALL_RUN_START_M = 3.2
+WALL_RUN_END_M = 5.5
 NEAR_BACK_M = 0.6
-NEAR_BACK_COVERAGE = 0.5
+NEAR_BACK_COVERAGE = 0.25
 WALL_CONTINUATION = 0.3
 MAX_CENTERING_SHIFT_M = 0.8
 PARALLEL_GAP_SEARCH_M = 6.0
@@ -189,30 +192,30 @@ def _side_by_side(m: _AlignedMap, iv, iu, half_l: float, half_w: float, near_bac
     inner_l = half_l - SIDE_CLEARANCE_M
     inner_w = half_w - SIDE_CLEARANCE_M
     flank_strips = ((half_w, half_w + FLANK_SEARCH_M), (-half_w - FLANK_SEARCH_M, -half_w))
-    # A neighbour's side runs along the bay axis over the whole bay depth:
-    # demand it in each half, so a short face (a car's front) cannot pass.
-    flank_cover = [
-        np.minimum(
-            _coverage(m, iv, iu, True, -inner_l, 0.0, *strip, PARALLEL_EDGE),
-            _coverage(m, iv, iu, True, 0.0, inner_l, *strip, PARALLEL_EDGE),
-        )
-        for strip in flank_strips
-    ]
+    # A neighbour's side runs along the bay axis. In an angled row the
+    # neighbours are staggered along that axis by width / tan(angle), so each
+    # covers only part of the bay depth: demand a share of it, not both halves.
+    flank_cover = [_coverage(m, iv, iu, True, -inner_l, inner_l, *strip, PARALLEL_EDGE) for strip in flank_strips]
+    # Yet the neighbour's whole side is long. The end face of a car parked
+    # along a kerb is also parallel to this axis, but only a car width long.
+    reach = (-inner_l - FLANK_STAGGER_M, inner_l + FLANK_STAGGER_M)
+    flank_run = [_coverage(m, iv, iu, True, *reach, *strip, PARALLEL_EDGE) * (reach[1] - reach[0]) for strip in flank_strips]
     results = []
     for back in (1.0, -1.0):
         back_box = (half_l, half_l + BACK_SEARCH_M) if back > 0 else (-half_l - BACK_SEARCH_M, -half_l)
         front_box = (-half_l - FRONT_OPEN_M, -half_l) if back > 0 else (half_l, half_l + FRONT_OPEN_M)
-        # Beyond the bay's front, a car's side has ended; a wall carries on.
-        beyond = (-inner_l - WALL_RUN_M, -inner_l - 0.5) if back > 0 else (inner_l + 0.5, inner_l + WALL_RUN_M)
+        # A staggered neighbour may poke past the bay mouth by up to ~3 m; a
+        # wall carries on further into the aisle.
+        beyond = (-inner_l - WALL_RUN_END_M, -inner_l - WALL_RUN_START_M) if back > 0 else (inner_l + WALL_RUN_START_M, inner_l + WALL_RUN_END_M)
         # Both flanks must be finite neighbours (car sides, not a wall that
         # runs on into the aisle). A gap between two parked cars is the least
         # ambiguous bay without line markings; accepting a single flank was
         # measured to halve precision (aisle and row-end false positives).
         flank_ok = np.ones(iv.shape, dtype=bool)
         flank_score = np.zeros(iv.shape)
-        for strip, cover in zip(flank_strips, flank_cover):
+        for strip, cover, run in zip(flank_strips, flank_cover, flank_run):
             continues = _coverage(m, iv, iu, True, *beyond, *strip, PARALLEL_EDGE)
-            flank_ok &= (cover >= FLANK_COVERAGE) & (continues < WALL_CONTINUATION)
+            flank_ok &= (cover >= FLANK_COVERAGE) & (run >= FLANK_RUN_M) & (continues < WALL_CONTINUATION)
             flank_score += cover
         back_cover = _coverage(m, iv, iu, False, -inner_w, inner_w, *back_box)
         front_free = m.box(FREE, iv, iu, *front_box, -inner_w, inner_w) / m.area(*front_box, -inner_w, inner_w)
