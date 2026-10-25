@@ -30,6 +30,7 @@ from .geometry import Pose, distance, wrap_angle
 from .holonomic_heuristic import build_distance_field
 from .lidar import LidarConfig, scan
 from .odometry import Odometry, OdometryConfig, place_scan
+from .scan_matcher import ScanMatcher, ScanMatcherConfig
 from .occupancy_map import FREE, OCCUPIED, UNKNOWN, GridConfig, MapWorld, OccupancyGrid
 from .planner import HybridAStar, PlannerConfig, PlanResult
 from .procedural_lot import ProceduralLot
@@ -37,7 +38,7 @@ from .slot_detector import SlotCandidate, detect_slots
 from .world import ParkingWorld
 
 
-LOCALIZATION_MODES = ("truth", "odometry")
+LOCALIZATION_MODES = ("truth", "odometry", "scan_matching")
 
 
 @dataclass(frozen=True)
@@ -45,10 +46,12 @@ class MissionConfig:
     dt: float = 0.05
     scan_period_s: float = 0.2
     max_time_s: float = 420.0
-    # Where the car thinks it is: "truth" (perfect) or "odometry" (dead
-    # reckoning from noisy wheel and steering sensors).
+    # Where the car thinks it is: "truth" (perfect), "odometry" (dead
+    # reckoning from noisy wheel and steering sensors) or "scan_matching"
+    # (odometry corrected against the map with every LiDAR scan).
     localization: str = "truth"
     odometry: OdometryConfig = OdometryConfig()
+    scan_matcher: ScanMatcherConfig = ScanMatcherConfig()
     explore_horizon_m: float = 6.0
     park_planner: PlannerConfig = PlannerConfig(max_expansions=12_000)
     # Exploration needs reach, not centimetre accuracy: a coarser lattice.
@@ -364,6 +367,7 @@ def run_mission(lot: ProceduralLot, config: MissionConfig = MissionConfig(), see
     # ``pose`` is the car's own estimate, and the whole stack uses only that.
     true_pose = pose = lot.start
     odometry = Odometry(vehicle, config.odometry, np.random.default_rng([seed, 1])) if config.localization != "truth" else None
+    matcher = ScanMatcher(vehicle, config.scan_matcher) if config.localization == "scan_matching" else None
     grid = OccupancyGrid((pose.x, pose.y), config.grid)
     trace, gears, events = [true_pose], [], []
     estimate_trace = [pose]
@@ -399,11 +403,18 @@ def run_mission(lot: ProceduralLot, config: MissionConfig = MissionConfig(), see
         success = outcome == "PARKED" and evaluation.get("in_bay", False) and collisions == 0
         return MissionResult(outcome, success, message, trace, gears, events, t, travelled, collisions, target, grid, evaluation, estimate_trace)
 
-    def observe() -> None:
+    def observe(estimate: Pose) -> Pose:
+        """Take a scan, correct the estimate against the map, add the scan to it."""
         measured = scan(true_pose, lot.obstacles, vehicle, config.lidar, rng)
-        grid.integrate(measured if odometry is None else place_scan(measured, true_pose, pose, vehicle))
+        if odometry is None:
+            grid.integrate(measured)
+            return estimate
+        if matcher is not None:
+            estimate = matcher.correct(grid, measured, true_pose.yaw, estimate)
+        grid.integrate(place_scan(measured, true_pose, estimate, vehicle))
+        return estimate
 
-    observe()
+    pose = observe(pose)
     while t < config.max_time_s:
         if mode == "decide":
             world = MapWorld(grid, vehicle, pose)
@@ -530,7 +541,8 @@ def run_mission(lot: ProceduralLot, config: MissionConfig = MissionConfig(), see
         step += 1
         if step % steps_per_scan:
             continue
-        observe()
+        pose = observe(pose)
+        estimate_trace[-1] = pose
         if mode == "explore" and travelled - leg_start >= config.explore_horizon_m:
             mode = "decide"
             continue

@@ -6,7 +6,9 @@ import numpy as np
 from ihateparking.geometry import Pose, wrap_angle
 from ihateparking.lidar import LidarConfig, scan
 from ihateparking.mission import MissionConfig, run_mission
+from ihateparking.occupancy_map import OccupancyGrid
 from ihateparking.odometry import Odometry, OdometryConfig, place_scan
+from ihateparking.scan_matcher import ScanMatcher
 from ihateparking.procedural_lot import generate_lot
 from ihateparking.world import RectangleObstacle, VehicleSpec
 
@@ -61,6 +63,39 @@ class PlaceScanTests(unittest.TestCase):
         # The wall straight ahead now appears straight ahead of the believed pose.
         self.assertAlmostEqual(x, placed.origin[0], delta=0.05)
         self.assertGreater(y, placed.origin[1] + 5.0)
+
+
+class ScanMatcherTests(unittest.TestCase):
+    OBSTACLES = [
+        RectangleObstacle("wall", (0.0, 8.0), 30.0, 0.3, 0.0),
+        RectangleObstacle("side", (12.0, 0.0), 0.3, 20.0, 0.0),
+        RectangleObstacle("car", (4.0, -4.0), 4.5, 1.9, 0.3),
+    ]
+
+    def _mapped_grid(self) -> OccupancyGrid:
+        grid = OccupancyGrid((0.0, 0.0))
+        rng = np.random.default_rng(1)
+        for x in (-3.0, -1.5, 0.0):
+            grid.integrate(scan(Pose(x, 0.0, 0.0), self.OBSTACLES, VEHICLE, rng=rng))
+        return grid
+
+    def test_recovers_the_pose_from_a_drifted_estimate(self) -> None:
+        grid = self._mapped_grid()
+        true_pose = Pose(1.0, 0.5, 0.05)
+        measured = scan(true_pose, self.OBSTACLES, VEHICLE, rng=np.random.default_rng(2))
+        drifted = Pose(true_pose.x + 0.15, true_pose.y - 0.1, true_pose.yaw + math.radians(0.8))
+        corrected = ScanMatcher(VEHICLE).correct(grid, measured, true_pose.yaw, drifted)
+        self.assertLess(math.hypot(corrected.x - true_pose.x, corrected.y - true_pose.y), 0.04)
+        self.assertLess(abs(math.degrees(wrap_angle(corrected.yaw - true_pose.yaw))), 0.2)
+
+    def test_keeps_odometry_when_the_scan_sees_nothing_mapped(self) -> None:
+        grid = self._mapped_grid()
+        true_pose = Pose(1.0, 0.5, 0.05)
+        empty = scan(true_pose, [], VEHICLE, rng=np.random.default_rng(2))
+        drifted = Pose(1.2, 0.4, 0.06)
+        matcher = ScanMatcher(VEHICLE)
+        self.assertEqual(matcher.correct(grid, empty, true_pose.yaw, drifted), drifted)
+        self.assertEqual(matcher.rejected, 1)
 
 
 class MissionLocalizationTests(unittest.TestCase):
