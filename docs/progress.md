@@ -86,8 +86,12 @@ Dev 6000–6059, odometry alone: 58/60, 0 wrong, 0 collisions, but centre error 
 p95 46 cm, longest mission 351 s, estimate off by up to 10 m — fails the PRD alignment and time
 targets. Scan matching on 6 drifting lots: estimate error 0.18–1.65 m -> 0.03–0.21 m.
 
+Dev 6000–6059 with scan matching (0cf2693): 57/60, 0 wrong, 0 collisions, centre error median
+19 cm / p95 38 cm, axis 2.2° / 7.2°, longest 214 s, estimate error median 6 cm / max 59 cm. All
+PRD targets met on dev, success right at 95%.
+
 ## Next steps
 
-1. Dev benchmark with scan matching (running).
+1. Parallel scenario with scan matching (9000–9059, running).
 2. Parallel-parking test set.
 3. Fresh acceptance set (7100–7199) with scan matching.
