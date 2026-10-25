@@ -240,8 +240,11 @@ def _side_by_side(m: _AlignedMap, iv, iu, half_l: float, half_w: float, near_bac
     return results
 
 
-def _end_to_end(m: _AlignedMap, iv, iu, half_l: float, half_w: float) -> list[tuple[np.ndarray, float, np.ndarray]]:
-    """Anchors passing the parallel-bay rules, for a kerb at +v and at -v."""
+def _end_to_end(m: _AlignedMap, iv, iu, half_l: float, half_w: float) -> list[tuple[np.ndarray, np.ndarray, float, np.ndarray]]:
+    """Anchors passing the parallel-bay rules, for a kerb at +v and at -v.
+
+    Returns (a car at both ends, along a kerb but missing an end car, kerb, score).
+    """
     inner_l = half_l - SIDE_CLEARANCE_M
     inner_w = half_w - SIDE_CLEARANCE_M
     results = []
@@ -256,12 +259,14 @@ def _end_to_end(m: _AlignedMap, iv, iu, half_l: float, half_w: float) -> list[tu
         end_ok = (end_a >= END_COVERAGE) & (end_b >= END_COVERAGE)
         kerb_cover = _coverage(m, iv, iu, True, -inner_l, inner_l, *kerb_box, PARALLEL_EDGE)
         open_free = m.box(FREE, iv, iu, -inner_l, inner_l, *open_box) / m.area(-inner_l, inner_l, *open_box)
-        ok = (kerb_cover >= KERB_COVERAGE) & (open_free >= OPEN_FRACTION) & end_ok
+        along_kerb = (kerb_cover >= KERB_COVERAGE) & (open_free >= OPEN_FRACTION)
         # Park close behind or ahead of a car, as a driver would, rather than
         # anywhere along a long gap: reward an end car within 0.8 m.
         near_a = _coverage(m, iv, iu, False, -inner_w, inner_w, half_l, half_l + 0.8)
         near_b = _coverage(m, iv, iu, False, -inner_w, inner_w, -half_l - 0.8, -half_l)
-        results.append((ok, kerb, kerb_cover + 2.0 * np.maximum(near_a, near_b)))
+        # Without a car at each end the anchor may sit in a run of free
+        # parallel bays; the cars along the kerb decide (``row_lattice``).
+        results.append((along_kerb & end_ok, along_kerb & ~end_ok, kerb, kerb_cover + 2.0 * np.maximum(near_a, near_b)))
     return results
 
 
@@ -311,17 +316,47 @@ def detect_slots(grid: OccupancyGrid, vehicle: VehicleSpec, tentative: bool = Fa
                 for point, score in zip(m.world(iv[hits], iu[hits]), snug[hits]):
                     in_run.append((float(score), SlotCandidate((float(point[0]), float(point[1])), wrap_angle(heading), "side_by_side", float(score))))
             # Parallel: ego length also along u, kerb on a long side.
-            for ok, _kerb, snug in _end_to_end(m, iv, iu, half_l, half_w):
+            for ok, open_end, _kerb, snug in _end_to_end(m, iv, iu, half_l, half_w):
                 hits = np.nonzero(clear & ok)[0]
                 for point, score in zip(m.world(iv[hits], iu[hits]), snug[hits]):
                     raw.append((float(score), SlotCandidate((float(point[0]), float(point[1])), wrap_angle(axis), "end_to_end", float(score))))
+                hits = np.nonzero(clear & open_end)[0]
+                for point, score in zip(m.world(iv[hits], iu[hits]), snug[hits]):
+                    in_run.append((float(score), SlotCandidate((float(point[0]), float(point[1])), wrap_angle(axis), "end_to_end", float(score))))
     refined = [(score, _refine(grid, states, edge_dir, vehicle, candidate, max_unknown)) for score, candidate in raw]
     # Bays in a run of free bays rank below gaps between two cars.
     for _, candidate in _non_maximum_suppression(in_run, RUN_PROBE_SPACING_M, keep_scores=True):
-        placed = _place_in_run(grid, states, edge_dir, vehicle, candidate, max_unknown)
+        if candidate.row == "end_to_end":
+            placed = _place_along_kerb(grid, states, edge_dir, vehicle, candidate, max_unknown)
+        else:
+            placed = _place_in_run(grid, states, edge_dir, vehicle, candidate, max_unknown)
         if placed is not None:
             refined.append((placed.score - RUN_SCORE_PENALTY, placed))
     return [item for item in _non_maximum_suppression([(score, item) for score, item in refined if item is not None])]
+
+
+def _place_along_kerb(grid: OccupancyGrid, states: np.ndarray, edge_dir: np.ndarray, vehicle: VehicleSpec, candidate: SlotCandidate, max_unknown: float) -> SlotCandidate | None:
+    """Snap a parallel anchor missing an end car to its bay in a run along the kerb, or None."""
+    snug = _center_end_to_end(grid, states, edge_dir, vehicle, candidate, max_unknown)
+    if snug is None:
+        return None
+    yaw = snug.axis_yaw
+    u = np.array([math.cos(yaw), math.sin(yaw)])
+    v = np.array([-math.sin(yaw), math.cos(yaw)])
+    center = np.array(snug.center)
+    reach = KERB_SEARCH_M + SIDE_CLEARANCE_M + 0.3
+    span = vehicle.length / 2 - SIDE_CLEARANCE_M
+    sides = [side for side in (v, -v) if _free_run(grid, states, center, side, u, vehicle.width / 2, reach, span) is not None]
+    if len(sides) != 1:
+        return None  # the kerb must be on exactly one side
+    aisle = -sides[0]
+    offset = row_lattice.kerb_slot_offset(grid, states, center, u, aisle, (-vehicle.width / 2 + 0.2, vehicle.width / 2 + 0.6), vehicle.length)
+    if offset is None:
+        return None
+    placed = center + offset * u
+    if not _footprint_clear(grid, states, placed, yaw, vehicle.length / 2 + SIDE_CLEARANCE_M, vehicle.width / 2 + 0.1, max_unknown):
+        return None
+    return SlotCandidate((float(placed[0]), float(placed[1])), yaw, snug.row, snug.score)
 
 
 def _place_in_run(grid: OccupancyGrid, states: np.ndarray, edge_dir: np.ndarray, vehicle: VehicleSpec, candidate: SlotCandidate, max_unknown: float) -> SlotCandidate | None:

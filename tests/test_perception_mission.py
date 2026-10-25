@@ -72,9 +72,9 @@ class OccupancyGridTests(unittest.TestCase):
         self.assertLess(ys.max(), 6.2)
 
 
-def _aisle_sweep(seed: int):
+def _aisle_sweep(seed: int, scenario: str = "mixed"):
     """The lot and the map from driving straight along the start aisle."""
-    lot = generate_lot(seed)
+    lot = scenario_lot(seed, scenario)
     world = ParkingWorld(lot.bounds, list(lot.obstacles), lot.bays[0].slot, lot.start, lot.vehicle)
     grid = OccupancyGrid((lot.start.x, lot.start.y))
     rng = np.random.default_rng(seed)
@@ -108,6 +108,23 @@ class SlotDetectorTests(unittest.TestCase):
                     continue
                 neighbours = [o for o in lot.bays if o is not bay and o.kind == bay.kind and math.dist(o.slot.center, bay.slot.center) < bay.slot.width * 1.45]
                 found.append(sum(o.occupied for o in neighbours))
+            with self.subTest(seed=seed):
+                self.assertTrue(any(flanks < 2 for flanks in found), found)
+
+    def test_finds_parallel_bays_in_a_run_along_the_kerb(self) -> None:
+        # Parallel bays with a parked car at one end only are placed from the
+        # lattice of cars along the kerb; every detection must be a free bay.
+        for seed in (310, 346):
+            lot, grid = _aisle_sweep(seed, "parallel")
+            found = []
+            for candidate in detect_slots(grid, lot.vehicle):
+                verdict = evaluate_parking(lot, candidate.goal(candidate.axis_yaw, lot.vehicle))
+                with self.subTest(seed=seed, center=candidate.center):
+                    self.assertTrue(verdict["in_bay"], verdict)
+                bay = next((b for b in lot.bays if b.bay_id == verdict.get("bay")), None)
+                if bay is not None:
+                    neighbours = [o for o in lot.bays if o is not bay and o.kind == bay.kind and math.dist(o.slot.center, bay.slot.center) < bay.slot.length * 1.45]
+                    found.append(sum(o.occupied for o in neighbours))
             with self.subTest(seed=seed):
                 self.assertTrue(any(flanks < 2 for flanks in found), found)
 

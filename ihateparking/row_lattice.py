@@ -28,6 +28,12 @@ LATTICE_MAX_RMS_M = 0.4
 LATTICE_MARGIN_M = 0.1  # the bay may overlap a closing car's outline by this much
 WHOLE_CAR_WIDTH_M = (1.6, 2.2)
 SIDE_ALIGNMENT = math.radians(15.0)
+KERB_SEARCH_M = 20.0
+PARKED_CAR_LENGTH_M = (3.8, 5.3)  # a parked car's aisle-side flank, fully seen
+PARALLEL_BAY_LENGTH_M = (6.0, 7.2)
+MIN_PARALLEL_CARS = 3
+MAX_KERB_SNAP_M = 3.5
+FLANK_GAP_M = 0.4  # gaps between parked cars along a kerb are wider than this
 MAX_SNAP_M = 1.0
 ROW_DIRECTION_TOLERANCE = math.radians(50.0)
 CLOSING_SIDE_M = 2.5  # a closing car's side seen along the bay depth
@@ -164,16 +170,16 @@ def snap_to_row(cars: list[tuple[float, float, bool]], across: float, car_width:
     return offset if abs(offset) <= MAX_SNAP_M else None
 
 
-def fit_lattice(centres: list[float]) -> tuple[float, float] | None:
+def fit_lattice(centres: list[float], width_range: tuple[float, float] = BAY_WIDTH_RANGE_M, min_cars: int = MIN_LATTICE_CARS) -> tuple[float, float] | None:
     """(bay width, phase) of the regular lattice the car centres sit on, or None.
 
     Each width is scored by how tightly the centres agree in phase (the
     length of their mean unit phasor); the best one must be clearly regular.
     """
-    if len(centres) < MIN_LATTICE_CARS:
+    if len(centres) < min_cars:
         return None
     x = np.asarray(centres)
-    widths = np.arange(BAY_WIDTH_RANGE_M[0], BAY_WIDTH_RANGE_M[1] + 1e-9, 0.005)
+    widths = np.arange(width_range[0], width_range[1] + 1e-9, 0.005)
     phasors = np.exp(2j * np.pi * x[None, :] / widths[:, None]).mean(axis=1)
     best = int(np.argmax(np.abs(phasors)))
     if abs(phasors[best]) < LATTICE_COHERENCE:
@@ -184,3 +190,43 @@ def fit_lattice(centres: list[float]) -> tuple[float, float] | None:
     if float(np.sqrt(np.mean(residual ** 2))) > LATTICE_MAX_RMS_M:
         return None
     return width, phase
+
+
+def kerb_slot_offset(grid: OccupancyGrid, states: np.ndarray, center: np.ndarray, u: np.ndarray, aisle: np.ndarray, band: tuple[float, float], car_length: float) -> float | None:
+    """Offset along the kerb from ``center`` to the parallel bay it falls in, or None.
+
+    The same lattice idea along a kerb: a probe across the parked-car band
+    (``band`` metres along ``aisle``, short of the kerb) slides along the
+    kerb; each parked car shows its aisle-side flank as a run as long as
+    the car. Whole cars fix the bay length and phase; the bay must lie
+    between whole cars and clear of every parked car. A run longer than any
+    car is a wall along the kerb line: no bay is placed.
+    """
+    ts = np.arange(-KERB_SEARCH_M, KERB_SEARCH_M + 1e-9, STEP_M)
+    occupied = _probe(grid, states, center, aisle, u, ts, np.arange(band[0], band[1], 0.15))
+    runs: list[tuple[float, float]] = []
+    start = None
+    for index, value in enumerate(np.append(occupied.any(axis=1), False)):
+        if value and start is None:
+            start = index
+        elif not value and start is not None:
+            first, last = float(ts[start]), float(ts[index - 1])
+            # A flank seen in pieces (a few cells missed) is still one car.
+            if runs and first - runs[-1][1] <= FLANK_GAP_M:
+                first = runs.pop()[0]
+            runs.append((first, last))
+            start = None
+    if any(last - first > MAX_CAR_SIDE_M for first, last in runs):
+        return None
+    whole = [(first + last) / 2.0 for first, last in runs if PARKED_CAR_LENGTH_M[0] <= last - first <= PARKED_CAR_LENGTH_M[1]]
+    lattice = fit_lattice(whole, PARALLEL_BAY_LENGTH_M, MIN_PARALLEL_CARS)
+    if lattice is None:
+        return None
+    length, phase = lattice
+    bay = phase + round(-phase / length) * length
+    if not min(whole) < bay < max(whole) or abs(bay) > MAX_KERB_SNAP_M:
+        return None
+    half = car_length / 2.0 - LATTICE_MARGIN_M
+    if any(first < bay + half and bay - half < last for first, last in runs):
+        return None
+    return bay
