@@ -578,15 +578,30 @@ def _percentile(values, q: float) -> Optional[float]:
     return float(np.percentile(values, q)) if values else None
 
 
-def _run_seed(seed: int, localization: str = "truth") -> dict:
+SCENARIOS = ("mixed", "parallel")
+
+
+def scenario_lot(seed: int, scenario: str = "mixed") -> ProceduralLot:
+    """``mixed``: the ordinary random lot. ``parallel``: rows along both walls
+    are parallel bays and only those are free, so the car must parallel park."""
     from .procedural_lot import generate_lot
 
+    if scenario == "parallel":
+        return generate_lot(seed, wall_row_kind="parallel", free_kinds=("parallel",))
+    if scenario != "mixed":
+        raise ValueError(f"unknown scenario {scenario!r}; expected one of {SCENARIOS}")
+    return generate_lot(seed)
+
+
+def _run_seed(seed: int, localization: str = "truth", scenario: str = "mixed") -> dict:
     import time as _time
 
     started = _time.perf_counter()
-    result = run_mission(generate_lot(seed), MissionConfig(localization=localization), seed=seed)
+    lot = scenario_lot(seed, scenario)
+    result = run_mission(lot, MissionConfig(localization=localization), seed=seed)
     return {
         "seed": seed,
+        "free_bays": len(lot.free_bays),
         "outcome": result.outcome,
         "success": result.success,
         "time_s": round(result.time_s, 1),
@@ -606,8 +621,6 @@ def main(argv: list[str] | None = None) -> int:
     import os
     from pathlib import Path
 
-    from .procedural_lot import generate_lot
-
     parser = argparse.ArgumentParser(description="Park in never-seen lots using only the simulated LiDAR")
     parser.add_argument("--seed", type=int, default=1000, help="lot seed for a single mission")
     parser.add_argument("--output", default="artifacts/mission/mission.png", help="figure for a single mission")
@@ -615,12 +628,13 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--workers", type=int, default=min(8, os.cpu_count() or 1))
     parser.add_argument("--json", default="artifacts/mission/benchmark.json")
     parser.add_argument("--localization", choices=LOCALIZATION_MODES, default="truth", help="where the car believes it is")
+    parser.add_argument("--scenario", choices=SCENARIOS, default="mixed", help="kind of lot")
     args = parser.parse_args(argv)
 
     if not args.benchmark:
         from .mission_render import render_mission
 
-        lot = generate_lot(args.seed)
+        lot = scenario_lot(args.seed, args.scenario)
         result = run_mission(lot, MissionConfig(localization=args.localization), seed=args.seed)
         for event in result.events:
             print(f"{event.time_s:7.1f} s  {event.kind:8s} {event.message}")
@@ -631,7 +645,7 @@ def main(argv: list[str] | None = None) -> int:
     first, last = (int(part) for part in args.benchmark.split(":"))
     rows = []
     with ProcessPoolExecutor(max_workers=args.workers) as executor:
-        futures = [executor.submit(_run_seed, seed, args.localization) for seed in range(first, last)]
+        futures = [executor.submit(_run_seed, seed, args.localization, args.scenario) for seed in range(first, last)]
         for future in as_completed(futures):
             row = future.result()
             rows.append(row)
@@ -643,6 +657,8 @@ def main(argv: list[str] | None = None) -> int:
     parked = [row for row in rows if row["outcome"] == "PARKED"]
     summary = {
         "lots": len(rows),
+        # A lot with no free bay counts only through wrong parks and collisions.
+        "lots_with_a_free_bay": sum(row["free_bays"] > 0 for row in rows),
         "success": sum(row["success"] for row in rows),
         "outcomes": outcomes,
         "parked_in_wrong_place": sum(1 for row in parked if not row["success"]),

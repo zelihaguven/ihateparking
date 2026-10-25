@@ -5,7 +5,7 @@ import numpy as np
 
 from ihateparking.geometry import Pose, polygons_intersect
 from ihateparking.lidar import LidarConfig, scan, sensor_origin
-from ihateparking.mission import evaluate_parking, run_mission
+from ihateparking.mission import evaluate_parking, run_mission, scenario_lot
 from ihateparking.occupancy_map import FREE, OCCUPIED, OccupancyGrid
 from ihateparking.procedural_lot import generate_lot
 from ihateparking.row_lattice import fit_lattice
@@ -139,6 +139,14 @@ class RowLatticeTests(unittest.TestCase):
 
 
 class ProceduralLotTests(unittest.TestCase):
+    def test_parallel_scenario_leaves_only_parallel_bays_free(self) -> None:
+        for seed in range(9000, 9010):
+            lot = scenario_lot(seed, "parallel")
+            with self.subTest(seed=seed):
+                self.assertTrue(any(bay.kind == "parallel" for bay in lot.bays))
+                self.assertTrue(all(bay.kind == "parallel" for bay in lot.free_bays))
+                self.assertEqual(scenario_lot(seed), generate_lot(seed))
+
     def test_lots_differ_and_are_consistent(self) -> None:
         first, second = generate_lot(1), generate_lot(2)
         self.assertNotEqual(first.rotation, second.rotation)

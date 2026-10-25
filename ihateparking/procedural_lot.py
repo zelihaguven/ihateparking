@@ -54,6 +54,7 @@ class _Builder:
     obstacles: list[RectangleObstacle]
     bays: list[TruthBay]
     occupancy: float
+    free_kinds: tuple[BayKind, ...] | None = None
 
     def add_box(self, name: str, x0: float, x1: float, y0: float, y1: float) -> None:
         self.obstacles.append(RectangleObstacle(name, ((x0 + x1) / 2, (y0 + y1) / 2), x1 - x0, y1 - y0, 0.0))
@@ -61,6 +62,8 @@ class _Builder:
     def add_bay(self, kind: BayKind, slot: ParkingSlot) -> None:
         bay_id = f"{kind[0].upper()}{len(self.bays) + 1:02d}"
         occupied = self.rng.random() < self.occupancy
+        if self.free_kinds is not None and kind not in self.free_kinds:
+            occupied = True
         self.bays.append(TruthBay(bay_id, kind, slot, occupied))
         if occupied:
             self.obstacles.append(self._parked_car(bay_id, kind, slot))
@@ -149,18 +152,29 @@ def _pick_kind(rng: random.Random, allow_parallel: bool) -> BayKind:
     return rng.choice(kinds)
 
 
-def generate_lot(seed: int, occupancy: float | None = None, vehicle: VehicleSpec | None = None) -> ProceduralLot:
-    """Build a random lot; ``occupancy`` defaults to a seeded value in 0.4-0.8."""
+def generate_lot(
+    seed: int,
+    occupancy: float | None = None,
+    vehicle: VehicleSpec | None = None,
+    wall_row_kind: BayKind | None = None,
+    free_kinds: tuple[BayKind, ...] | None = None,
+) -> ProceduralLot:
+    """Build a random lot; ``occupancy`` defaults to a seeded value in 0.4-0.8.
+
+    ``wall_row_kind`` forces both rows along the walls to exist and be of that
+    kind; ``free_kinds`` leaves only bays of those kinds free. Both default to
+    the ordinary random lot, unchanged for every seed.
+    """
     rng = random.Random(seed)
     vehicle = vehicle or VehicleSpec()
     width = rng.uniform(34.0, 48.0)
     occupancy = rng.uniform(0.4, 0.8) if occupancy is None else occupancy
-    builder = _Builder(rng, width, [], [], occupancy)
+    builder = _Builder(rng, width, [], [], occupancy, free_kinds)
     aisles: list[tuple[float, float]] = []
 
     y = 0.0
-    if rng.random() < 0.75:  # row along the bottom wall, opening upwards
-        spec = _row_spec(rng, _pick_kind(rng, allow_parallel=True))
+    if rng.random() < 0.75 or wall_row_kind:  # row along the bottom wall, opening upwards
+        spec = _row_spec(rng, wall_row_kind or _pick_kind(rng, allow_parallel=True))
         _place_row(builder, spec, 0.0, True, 1.0, width - 1.0)
         y = spec.depth
     for block in range(rng.choice([1, 2])):
@@ -187,8 +201,8 @@ def generate_lot(seed: int, occupancy: float | None = None, vehicle: VehicleSpec
     aisle = rng.uniform(6.5, 8.0)
     aisles.append((y, y + aisle))
     y += aisle
-    if rng.random() < 0.75:  # row along the top wall, opening downwards
-        spec = _row_spec(rng, _pick_kind(rng, allow_parallel=True))
+    if rng.random() < 0.75 or wall_row_kind:  # row along the top wall, opening downwards
+        spec = _row_spec(rng, wall_row_kind or _pick_kind(rng, allow_parallel=True))
         y += spec.depth
         _place_row(builder, spec, y, False, 1.0, width - 1.0)
     height = y
