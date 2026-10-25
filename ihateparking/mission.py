@@ -531,8 +531,12 @@ def _plan_still_clear(grid: OccupancyGrid, vehicle, pose: Pose, plan: Optional[P
 
 
 def _median(values) -> Optional[float]:
+    return _percentile(values, 50)
+
+
+def _percentile(values, q: float) -> Optional[float]:
     values = list(values)
-    return float(np.median(values)) if values else None
+    return float(np.percentile(values, q)) if values else None
 
 
 def _run_seed(seed: int) -> dict:
@@ -606,7 +610,10 @@ def main(argv: list[str] | None = None) -> int:
         "max_time_s_when_parked": max((row["time_s"] for row in parked), default=None),
         "median_center_error_m": _median(row["evaluation"]["center_error_m"] for row in parked),
         "max_center_error_m": max((row["evaluation"]["center_error_m"] for row in parked), default=None),
+        "p95_center_error_m": _percentile((row["evaluation"]["center_error_m"] for row in parked), 95),
         "median_axis_error_deg": _median(row["evaluation"]["axis_error_deg"] for row in parked),
+        "p95_axis_error_deg": _percentile((row["evaluation"]["axis_error_deg"] for row in parked), 95),
+        "min_overlap": min((row["evaluation"]["overlap"] for row in parked), default=None),
         "max_axis_error_deg": max((row["evaluation"]["axis_error_deg"] for row in parked), default=None),
     }
     path = Path(args.json)

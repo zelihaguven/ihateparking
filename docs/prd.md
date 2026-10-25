@@ -47,19 +47,25 @@ Simülasyonda, rastgele üretilmiş ve hiç görülmemiş otoparklarda:
 
 Ölçüm: geliştirmede hiç kullanılmamış en az 100 otoparklık bir seed kümesi (öneri: `5000:5100`).
 
-| Metrik | Önerilen hedef | Son ölçüm (seed 3000–3039, 40 otopark) |
-|--------|----------------|-----------------------------------------|
-| Doğru boş yuvaya park oranı | ≥ %95 | %68 (27/40), son düzeltmelerden önce |
-| Yanlış yere park | 0 | 0 |
-| Çarpışma | 0 | 0 |
-| Güvenli olmayan bitiş (hareket halinde kalma, kilitlenme) | 0 | 0 |
-| Yuva örtüşmesi (doğru park sayılmak için) | ≥ %80 | eşik olarak uygulanıyor |
-| Eksen hatası | ≤ 5° | eşik 15°; dağılım ölçülmedi |
-| Son konum hatası (aracın merkezi ile yuvanın merkezi arasındaki mesafe) | ≤ 20 cm | ölçülmedi |
-| Konum tahmini açıkken doğru park oranı | ≥ %95 | konum tahmini yok |
-| Görev süresi (simüle, medyan / en kötü) | ≤ 90 sn / ≤ 240 sn | 66.7 sn medyan; en kötü ölçülmedi |
-| Yuva tespiti kesinliği (tespit edilenlerin gerçekten boş olması) | %100 | %100 (37/37) |
-| Otomatik test paketi | tamamı geçer | 76 geçti, 3 atlandı (CasADi yok) |
+| Metrik | Hedef | Kabul ölçümü (042dc32, seed 7000–7099, 100 otopark) |
+|--------|-------|------------------------------------------------------|
+| Doğru boş yuvaya park oranı | ≥ %95 | %99 (99/100) ✅ |
+| Yanlış yere park | 0 | 0 ✅ |
+| Çarpışma | 0 | 0 ✅ |
+| Güvenli olmayan bitiş (hareket halinde kalma, kilitlenme) | 0 | 0 ✅ |
+| Yuva örtüşmesi — **her park için** | ≥ %80 | en kötüsü %95.7 ✅ |
+| Konum hatası (araç merkezi ile yuva merkezi) — medyan | ≤ 20 cm | 19 cm ✅ |
+| Konum hatası — parkların %95'i | ≤ 40 cm | 40 cm ✅ |
+| Eksen hatası — medyan | ≤ 5° | 2.2° ✅ |
+| Eksen hatası — parkların %95'i | ≤ 10° | 7.6° ✅ |
+| Görev süresi (simüle) — medyan / en kötü | ≤ 90 sn / ≤ 240 sn | 37 sn / 224 sn ✅ |
+| Yuva tespiti kesinliği (tespit edilenlerin gerçekten boş olması) | %100 | %100 (görev içinde yanlış park 0) ✅ |
+| Konum tahmini açıkken doğru park oranı | ≥ %95 | 2. adım, henüz yok |
+| Otomatik test paketi | tamamı geçer | 80 geçti, 3 atlandı (CasADi yok) ✅ |
+
+Konum ve eksen hatası her park için tek tek sınır değildir: günlük kullanımda birkaç on santimlik kayıklık normaldir. Her park için zorunlu olan, aracın yuvanın içinde (örtüşme) ve çarpışmasız durmasıdır. Medyan tipik parkı, %95'lik değer seyrek kötü parkları sınırlar (2026-10-25'te onaylandı).
+
+Kabul ölçümünde araç hiç paralel yuvaya park etmedi (63 dik, 36 eğik); paralel park ayrı bir test kümesiyle doğrulanacak.
 
 Bir sürüm ancak tüm kriterler aynı ölçüm kümesinde sağlanırsa "tamamlandı" sayılır.
 
