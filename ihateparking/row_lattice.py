@@ -146,11 +146,17 @@ def snap_to_row(cars: list[tuple[float, float, bool]], across: float, car_width:
     last_behind, first_ahead = max(behind), min(ahead)
     if not (last_behind[2] and first_ahead[2]):
         return None
-    lattice = fit_lattice([(first + last) / 2.0 * across for first, last, _ in cars if WHOLE_CAR_WIDTH_M[0] <= (last - first) * across <= WHOLE_CAR_WIDTH_M[1]])
+    whole = [(first + last) / 2.0 * across for first, last, _ in cars if WHOLE_CAR_WIDTH_M[0] <= (last - first) * across <= WHOLE_CAR_WIDTH_M[1]]
+    lattice = fit_lattice(whole)
     if lattice is None:
         return None
     width, phase = lattice
     bay = phase + round(-phase / width) * width
+    # The bay must lie inside the row the lattice was fitted to, with whole
+    # parked cars on both sides: past the last car of a row, the "car" that
+    # seems to close the run can be a wall at a slight angle.
+    if not min(whole) < bay < max(whole):
+        return None
     margin = car_width / 2.0 - LATTICE_MARGIN_M
     if bay - margin < last_behind[1] * across or bay + margin > first_ahead[0] * across:
         return None

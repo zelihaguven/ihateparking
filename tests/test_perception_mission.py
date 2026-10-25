@@ -8,7 +8,7 @@ from ihateparking.lidar import LidarConfig, scan, sensor_origin
 from ihateparking.mission import evaluate_parking, run_mission, scenario_lot
 from ihateparking.occupancy_map import FREE, OCCUPIED, OccupancyGrid
 from ihateparking.procedural_lot import generate_lot
-from ihateparking.row_lattice import fit_lattice
+from ihateparking.row_lattice import fit_lattice, snap_to_row
 from ihateparking.slot_detector import detect_slots
 from ihateparking.world import ParkingWorld, RectangleObstacle, VehicleSpec
 
@@ -132,6 +132,13 @@ class RowLatticeTests(unittest.TestCase):
         width, phase = fit_lattice(centres)
         self.assertAlmostEqual(width, 2.62, delta=0.05)
         self.assertAlmostEqual((phase - 0.4 + width / 2) % width - width / 2, 0.0, delta=0.2)
+
+    def test_no_bay_past_the_last_car_of_a_row(self) -> None:
+        # Regression (seed 9021, parallel scenario): past the end of a row a
+        # wall at a slight angle looked like a car closing a run, and the car
+        # parked beyond the last parked car. Cars at -2..-14 m, "closer" at 6 m.
+        cars = [(-1.95 - 2.65 * k, -0.05 - 2.65 * k, True) for k in range(5)] + [(6.0, 6.4, True)]
+        self.assertIsNone(snap_to_row(sorted(cars), 1.0, 1.9))
 
     def test_fit_rejects_irregular_spacing(self) -> None:
         self.assertIsNone(fit_lattice([0.0, 2.1, 5.9, 7.3, 11.8]))
