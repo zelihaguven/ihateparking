@@ -71,8 +71,23 @@ e4b2013 is 208/208 and 327/327 correct (precision 100%).
 
 Bays parked in: 63 perpendicular, 36 angled, 0 parallel (parallel parking is barely exercised).
 
+## PRD step 2: pose estimation (branch feat/pose-estimation)
+
+`--localization truth | odometry | scan_matching`. The true pose drives the simulation, sensor,
+guard and scoring; the stack sees only the estimate.
+
+| Step | Commit | What |
+|------|--------|------|
+| 2.1 | 153cfce | noisy wheel/steering odometry (scale error, steering bias, noise) |
+| 2.2 | 3e5eaaf | mission runs on the estimate |
+| 2.3 | 0cf2693 | scan-to-map matching corrects the estimate every scan |
+
+Dev 6000–6059, odometry alone: 58/60, 0 wrong, 0 collisions, but centre error median 24 cm /
+p95 46 cm, longest mission 351 s, estimate off by up to 10 m — fails the PRD alignment and time
+targets. Scan matching on 6 drifting lots: estimate error 0.18–1.65 m -> 0.03–0.21 m.
+
 ## Next steps
 
-1. Decide with the user whether centre/axis targets are medians or per-park limits; if
-   per-park, tighten the final alignment (target choice and approach).
-2. PRD step 2: pose estimation from noisy odometry + LiDAR.
+1. Dev benchmark with scan matching (running).
+2. Parallel-parking test set.
+3. Fresh acceptance set (7100–7199) with scan matching.
