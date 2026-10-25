@@ -5,7 +5,9 @@ import numpy as np
 
 from ihateparking.geometry import Pose, wrap_angle
 from ihateparking.lidar import LidarConfig, scan
+from ihateparking.mission import MissionConfig, run_mission
 from ihateparking.odometry import Odometry, OdometryConfig, place_scan
+from ihateparking.procedural_lot import generate_lot
 from ihateparking.world import RectangleObstacle, VehicleSpec
 
 VEHICLE = VehicleSpec()
@@ -59,6 +61,18 @@ class PlaceScanTests(unittest.TestCase):
         # The wall straight ahead now appears straight ahead of the believed pose.
         self.assertAlmostEqual(x, placed.origin[0], delta=0.05)
         self.assertGreater(y, placed.origin[1] + 5.0)
+
+
+class MissionLocalizationTests(unittest.TestCase):
+    def test_parks_on_odometry_alone_while_the_estimate_drifts(self) -> None:
+        result = run_mission(generate_lot(8), MissionConfig(localization="odometry"), seed=8)
+        self.assertTrue(result.success, result.evaluation)
+        self.assertEqual(result.collisions, 0)
+        self.assertGreater(result.localization_error_m, 0.0)
+
+    def test_unknown_localization_is_rejected(self) -> None:
+        with self.assertRaises(ValueError):
+            run_mission(generate_lot(8), MissionConfig(localization="gps"), seed=8)
 
 
 if __name__ == "__main__":

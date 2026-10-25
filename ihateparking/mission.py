@@ -29,6 +29,7 @@ from .controller import ControllerConfig, PlanTracker
 from .geometry import Pose, distance, wrap_angle
 from .holonomic_heuristic import build_distance_field
 from .lidar import LidarConfig, scan
+from .odometry import Odometry, OdometryConfig, place_scan
 from .occupancy_map import FREE, OCCUPIED, UNKNOWN, GridConfig, MapWorld, OccupancyGrid
 from .planner import HybridAStar, PlannerConfig, PlanResult
 from .procedural_lot import ProceduralLot
@@ -36,11 +37,18 @@ from .slot_detector import SlotCandidate, detect_slots
 from .world import ParkingWorld
 
 
+LOCALIZATION_MODES = ("truth", "odometry")
+
+
 @dataclass(frozen=True)
 class MissionConfig:
     dt: float = 0.05
     scan_period_s: float = 0.2
     max_time_s: float = 420.0
+    # Where the car thinks it is: "truth" (perfect) or "odometry" (dead
+    # reckoning from noisy wheel and steering sensors).
+    localization: str = "truth"
+    odometry: OdometryConfig = OdometryConfig()
     explore_horizon_m: float = 6.0
     park_planner: PlannerConfig = PlannerConfig(max_expansions=12_000)
     # Exploration needs reach, not centimetre accuracy: a coarser lattice.
@@ -98,6 +106,13 @@ class MissionResult:
     target: Optional[SlotCandidate]
     grid: OccupancyGrid
     evaluation: dict = field(default_factory=dict)
+    estimate_trace: list[Pose] = field(default_factory=list)  # where the car believed it was
+
+    @property
+    def localization_error_m(self) -> float:
+        if not self.estimate_trace:
+            return 0.0
+        return distance(self.trace[-1], self.estimate_trace[-1])
 
 
 def _truth_world(lot: ProceduralLot) -> ParkingWorld:
@@ -340,12 +355,18 @@ def evaluate_parking(lot: ProceduralLot, pose: Pose) -> dict:
 
 
 def run_mission(lot: ProceduralLot, config: MissionConfig = MissionConfig(), seed: int = 0) -> MissionResult:
+    if config.localization not in LOCALIZATION_MODES:
+        raise ValueError(f"unknown localization {config.localization!r}; expected one of {LOCALIZATION_MODES}")
     rng = np.random.default_rng(seed)
     vehicle = lot.vehicle
     truth = _truth_world(lot)
-    pose = lot.start
+    # ``true_pose`` drives the simulation, the sensor and the collision guard;
+    # ``pose`` is the car's own estimate, and the whole stack uses only that.
+    true_pose = pose = lot.start
+    odometry = Odometry(vehicle, config.odometry, np.random.default_rng([seed, 1])) if config.localization != "truth" else None
     grid = OccupancyGrid((pose.x, pose.y), config.grid)
-    trace, gears, events = [pose], [], []
+    trace, gears, events = [true_pose], [], []
+    estimate_trace = [pose]
     t = 0.0
     travelled = 0.0
     steps_per_scan = max(1, int(round(config.scan_period_s / config.dt)))
@@ -374,11 +395,15 @@ def run_mission(lot: ProceduralLot, config: MissionConfig = MissionConfig(), see
 
     def finish(outcome: str, message: str, collisions: int = 0) -> MissionResult:
         log("end", message)
-        evaluation = evaluate_parking(lot, pose) if outcome == "PARKED" else {}
+        evaluation = evaluate_parking(lot, true_pose) if outcome == "PARKED" else {}
         success = outcome == "PARKED" and evaluation.get("in_bay", False) and collisions == 0
-        return MissionResult(outcome, success, message, trace, gears, events, t, travelled, collisions, target, grid, evaluation)
+        return MissionResult(outcome, success, message, trace, gears, events, t, travelled, collisions, target, grid, evaluation, estimate_trace)
 
-    grid.integrate(scan(pose, lot.obstacles, vehicle, config.lidar, rng))
+    def observe() -> None:
+        measured = scan(true_pose, lot.obstacles, vehicle, config.lidar, rng)
+        grid.integrate(measured if odometry is None else place_scan(measured, true_pose, pose, vehicle))
+
+    observe()
     while t < config.max_time_s:
         if mode == "decide":
             world = MapWorld(grid, vehicle, pose)
@@ -489,21 +514,23 @@ def run_mission(lot: ProceduralLot, config: MissionConfig = MissionConfig(), see
             continue
         signed = command.speed * command.gear
         next_pose = Pose(
-            pose.x + signed * math.cos(pose.yaw) * config.dt,
-            pose.y + signed * math.sin(pose.yaw) * config.dt,
-            wrap_angle(pose.yaw + signed / vehicle.wheelbase * math.tan(command.steering) * config.dt),
+            true_pose.x + signed * math.cos(true_pose.yaw) * config.dt,
+            true_pose.y + signed * math.sin(true_pose.yaw) * config.dt,
+            wrap_angle(true_pose.yaw + signed / vehicle.wheelbase * math.tan(command.steering) * config.dt),
         )
         if truth.is_collision(next_pose, extra_margin=-truth.collision_margin):
             return finish("GUARD_STOP", "collision guard rejected the next pose; the vehicle stops", collisions=1)
-        travelled += distance(pose, next_pose)
-        pose = next_pose
-        trace.append(pose)
+        travelled += distance(true_pose, next_pose)
+        true_pose = next_pose
+        pose = true_pose if odometry is None else odometry.step(pose, signed, command.steering, config.dt)
+        trace.append(true_pose)
+        estimate_trace.append(pose)
         gears.append(command.gear)
         t += config.dt
         step += 1
         if step % steps_per_scan:
             continue
-        grid.integrate(scan(pose, lot.obstacles, vehicle, config.lidar, rng))
+        observe()
         if mode == "explore" and travelled - leg_start >= config.explore_horizon_m:
             mode = "decide"
             continue
@@ -539,13 +566,13 @@ def _percentile(values, q: float) -> Optional[float]:
     return float(np.percentile(values, q)) if values else None
 
 
-def _run_seed(seed: int) -> dict:
+def _run_seed(seed: int, localization: str = "truth") -> dict:
     from .procedural_lot import generate_lot
 
     import time as _time
 
     started = _time.perf_counter()
-    result = run_mission(generate_lot(seed), seed=seed)
+    result = run_mission(generate_lot(seed), MissionConfig(localization=localization), seed=seed)
     return {
         "seed": seed,
         "outcome": result.outcome,
@@ -555,6 +582,7 @@ def _run_seed(seed: int) -> dict:
         "collisions": result.collisions,
         "evaluation": result.evaluation,
         "message": result.message,
+        "localization_error_m": round(result.localization_error_m, 3),
         "wall_s": round(_time.perf_counter() - started, 1),
     }
 
@@ -574,13 +602,14 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--benchmark", metavar="FIRST:LAST", help="run every seed in [FIRST, LAST) and summarise")
     parser.add_argument("--workers", type=int, default=min(8, os.cpu_count() or 1))
     parser.add_argument("--json", default="artifacts/mission/benchmark.json")
+    parser.add_argument("--localization", choices=LOCALIZATION_MODES, default="truth", help="where the car believes it is")
     args = parser.parse_args(argv)
 
     if not args.benchmark:
         from .mission_render import render_mission
 
         lot = generate_lot(args.seed)
-        result = run_mission(lot, seed=args.seed)
+        result = run_mission(lot, MissionConfig(localization=args.localization), seed=args.seed)
         for event in result.events:
             print(f"{event.time_s:7.1f} s  {event.kind:8s} {event.message}")
         print(json.dumps({"outcome": result.outcome, "success": result.success, "evaluation": result.evaluation}, indent=2))
@@ -590,7 +619,7 @@ def main(argv: list[str] | None = None) -> int:
     first, last = (int(part) for part in args.benchmark.split(":"))
     rows = []
     with ProcessPoolExecutor(max_workers=args.workers) as executor:
-        futures = [executor.submit(_run_seed, seed) for seed in range(first, last)]
+        futures = [executor.submit(_run_seed, seed, args.localization) for seed in range(first, last)]
         for future in as_completed(futures):
             row = future.result()
             rows.append(row)
@@ -613,6 +642,8 @@ def main(argv: list[str] | None = None) -> int:
         "p95_center_error_m": _percentile((row["evaluation"]["center_error_m"] for row in parked), 95),
         "median_axis_error_deg": _median(row["evaluation"]["axis_error_deg"] for row in parked),
         "p95_axis_error_deg": _percentile((row["evaluation"]["axis_error_deg"] for row in parked), 95),
+        "median_localization_error_m": _median(row["localization_error_m"] for row in rows),
+        "max_localization_error_m": max((row["localization_error_m"] for row in rows), default=None),
         "min_overlap": min((row["evaluation"]["overlap"] for row in parked), default=None),
         "max_axis_error_deg": max((row["evaluation"]["axis_error_deg"] for row in parked), default=None),
     }
