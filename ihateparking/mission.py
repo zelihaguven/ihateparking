@@ -38,6 +38,8 @@ from .slot_detector import SlotCandidate, detect_slots
 from .world import ParkingWorld
 
 
+STAGING_AHEAD_M = (5.5, 6.5)
+STAGING_LATERAL_M = (2.2, 2.6, 3.0)
 LOCALIZATION_MODES = ("truth", "odometry", "scan_matching")
 
 
@@ -121,6 +123,34 @@ class MissionResult:
 def _truth_world(lot: ProceduralLot) -> ParkingWorld:
     any_slot = lot.bays[0].slot if lot.bays else None
     return ParkingWorld(lot.bounds, list(lot.obstacles), any_slot, lot.start, lot.vehicle)
+
+
+def _parallel_staging(world: MapWorld, candidate: SlotCandidate, config: PlannerConfig) -> Optional[Pose]:
+    """A pose alongside the car ahead of a parallel bay from which the bay is reachable.
+
+    Parallel with the kerb, ``STAGING_AHEAD_M`` past the bay centre and a car
+    width or so out into the aisle; the kerb side is ruled out because the
+    pose collides there. Returned only if the reverse-in plan exists.
+    """
+    vehicle = world.vehicle
+    offset = vehicle.length / 2 - vehicle.rear_overhang
+    center = np.array(candidate.center)
+    for heading in candidate.headings():
+        goal = candidate.goal(heading, vehicle)
+        if world.is_collision(goal):
+            continue
+        u = np.array([math.cos(heading), math.sin(heading)])
+        normal = np.array([-u[1], u[0]])
+        for ahead in STAGING_AHEAD_M:
+            for lateral in STAGING_LATERAL_M:
+                for side in (normal, -normal):
+                    footprint = center + u * ahead + side * lateral
+                    stage = Pose(float(footprint[0] - offset * u[0]), float(footprint[1] - offset * u[1]), heading)
+                    if world.is_collision(stage):
+                        continue
+                    if HybridAStar(world, config).plan(start=stage, goal=goal).success:
+                        return stage
+    return None
 
 
 def _best_plan(world: MapWorld, start: Pose, candidate: SlotCandidate, config: PlannerConfig) -> Optional[tuple[PlanResult, float]]:
@@ -388,6 +418,7 @@ def run_mission(lot: ProceduralLot, config: MissionConfig = MissionConfig(), see
     frontier_visits: dict[tuple[int, int], int] = {}
     exhausted: list[tuple[float, float]] = []
     inspected: list[tuple[float, float]] = []
+    staged_bays: list[tuple[float, float]] = []  # parallel bays already approached via a staging pose
     leg_start = 0.0
     recoveries = 0
     escapes = 0
@@ -440,8 +471,22 @@ def run_mission(lot: ProceduralLot, config: MissionConfig = MissionConfig(), see
             ]
             candidates.sort(key=lambda item: math.dist(item.center, (pose.x, pose.y)))
             plan, target = None, None
+            staged = False
             for candidate in candidates[: config.candidates_per_decision]:
                 found = _best_plan(world, pose, candidate, config.park_planner)
+                if found is None and candidate.row == "end_to_end" and all(math.dist(candidate.center, other) > 1.5 for other in staged_bays):
+                    # A tight parallel bay is hard to reach in one search from
+                    # mid-aisle. As a driver would, first pull up alongside the
+                    # car ahead of the gap, then reverse in from there.
+                    staging = _parallel_staging(world, candidate, config.park_planner)
+                    if staging is not None:
+                        approach = HybridAStar(MapWorld(grid, vehicle, pose, unknown_is_obstacle=False), config.explore_planner).plan(start=pose, goal=staging)
+                        if approach.success:
+                            staged_bays.append(candidate.center)
+                            plan = approach
+                            log("stage", f"parallel bay at ({candidate.center[0]:.1f}, {candidate.center[1]:.1f}); pulling up alongside to reverse in")
+                            staged = True
+                            break
                 if found is None:
                     rejected.append(candidate.center)
                     log("reject", f"bay candidate at ({candidate.center[0]:.1f}, {candidate.center[1]:.1f}) has no route yet")
@@ -452,7 +497,9 @@ def run_mission(lot: ProceduralLot, config: MissionConfig = MissionConfig(), see
                 log("park", f"verified bay at ({candidate.center[0]:.1f}, {candidate.center[1]:.1f}); {entry}")
                 mode = "park"
                 break
-            if mode != "park":
+            if staged:
+                mode = "stage"
+            elif mode != "park":
                 # Exploration is optimistic: unknown space counts as passable,
                 # and the plan is re-checked after every scan. Parking is not:
                 # the bay and its approach must be seen free.

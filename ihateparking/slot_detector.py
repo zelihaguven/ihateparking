@@ -170,7 +170,7 @@ WALL_CONTINUATION = 0.3
 MAX_CENTERING_SHIFT_M = 0.8
 PARALLEL_GAP_SEARCH_M = 6.0
 PARALLEL_END_GAP_M = 0.6
-KERB_GAP_M = 0.3
+KERB_GAP_M = 0.4  # leaves the planner its 0.15 m margin even along a slightly skewed kerb
 RUN_PROBE_SPACING_M = 1.0
 RUN_SCORE_PENALTY = 10.0
 
