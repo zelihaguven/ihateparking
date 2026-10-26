@@ -90,8 +90,36 @@ Dev 6000–6059 with scan matching (0cf2693): 57/60, 0 wrong, 0 collisions, cent
 19 cm / p95 38 cm, axis 2.2° / 7.2°, longest 214 s, estimate error median 6 cm / max 59 cm. All
 PRD targets met on dev, success right at 95%.
 
+## Parallel parking (scenario `--scenario parallel`, seeds 9000–9059, scan matching)
+
+| Commit | Correct park | Wrong |
+|--------|--------------|-------|
+| 0cf2693 | 6/59 | 1 (9021: parked past the end of a row) |
+| 7428a63 | 23/59 | 0 |
+
+Failures at 7428a63: 22 lots whose free bays are only at the wall end of a row or in runs with
+parked cars on one side, 13 lots with a free bay between two cars (being diagnosed: mostly
+detected but rejected as "no route", i.e. the parallel manoeuvre is not planned), 1 lot with
+no free bay.
+
+### Wall-end bays (user decision b: park like a driver) — tried, not adopted
+
+Detector precision must stay 100% (one false detection is a wrong park). Measured with
+`scripts/eval_detector.py` on dev 6000–6119, held-out 8000–8199 and parallel 9000–9059:
+
+1. Extend the kerb lattice towards a wall across the kerb: no gain (rows at the wall end show
+   only 1–2 whole cars; the lattice needs 3), and it mislabelled some car ends as walls.
+2. Accept any one-car gap closed at both ends: 26 + 54 false detections in mixed lots (a car
+   placed sideways across perpendicular bays).
+3. + require an unbroken kerb: 17 + 43 false.
+4. + require each end to be a car parked along the kerb or a wall across it: 3 + 5 false, for
+   +1 correct parallel detection.
+
+None is safe enough. Next idea if revisited: decide the bay kind of a whole row first
+(parallel vs perpendicular, from the parked cars' orientation), then apply gap rules only in
+rows known to be parallel.
+
 ## Next steps
 
-1. Parallel scenario with scan matching (9000–9059, running).
-2. Parallel-parking test set.
-3. Fresh acceptance set (7100–7199) with scan matching.
+1. Finish the 13-lot diagnosis; if the parallel manoeuvre is the problem, fix the planner side.
+2. Free Mac simulator (MetaDrive) feasibility check; ROS2 layer.
