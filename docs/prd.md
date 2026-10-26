@@ -25,7 +25,7 @@ Simülasyonda, rastgele üretilmiş ve hiç görülmemiş otoparklarda:
 - Görev sonu değerlendirmesi (yalnızca ölçüm için gerçek otopark verisi kullanılır)
 
 **Bu sürümde yok** (sonraki sürümler)
-- Kamera ve öğrenen algı modeli, CARLA, ROS2
+- Kamera ve öğrenen algı modeli, 3-D simülatör, ROS2
 - Hareketli engeller (yaya, araç), gece/yağmur, kalibrasyon hatası
 - Gerçek araç entegrasyonu
 
@@ -75,7 +75,8 @@ Her aşamada en üst öncelik doğru parktır: 0 yanlış park, 0 çarpışma, �
 
 1. **Başarı oranı:** Mevcut simülasyonda %68'den ≥ %95'e çıkmak.
 2. **Konum tahmini:** Araca kusursuz konum vermeyi bırakmak. Gürültülü odometri ile LiDAR eşlemesinden konum tahmin edip yine ≥ %95 doğru park etmek.
-3. **CARLA:** Aynı görevi 3-D, gerçekçi sensörlü simülatörde çalıştırmak. CARLA macOS'ta çalışmaz; NVIDIA GPU'lu bir Linux ya da Windows makinesi gerekir.
+3. **Daha gerçekçi simülatörde doğrulama:** Aynı görevi 3-D, gerçekçi sensörlü bir simülatörde çalıştırmak. CARLA kullanılmayacak (2026-10-26 kararı): bu Mac'te (Apple M4 Pro) çalışmaz, ücretsiz ve güvenilir bir GPU kiralama yolu da yok. Yerine Mac'te ücretsiz çalışan bir simülatör (aday: MetaDrive) denenecek.
+4. **ROS2 katmanı:** Algoritma saf Python kütüphanesi olarak kalır; üstüne `stack_contracts.py` sözleşmelerini ROS2 mesajlarına çeviren ince bir katman eklenir (Docker ya da Linux üzerinde).
 
 ## 7. Bilinen açıklar
 
