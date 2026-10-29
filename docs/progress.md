@@ -134,7 +134,26 @@ None is safe enough. Next idea if revisited: decide the bay kind of a whole row 
 (parallel vs perpendicular, from the parked cars' orientation), then apply gap rules only in
 rows known to be parallel.
 
+## Against the PRD rules of 2026-10-29 (57ad0bd, scan matching)
+
+Position error = centre error for perpendicular/angled bays, lateral error for parallel bays.
+Park time = from committing to the bay to standing in it.
+
+| Metric | Target | Mixed dev 6000–6059 | Parallel 9000–9059 |
+|---|---|---|---|
+| Correct park | ≥ 95% | 58/60 (97%) ✅ | 34/59 (58%) ❌ |
+| Wrong park / collisions | 0 / 0 | 0 / 0 ✅ | 0 / 0 ✅ |
+| Overlap, every park | ≥ 80% | min 89.6% ✅ | min 81.7% ✅ |
+| Position error median / p95 | ≤ 20 / 40 cm | 17 / 39 cm ✅ | 20.4 / 26 cm (median 0.4 cm over) |
+| Axis error median / p95 | ≤ 5° / 10° | 1.8° / 7.2° ✅ | 0.8° / 5.0° ✅ |
+| Total time median | ≤ 90 s | 40 s ✅ | 72 s ✅ |
+| Park time worst | ≤ 240 s | 50 s ✅ | 91 s ✅ |
+
+Both are development sets (tuned on); the step 2 sign-off needs a fresh acceptance run.
+
 ## Next steps
 
-1. Finish the 13-lot diagnosis; if the parallel manoeuvre is the problem, fix the planner side.
-2. Free Mac simulator (MetaDrive) feasibility check; ROS2 layer.
+1. Parallel success (25 NO_SPACE_FOUND, mostly free bays only at the wall end of a row): needs
+   row-level bay-kind reasoning before gap rules (see the wall-end attempts above).
+2. Fresh acceptance run with scan matching (mixed, e.g. 7100–7199) to sign off step 2 for mixed lots.
+3. Free Mac simulator (MetaDrive) feasibility check; ROS2 layer.
