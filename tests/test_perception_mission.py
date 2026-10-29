@@ -192,6 +192,10 @@ class MissionTests(unittest.TestCase):
         self.assertTrue(result.success, result.evaluation)
         self.assertEqual(result.collisions, 0)
         self.assertGreaterEqual(result.evaluation["overlap"], 0.8)
+        evaluation = result.evaluation
+        self.assertAlmostEqual(math.hypot(evaluation["along_error_m"], evaluation["lateral_error_m"]), evaluation["center_error_m"], delta=0.003)
+        self.assertIsNotNone(result.park_time_s)
+        self.assertLessEqual(result.park_time_s, result.time_s)
 
     def test_evaluation_rejects_a_pose_in_the_aisle(self) -> None:
         lot = generate_lot(8)

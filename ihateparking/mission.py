@@ -112,6 +112,7 @@ class MissionResult:
     grid: OccupancyGrid
     evaluation: dict = field(default_factory=dict)
     estimate_trace: list[Pose] = field(default_factory=list)  # where the car believed it was
+    park_time_s: Optional[float] = None  # from finding the bay it parked in to standing in it
 
     @property
     def localization_error_m(self) -> float:
@@ -384,6 +385,10 @@ def evaluate_parking(lot: ProceduralLot, pose: Pose) -> dict:
         "overlap": round(fraction, 3),
         "axis_error_deg": round(axis_error, 1),
         "center_error_m": round(float(np.hypot(*(center - np.array(bay.slot.center)))), 3),
+        # Along the bay axis and across it: in a parallel bay much longer than
+        # the car, only the lateral error says how well the car is placed.
+        "along_error_m": round(float(abs((center - np.array(bay.slot.center)) @ np.array([bc, bs]))), 3),
+        "lateral_error_m": round(float(abs((center - np.array(bay.slot.center)) @ np.array([-bs, bc]))), 3),
     }
 
 
@@ -418,6 +423,7 @@ def run_mission(lot: ProceduralLot, config: MissionConfig = MissionConfig(), see
     frontier_visits: dict[tuple[int, int], int] = {}
     exhausted: list[tuple[float, float]] = []
     inspected: list[tuple[float, float]] = []
+    bay_found_t: Optional[float] = None  # when the car committed to the bay it is heading for
     staged_bays: list[tuple[float, float]] = []  # parallel bays already approached via a staging pose
     leg_start = 0.0
     recoveries = 0
@@ -432,7 +438,8 @@ def run_mission(lot: ProceduralLot, config: MissionConfig = MissionConfig(), see
         log("end", message)
         evaluation = evaluate_parking(lot, true_pose) if outcome == "PARKED" else {}
         success = outcome == "PARKED" and evaluation.get("in_bay", False) and collisions == 0
-        return MissionResult(outcome, success, message, trace, gears, events, t, travelled, collisions, target, grid, evaluation, estimate_trace)
+        park_time = t - bay_found_t if outcome == "PARKED" and bay_found_t is not None else None
+        return MissionResult(outcome, success, message, trace, gears, events, t, travelled, collisions, target, grid, evaluation, estimate_trace, park_time)
 
     def observe(estimate: Pose) -> Pose:
         """Take a scan, correct the estimate against the map, add the scan to it."""
@@ -496,10 +503,14 @@ def run_mission(lot: ProceduralLot, config: MissionConfig = MissionConfig(), see
                 entry = "reversing in" if next((g for g in reversed(plan.gears) if g), 1) < 0 else "driving in"
                 log("park", f"verified bay at ({candidate.center[0]:.1f}, {candidate.center[1]:.1f}); {entry}")
                 mode = "park"
+                if bay_found_t is None:
+                    bay_found_t = t
                 break
             if staged:
                 mode = "stage"
+                bay_found_t = t
             elif mode != "park":
+                bay_found_t = None
                 # Exploration is optimistic: unknown space counts as passable,
                 # and the plan is re-checked after every scan. Parking is not:
                 # the bay and its approach must be seen free.
@@ -657,6 +668,7 @@ def _run_seed(seed: int, localization: str = "truth", scenario: str = "mixed") -
         "evaluation": result.evaluation,
         "message": result.message,
         "localization_error_m": round(result.localization_error_m, 3),
+        "park_time_s": None if result.park_time_s is None else round(result.park_time_s, 1),
         "wall_s": round(_time.perf_counter() - started, 1),
     }
 
@@ -719,6 +731,10 @@ def main(argv: list[str] | None = None) -> int:
         "p95_axis_error_deg": _percentile((row["evaluation"]["axis_error_deg"] for row in parked if "axis_error_deg" in row["evaluation"]), 95),
         "median_localization_error_m": _median(row["localization_error_m"] for row in rows),
         "max_localization_error_m": max((row["localization_error_m"] for row in rows), default=None),
+        "median_lateral_error_m": _median(row["evaluation"]["lateral_error_m"] for row in parked if "lateral_error_m" in row["evaluation"]),
+        "p95_lateral_error_m": _percentile((row["evaluation"]["lateral_error_m"] for row in parked if "lateral_error_m" in row["evaluation"]), 95),
+        "median_park_time_s": _median(row["park_time_s"] for row in parked if row["park_time_s"] is not None),
+        "max_park_time_s": max((row["park_time_s"] for row in parked if row["park_time_s"] is not None), default=None),
         "min_overlap": min((row["evaluation"]["overlap"] for row in parked), default=None),
         "max_axis_error_deg": max((row["evaluation"]["axis_error_deg"] for row in parked if "axis_error_deg" in row["evaluation"]), default=None),
     }

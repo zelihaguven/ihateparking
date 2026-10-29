@@ -54,18 +54,24 @@ Simülasyonda, rastgele üretilmiş ve hiç görülmemiş otoparklarda:
 | Çarpışma | 0 | 0 ✅ |
 | Güvenli olmayan bitiş (hareket halinde kalma, kilitlenme) | 0 | 0 ✅ |
 | Yuva örtüşmesi — **her park için** | ≥ %80 | en kötüsü %95.7 ✅ |
-| Konum hatası (araç merkezi ile yuva merkezi) — medyan | ≤ 20 cm | 19 cm ✅ |
+| Konum hatası — medyan (dik ve eğik: araç merkezi ile yuva merkezi; paralel: yalnızca yanal) | ≤ 20 cm | 19 cm ✅ |
 | Konum hatası — parkların %95'i | ≤ 40 cm | 40 cm ✅ |
 | Eksen hatası — medyan | ≤ 5° | 2.2° ✅ |
 | Eksen hatası — parkların %95'i | ≤ 10° | 7.6° ✅ |
-| Görev süresi (simüle) — medyan / en kötü | ≤ 90 sn / ≤ 240 sn | 37 sn / 224 sn ✅ |
+| Toplam görev süresi (simüle) — medyan | ≤ 90 sn | 37 sn ✅ |
+| Park süresi (yuva bulunduktan sonra) — en kötü | ≤ 240 sn | ölçülecek (toplam görev en kötü 224 sn) |
 | Yuva tespiti kesinliği (tespit edilenlerin gerçekten boş olması) | %100 | %100 (görev içinde yanlış park 0) ✅ |
 | Konum tahmini açıkken doğru park oranı | ≥ %95 | 2. adım, henüz yok |
 | Otomatik test paketi | tamamı geçer | 80 geçti, 3 atlandı (CasADi yok) ✅ |
 
 Konum ve eksen hatası her park için tek tek sınır değildir: günlük kullanımda birkaç on santimlik kayıklık normaldir. Her park için zorunlu olan, aracın yuvanın içinde (örtüşme) ve çarpışmasız durmasıdır. Medyan tipik parkı, %95'lik değer seyrek kötü parkları sınırlar (2026-10-25'te onaylandı).
 
-Kabul ölçümünde araç hiç paralel yuvaya park etmedi (63 dik, 36 eğik); paralel park ayrı bir test kümesiyle doğrulanacak.
+Kabul ölçümünde araç hiç paralel yuvaya park etmedi (63 dik, 36 eğik); paralel park ayrı bir test kümesiyle (`--scenario parallel`) doğrulanıyor.
+
+Paralel yuvalar ve süre için iki ek kural (2026-10-29'da onaylandı):
+
+- **Paralel yuvada konum hatası yalnızca yanal ölçülür** (bordüre dik yönde). 6.2–7.0 m'lik bir yuvadaki 4.4 m'lik araç boyuna yönde ±1 m kayabilir ve yine yuvanın içindedir; çizgiler görünmediği için yuvanın boyuna merkezi ancak park halindeki komşulardan, onlar da yuvalarında ±1 m kaymışken, tahmin edilebilir. Her park için örtüşme şartı (≥ %80) paralel yuvalarda da aynen geçerlidir.
+- **240 sn sınırı park süresine uygulanır**: yuvanın bulunduğu (ya da paralel yuva için yanına çekilmeye karar verildiği) andan park bitene kadar. Toplam görev süresi otoparkı keşfetmeyi de içerir; yalnızca tek tür boş yuvanın olduğu bir otoparkta bütün lotu dolaşmak gerekebilir. Toplam süre için medyan ≤ 90 sn hedefi ve 420 sn'lik görev zaman aşımı geçerliliğini korur.
 
 Bir sürüm ancak tüm kriterler aynı ölçüm kümesinde sağlanırsa "tamamlandı" sayılır.
 
