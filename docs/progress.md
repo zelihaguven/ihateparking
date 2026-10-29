@@ -96,6 +96,21 @@ PRD targets met on dev, success right at 95%.
 |--------|--------------|-------|
 | 0cf2693 | 6/59 | 1 (9021: parked past the end of a row) |
 | 7428a63 | 23/59 | 0 |
+| a9d9a69 | 32/59 | 1 (9016: kerb was the side of a perpendicular car) |
+| ffc2211 | **34/59** | **0** |
+
+ffc2211 (parallel scenario): 0 collisions; axis error median 0.8° / p95 5.0°; centre error
+median 42 cm / p95 109 cm, almost all along the bay (a 4.4 m car in a 6.2–7.0 m bay; bay ends
+known only from parked cars that sit up to 1 m off centre; across the bay p95 is 25 cm); longest
+mission 289 s. Remaining failures: 25 NO_SPACE_FOUND (mostly free bays only at the wall end of a
+row), 1 TIMEOUT.
+
+Mixed dev 6000–6059 at a9d9a69 (scan matching): 58/60, 0 wrong, 0 collisions; centre error p95
+63 cm because the car now often picks the nearer parallel bay (missions are faster: parallel
+parks in 25–37 s instead of 80–150 s).
+
+PRD questions raised by this: centre error along a parallel bay, and the 240 s limit when the car
+must explore a whole lot to find its only kind of free bay.
 
 Failures at 7428a63: 22 lots whose free bays are only at the wall end of a row or in runs with
 parked cars on one side, 13 lots with a free bay between two cars (being diagnosed: mostly
