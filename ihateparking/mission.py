@@ -712,15 +712,15 @@ def main(argv: list[str] | None = None) -> int:
         "collisions": sum(row["collisions"] for row in rows),
         "median_time_s_when_parked": float(np.median([row["time_s"] for row in parked])) if parked else None,
         "max_time_s_when_parked": max((row["time_s"] for row in parked), default=None),
-        "median_center_error_m": _median(row["evaluation"]["center_error_m"] for row in parked),
-        "max_center_error_m": max((row["evaluation"]["center_error_m"] for row in parked), default=None),
-        "p95_center_error_m": _percentile((row["evaluation"]["center_error_m"] for row in parked), 95),
-        "median_axis_error_deg": _median(row["evaluation"]["axis_error_deg"] for row in parked),
-        "p95_axis_error_deg": _percentile((row["evaluation"]["axis_error_deg"] for row in parked), 95),
+        "median_center_error_m": _median(row["evaluation"]["center_error_m"] for row in parked if "center_error_m" in row["evaluation"]),
+        "max_center_error_m": max((row["evaluation"]["center_error_m"] for row in parked if "center_error_m" in row["evaluation"]), default=None),
+        "p95_center_error_m": _percentile((row["evaluation"]["center_error_m"] for row in parked if "center_error_m" in row["evaluation"]), 95),
+        "median_axis_error_deg": _median(row["evaluation"]["axis_error_deg"] for row in parked if "axis_error_deg" in row["evaluation"]),
+        "p95_axis_error_deg": _percentile((row["evaluation"]["axis_error_deg"] for row in parked if "axis_error_deg" in row["evaluation"]), 95),
         "median_localization_error_m": _median(row["localization_error_m"] for row in rows),
         "max_localization_error_m": max((row["localization_error_m"] for row in rows), default=None),
         "min_overlap": min((row["evaluation"]["overlap"] for row in parked), default=None),
-        "max_axis_error_deg": max((row["evaluation"]["axis_error_deg"] for row in parked), default=None),
+        "max_axis_error_deg": max((row["evaluation"]["axis_error_deg"] for row in parked if "axis_error_deg" in row["evaluation"]), default=None),
     }
     path = Path(args.json)
     path.parent.mkdir(parents=True, exist_ok=True)

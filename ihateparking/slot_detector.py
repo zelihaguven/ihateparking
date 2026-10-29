@@ -171,6 +171,7 @@ MAX_CENTERING_SHIFT_M = 0.8
 PARALLEL_GAP_SEARCH_M = 6.0
 PARALLEL_END_GAP_M = 0.6
 KERB_GAP_M = 0.4  # leaves the planner its 0.15 m margin even along a slightly skewed kerb
+KERB_MIN_LENGTH_M = 7.0  # a parked car's side is never this long (cars are 4.2-4.9 m)
 RUN_PROBE_SPACING_M = 1.0
 RUN_SCORE_PENALTY = 10.0
 
@@ -350,6 +351,10 @@ def _place_along_kerb(grid: OccupancyGrid, states: np.ndarray, edge_dir: np.ndar
     if len(sides) != 1:
         return None  # the kerb must be on exactly one side
     aisle = -sides[0]
+    # A kerb or wall runs on well past the bay; the side of a car parked
+    # square to it, which also lines up with the bay, ends within a car length.
+    if not _long_kerb(grid, states, center, u, sides[0], vehicle):
+        return None
     offset = row_lattice.kerb_slot_offset(grid, states, center, u, aisle, (-vehicle.width / 2 + 0.2, vehicle.width / 2 + 0.6), vehicle.length)
     if offset is None:
         return None
@@ -357,6 +362,19 @@ def _place_along_kerb(grid: OccupancyGrid, states: np.ndarray, edge_dir: np.ndar
     if not _footprint_clear(grid, states, placed, yaw, vehicle.length / 2 + SIDE_CLEARANCE_M, vehicle.width / 2 + 0.1, max_unknown):
         return None
     return SlotCandidate((float(placed[0]), float(placed[1])), yaw, snug.row, snug.score)
+
+
+def _long_kerb(grid: OccupancyGrid, states: np.ndarray, center: np.ndarray, u: np.ndarray, kerb_side: np.ndarray, vehicle: VehicleSpec) -> bool:
+    """Occupied structure beside the car on the kerb side, unbroken for KERB_MIN_LENGTH_M."""
+    half_w = vehicle.width / 2
+    along = np.arange(-KERB_MIN_LENGTH_M / 2, KERB_MIN_LENGTH_M / 2 + 1e-9, 0.15)
+    across = np.arange(half_w, half_w + KERB_SEARCH_M + SIDE_CLEARANCE_M + 0.3, 0.15)
+    points = center + along[:, None, None] * u + across[None, :, None] * kerb_side
+    rows, cols = grid.to_cell(points[..., 0], points[..., 1])
+    inside = (rows >= 0) & (rows < grid.shape[0]) & (cols >= 0) & (cols < grid.shape[1])
+    hit = np.zeros(rows.shape, dtype=bool)
+    hit[inside] = states[rows[inside], cols[inside]] == OCCUPIED
+    return bool(hit.any(axis=1).all())
 
 
 def _place_in_run(grid: OccupancyGrid, states: np.ndarray, edge_dir: np.ndarray, vehicle: VehicleSpec, candidate: SlotCandidate, max_unknown: float) -> SlotCandidate | None:
