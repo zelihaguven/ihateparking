@@ -67,11 +67,13 @@ def evaluate(args):
     lot, grid = aisle_sweep(seed, scenario)
     states = grid.states()
     detections = detect_slots(grid, lot.vehicle)
-    good, false = 0, []
+    good, false, errors = 0, [], []
     for candidate in detections:
         verdicts = [evaluate_parking(lot, candidate.goal(heading, lot.vehicle)) for heading in candidate.headings()]
         if any(v["in_bay"] for v in verdicts):
             good += 1
+            hit = next(v for v in verdicts if v["in_bay"])
+            errors.append((hit["bay_kind"], hit["center_error_m"]))
         else:
             v = verdicts[0]
             false.append((round(candidate.center[0], 1), round(candidate.center[1], 1), v.get("bay"), v.get("overlap")))
@@ -84,7 +86,7 @@ def evaluate(args):
         tally = recall.setdefault((bay.kind, flanks), [0, 0])
         tally[0] += found
         tally[1] += 1
-    return seed, good, false, recall
+    return seed, good, false, recall, errors
 
 
 def main(argv: list[str]) -> int:
@@ -92,12 +94,15 @@ def main(argv: list[str]) -> int:
     scenario = argv[2] if len(argv) > 2 else "mixed"
     good = bad = 0
     recall: dict = {}
+    errors: dict = {}
     with ProcessPoolExecutor(max_workers=min(12, os.cpu_count() or 1)) as executor:
-        for seed, g, false, rec in executor.map(evaluate, [(seed, scenario) for seed in range(first, last)]):
+        for seed, g, false, rec, errs in executor.map(evaluate, [(seed, scenario) for seed in range(first, last)]):
             good += g
             bad += len(false)
             if false:
                 print("FALSE", seed, false)
+            for kind, error in errs:
+                errors.setdefault(kind, []).append(error)
             for key, (found, total) in rec.items():
                 tally = recall.setdefault(key, [0, 0])
                 tally[0] += found
@@ -105,6 +110,9 @@ def main(argv: list[str]) -> int:
     print(f"detections {good + bad}: true {good}, false {bad}  precision {good / max(1, good + bad):.3f}")
     for key in sorted(recall):
         print(f"  recall {key[0]:13s} flanks={key[1]}  {recall[key][0]}/{recall[key][1]}")
+    for kind in sorted(errors):
+        values = np.array(errors[kind])
+        print(f"  centre error {kind:13s} median {np.median(values):.2f} m  p95 {np.percentile(values, 95):.2f} m  (n={len(values)})")
     return 1 if bad else 0
 
 
