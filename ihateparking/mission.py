@@ -653,12 +653,12 @@ def scenario_lot(seed: int, scenario: str = "mixed") -> ProceduralLot:
     return generate_lot(seed)
 
 
-def _run_seed(seed: int, localization: str = "truth", scenario: str = "mixed") -> dict:
+def _run_seed(seed: int, localization: str = "truth", scenario: str = "mixed", margin: float = 0.15) -> dict:
     import time as _time
 
     started = _time.perf_counter()
     lot = scenario_lot(seed, scenario)
-    result = run_mission(lot, MissionConfig(localization=localization), seed=seed)
+    result = run_mission(lot, MissionConfig(localization=localization, collision_margin_m=margin), seed=seed)
     return {
         "seed": seed,
         "free_bays": len(lot.free_bays),
@@ -690,13 +690,14 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--json", default="artifacts/mission/benchmark.json")
     parser.add_argument("--localization", choices=LOCALIZATION_MODES, default="truth", help="where the car believes it is")
     parser.add_argument("--scenario", choices=SCENARIOS, default="mixed", help="kind of lot")
+    parser.add_argument("--margin", type=float, default=0.15, help="planner clearance from mapped structure, m")
     args = parser.parse_args(argv)
 
     if not args.benchmark:
         from .mission_render import render_mission
 
         lot = scenario_lot(args.seed, args.scenario)
-        result = run_mission(lot, MissionConfig(localization=args.localization), seed=args.seed)
+        result = run_mission(lot, MissionConfig(localization=args.localization, collision_margin_m=args.margin), seed=args.seed)
         for event in result.events:
             print(f"{event.time_s:7.1f} s  {event.kind:8s} {event.message}")
         print(json.dumps({"outcome": result.outcome, "success": result.success, "evaluation": result.evaluation}, indent=2))
@@ -706,7 +707,7 @@ def main(argv: list[str] | None = None) -> int:
     first, last = (int(part) for part in args.benchmark.split(":"))
     rows = []
     with ProcessPoolExecutor(max_workers=args.workers) as executor:
-        futures = [executor.submit(_run_seed, seed, args.localization, args.scenario) for seed in range(first, last)]
+        futures = [executor.submit(_run_seed, seed, args.localization, args.scenario, args.margin) for seed in range(first, last)]
         for future in as_completed(futures):
             row = future.result()
             rows.append(row)
