@@ -36,7 +36,7 @@ MAX_KERB_SNAP_M = 3.5
 FLANK_GAP_M = 0.4  # gaps between parked cars along a kerb are wider than this
 MAX_SNAP_M = 1.0
 ROW_DIRECTION_TOLERANCE = math.radians(50.0)
-CLOSING_SIDE_M = 2.5  # a closing car's side seen along the bay depth
+CLOSING_SIDE_M = 2.1  # a closing car's side seen along the bay depth; a car nose is ~1.9 m
 MAX_CAR_SIDE_M = 6.0
 WALL_PROBE_EXTRA_M = 3.5
 
