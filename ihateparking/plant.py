@@ -36,9 +36,10 @@ class Plant(Protocol):
         """Drive for ``dt`` towards a steering angle and a signed speed; False if the
         car was stopped from touching anything."""
 
-    def odometry(self) -> tuple[float, float]:
-        """(signed speed, steering) the car actually had during the last ``apply``,
-        as its wheel and steering sensors would see them before noise."""
+    def odometry(self) -> tuple[float, float, float | None]:
+        """(signed speed, steering, yaw rate or None) the car actually had during
+        the last ``apply``, as its wheel, steering and gyro sensors would see them
+        before noise. None: no gyro, heading comes from the steering angle."""
 
     def evaluate(self, pose: Pose) -> dict:
         """Score a final rear-axle pose against the ground truth."""
@@ -78,8 +79,8 @@ class SimPlant:
         self._last = (speed, steering)
         return True
 
-    def odometry(self) -> tuple[float, float]:
-        return self._last
+    def odometry(self) -> tuple[float, float, float | None]:
+        return self._last[0], self._last[1], None
 
     def evaluate(self, pose: Pose) -> dict:
         from .mission import evaluate_parking

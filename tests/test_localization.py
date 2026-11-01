@@ -48,6 +48,27 @@ class OdometryTests(unittest.TestCase):
         self.assertGreater(errors[800], 0.2)  # 60 m of driving drifts by decimetres
 
 
+class GyroTests(unittest.TestCase):
+    def test_heading_follows_the_gyro_not_the_steering(self) -> None:
+        # A chassis that turns 7% less than the bicycle model: the gyro sees it.
+        perfect = OdometryConfig(0.0, 0.0, 0.0, 0.0, gyro_bias_std_deg_s=0.0, gyro_noise_std_deg_s=0.0)
+        odometry = Odometry(VEHICLE, perfect, np.random.default_rng(0))
+        steering, speed, dt = 0.4, 1.5, 0.1
+        true_rate = 0.93 * speed / VEHICLE.wheelbase * math.tan(steering)
+        estimate = Pose(0.0, 0.0, 0.0)
+        for _ in range(100):
+            estimate = odometry.step(estimate, speed, steering, dt, yaw_rate=true_rate)
+        self.assertAlmostEqual(estimate.yaw, wrap_angle(true_rate * 10.0), places=9)
+
+    def test_gyro_bias_drifts_the_heading_slowly(self) -> None:
+        odometry = Odometry(VEHICLE, OdometryConfig(), np.random.default_rng(3))
+        estimate = Pose(0.0, 0.0, 0.0)
+        for _ in range(600):  # one minute standing still at 10 Hz
+            estimate = odometry.step(estimate, 0.0, 0.0, 0.1, yaw_rate=0.0)
+        self.assertLess(abs(math.degrees(estimate.yaw)), 30.0)
+        self.assertNotEqual(estimate.yaw, 0.0)
+
+
 class PlaceScanTests(unittest.TestCase):
     def test_scan_follows_the_estimated_pose(self) -> None:
         wall = RectangleObstacle("wall", (10.0, 0.0), 0.3, 30.0, 0.0)

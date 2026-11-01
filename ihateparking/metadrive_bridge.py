@@ -220,7 +220,7 @@ class MetaDrivePlant:
         self.vehicle = lot.vehicle
         self.dt = lot.step_s
         self.lidar = lidar
-        self._last = (0.0, 0.0)
+        self._last = (0.0, 0.0, 0.0)
 
     def true_pose(self) -> Pose:
         return self.lot.pose()
@@ -229,12 +229,16 @@ class MetaDrivePlant:
         return self.lot.scan(self.lidar)
 
     def apply(self, steering: float, speed: float) -> bool:
+        before = float(self.lot.env.agent.heading_theta)
         self.lot.drive(steering, speed)
         clipped = float(np.clip(steering, -self.vehicle.max_steering, self.vehicle.max_steering))
-        self._last = (self.lot.signed_speed(), clipped)
+        yaw_rate = wrap_angle(float(self.lot.env.agent.heading_theta) - before) / self.dt
+        self._last = (self.lot.signed_speed(), clipped, yaw_rate)
         return not self.lot.crashed()
 
-    def odometry(self) -> tuple[float, float]:
+    def odometry(self) -> tuple[float, float, float | None]:
+        # The car's own gyro: MetaDrive's chassis turns slightly differently
+        # from the bicycle model (about 7% less at large steering angles).
         return self._last
 
     def evaluate(self, pose: Pose) -> dict:

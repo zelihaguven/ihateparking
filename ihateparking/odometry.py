@@ -29,6 +29,10 @@ class OdometryConfig:
     distance_noise_std: float = 0.02  # per metre driven (random walk), metres
     steering_bias_std_deg: float = 0.3  # fixed steering-sensor offset
     steering_noise_std_deg: float = 0.3  # per measurement
+    # Yaw-rate gyro (the ESC sensor every modern car has), used when the plant
+    # provides one: a fixed bias left after standstill calibration, plus noise.
+    gyro_bias_std_deg_s: float = 0.1
+    gyro_noise_std_deg_s: float = 0.2
 
 
 class Odometry:
@@ -38,17 +42,30 @@ class Odometry:
         self.rng = rng
         self.scale = 1.0 + rng.normal(0.0, config.distance_scale_std)
         self.steering_bias = math.radians(rng.normal(0.0, config.steering_bias_std_deg))
+        self.gyro_bias: float | None = None  # drawn when a gyro is first read
 
-    def step(self, estimate: Pose, signed_speed: float, steering: float, dt: float) -> Pose:
-        """Advance ``estimate`` by the motion the sensors report for one step."""
+    def step(self, estimate: Pose, signed_speed: float, steering: float, dt: float, yaw_rate: float | None = None) -> Pose:
+        """Advance ``estimate`` by the motion the sensors report for one step.
+
+        Heading comes from the gyro when the car has one (``yaw_rate``, rad/s,
+        before sensor errors); otherwise from the steering angle through the
+        bicycle model, which a real chassis (tyre slip, steering geometry)
+        follows only approximately.
+        """
         cfg = self.config
         travelled = signed_speed * dt
         measured = travelled * self.scale + self.rng.normal(0.0, cfg.distance_noise_std * math.sqrt(abs(travelled)))
-        angle = steering + self.steering_bias + math.radians(self.rng.normal(0.0, cfg.steering_noise_std_deg))
+        if yaw_rate is not None:
+            if self.gyro_bias is None:
+                self.gyro_bias = math.radians(self.rng.normal(0.0, cfg.gyro_bias_std_deg_s))
+            turned = (yaw_rate + self.gyro_bias + math.radians(self.rng.normal(0.0, cfg.gyro_noise_std_deg_s))) * dt
+        else:
+            angle = steering + self.steering_bias + math.radians(self.rng.normal(0.0, cfg.steering_noise_std_deg))
+            turned = measured / self.vehicle.wheelbase * math.tan(angle)
         return Pose(
             estimate.x + measured * math.cos(estimate.yaw),
             estimate.y + measured * math.sin(estimate.yaw),
-            wrap_angle(estimate.yaw + measured / self.vehicle.wheelbase * math.tan(angle)),
+            wrap_angle(estimate.yaw + turned),
         )
 
 

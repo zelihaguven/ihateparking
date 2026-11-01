@@ -588,8 +588,8 @@ def run_mission(lot: Optional[ProceduralLot], config: MissionConfig = MissionCon
         if odometry is None:
             pose = true_pose
         else:
-            wheel_speed, wheel_angle = plant.odometry()
-            pose = odometry.step(pose, wheel_speed, wheel_angle, plant.dt)
+            wheel_speed, wheel_angle, yaw_rate = plant.odometry()
+            pose = odometry.step(pose, wheel_speed, wheel_angle, plant.dt, yaw_rate)
         trace.append(true_pose)
         estimate_trace.append(pose)
         gears.append(command.gear)
