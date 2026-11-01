@@ -28,14 +28,14 @@ from scipy import ndimage
 from .controller import ControllerConfig, PlanTracker
 from .geometry import Pose, distance, wrap_angle
 from .holonomic_heuristic import build_distance_field
-from .lidar import LidarConfig, scan
+from .lidar import LidarConfig
 from .odometry import Odometry, OdometryConfig, place_scan
+from .plant import Plant, SimPlant
 from .scan_matcher import ScanMatcher, ScanMatcherConfig
 from .occupancy_map import FREE, OCCUPIED, UNKNOWN, GridConfig, MapWorld, OccupancyGrid
 from .planner import HybridAStar, PlannerConfig, PlanResult
 from .procedural_lot import ProceduralLot
 from .slot_detector import SlotCandidate, detect_slots
-from .world import ParkingWorld
 
 
 STAGING_AHEAD_M = (5.5, 6.5)
@@ -119,11 +119,6 @@ class MissionResult:
         if not self.estimate_trace:
             return 0.0
         return distance(self.trace[-1], self.estimate_trace[-1])
-
-
-def _truth_world(lot: ProceduralLot) -> ParkingWorld:
-    any_slot = lot.bays[0].slot if lot.bays else None
-    return ParkingWorld(lot.bounds, list(lot.obstacles), any_slot, lot.start, lot.vehicle)
 
 
 def _parallel_staging(world: MapWorld, candidate: SlotCandidate, config: PlannerConfig) -> Optional[Pose]:
@@ -392,15 +387,18 @@ def evaluate_parking(lot: ProceduralLot, pose: Pose) -> dict:
     }
 
 
-def run_mission(lot: ProceduralLot, config: MissionConfig = MissionConfig(), seed: int = 0) -> MissionResult:
+def run_mission(lot: Optional[ProceduralLot], config: MissionConfig = MissionConfig(), seed: int = 0, plant: Optional[Plant] = None) -> MissionResult:
+    """Park in a lot never seen before. ``plant`` is the world to drive in;
+    by default the built-in simulator on ``lot``."""
     if config.localization not in LOCALIZATION_MODES:
         raise ValueError(f"unknown localization {config.localization!r}; expected one of {LOCALIZATION_MODES}")
     rng = np.random.default_rng(seed)
-    vehicle = lot.vehicle
-    truth = _truth_world(lot)
-    # ``true_pose`` drives the simulation, the sensor and the collision guard;
-    # ``pose`` is the car's own estimate, and the whole stack uses only that.
-    true_pose = pose = lot.start
+    if plant is None:
+        plant = SimPlant(lot, config.dt, config.lidar, rng)
+    vehicle = plant.vehicle
+    # ``true_pose`` is the plant's; ``pose`` is the car's own estimate, and
+    # the whole stack uses only that.
+    true_pose = pose = plant.true_pose()
     odometry = Odometry(vehicle, config.odometry, np.random.default_rng([seed, 1])) if config.localization != "truth" else None
     matcher = ScanMatcher(vehicle, config.scan_matcher) if config.localization == "scan_matching" else None
     grid = OccupancyGrid((pose.x, pose.y), config.grid)
@@ -408,7 +406,7 @@ def run_mission(lot: ProceduralLot, config: MissionConfig = MissionConfig(), see
     estimate_trace = [pose]
     t = 0.0
     travelled = 0.0
-    steps_per_scan = max(1, int(round(config.scan_period_s / config.dt)))
+    steps_per_scan = max(1, int(round(config.scan_period_s / plant.dt)))
     mode = "decide"
     tracker: Optional[PlanTracker] = None
     plan: Optional[PlanResult] = None
@@ -436,14 +434,14 @@ def run_mission(lot: ProceduralLot, config: MissionConfig = MissionConfig(), see
 
     def finish(outcome: str, message: str, collisions: int = 0) -> MissionResult:
         log("end", message)
-        evaluation = evaluate_parking(lot, true_pose) if outcome == "PARKED" else {}
+        evaluation = plant.evaluate(true_pose) if outcome == "PARKED" else {}
         success = outcome == "PARKED" and evaluation.get("in_bay", False) and collisions == 0
         park_time = t - bay_found_t if outcome == "PARKED" and bay_found_t is not None else None
         return MissionResult(outcome, success, message, trace, gears, events, t, travelled, collisions, target, grid, evaluation, estimate_trace, park_time)
 
     def observe(estimate: Pose) -> Pose:
         """Take a scan, correct the estimate against the map, add the scan to it."""
-        measured = scan(true_pose, lot.obstacles, vehicle, config.lidar, rng)
+        measured = plant.scan()
         if odometry is None:
             grid.integrate(measured)
             return estimate
@@ -582,20 +580,20 @@ def run_mission(lot: ProceduralLot, config: MissionConfig = MissionConfig(), see
             mode = "decide"
             continue
         signed = command.speed * command.gear
-        next_pose = Pose(
-            true_pose.x + signed * math.cos(true_pose.yaw) * config.dt,
-            true_pose.y + signed * math.sin(true_pose.yaw) * config.dt,
-            wrap_angle(true_pose.yaw + signed / vehicle.wheelbase * math.tan(command.steering) * config.dt),
-        )
-        if truth.is_collision(next_pose, extra_margin=-truth.collision_margin):
+        if not plant.apply(command.steering, signed):
             return finish("GUARD_STOP", "collision guard rejected the next pose; the vehicle stops", collisions=1)
+        next_pose = plant.true_pose()
         travelled += distance(true_pose, next_pose)
         true_pose = next_pose
-        pose = true_pose if odometry is None else odometry.step(pose, signed, command.steering, config.dt)
+        if odometry is None:
+            pose = true_pose
+        else:
+            wheel_speed, wheel_angle = plant.odometry()
+            pose = odometry.step(pose, wheel_speed, wheel_angle, plant.dt)
         trace.append(true_pose)
         estimate_trace.append(pose)
         gears.append(command.gear)
-        t += config.dt
+        t += plant.dt
         step += 1
         if step % steps_per_scan:
             continue
