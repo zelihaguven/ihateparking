@@ -181,8 +181,14 @@ def fit_lattice(centres: list[float], width_range: tuple[float, float] = BAY_WID
     x = np.asarray(centres)
     widths = np.arange(width_range[0], width_range[1] + 1e-9, 0.005)
     phasors = np.exp(2j * np.pi * x[None, :] / widths[:, None]).mean(axis=1)
-    best = int(np.argmax(np.abs(phasors)))
-    if abs(phasors[best]) < LATTICE_COHERENCE:
+    coherence = np.abs(phasors)
+    best = int(np.argmax(coherence))
+    if coherence[best] < LATTICE_COHERENCE:
+        return None
+    # Cars far apart fit several widths almost equally well (7 x 2.45 m is
+    # nearly 6 x 2.83 m); a best width on the edge of the search range is
+    # such an alias, not a measurement.
+    if best in (0, len(widths) - 1):
         return None
     width = float(widths[best])
     phase = float(np.angle(phasors[best]) / (2 * np.pi) * width)

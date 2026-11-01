@@ -114,7 +114,7 @@ class SlotDetectorTests(unittest.TestCase):
     def test_finds_parallel_bays_in_a_run_along_the_kerb(self) -> None:
         # Parallel bays with a parked car at one end only are placed from the
         # lattice of cars along the kerb; every detection must be a free bay.
-        for seed in (310, 346):
+        for seed in (333, 346):
             lot, grid = _aisle_sweep(seed, "parallel")
             found = []
             for candidate in detect_slots(grid, lot.vehicle):
@@ -156,6 +156,12 @@ class RowLatticeTests(unittest.TestCase):
         # parked beyond the last parked car. Cars at -2..-14 m, "closer" at 6 m.
         cars = [(-1.95 - 2.65 * k, -0.05 - 2.65 * k, True) for k in range(5)] + [(6.0, 6.4, True)]
         self.assertIsNone(snap_to_row(sorted(cars), 1.0, 1.9))
+
+    def test_fit_rejects_a_width_on_the_edge_of_the_range(self) -> None:
+        # Regression (seed 7154): cars far apart aliased a 2.83 m row onto the
+        # 2.45 m range edge and the car parked a third of a bay off.
+        self.assertIsNone(fit_lattice([2.40 * k for k in range(6)]))
+        self.assertIsNotNone(fit_lattice([2.70 * k for k in range(6)]))
 
     def test_fit_rejects_irregular_spacing(self) -> None:
         self.assertIsNone(fit_lattice([0.0, 2.1, 5.9, 7.3, 11.8]))
