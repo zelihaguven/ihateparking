@@ -62,13 +62,14 @@ def main() -> int:
     parser.add_argument("seeds", type=int, nargs="+")
     parser.add_argument("--localization", default="truth")
     parser.add_argument("--spaces-per-side", type=int, default=6)
-    parser.add_argument("--margin", type=float, default=0.15, help="planner clearance from mapped structure, m")
+    parser.add_argument("--margin", type=float, default=0.15, help="planner clearance in the park manoeuvre, m")
+    parser.add_argument("--explore-margin", type=float, default=0.15, help="planner clearance while exploring and approaching, m")
     args = parser.parse_args()
     failures = 0
     for seed in args.seeds:
         lot = MetaDriveLot(seed, spaces_per_side=args.spaces_per_side)
         try:
-            config = MissionConfig(localization=args.localization, max_time_s=300.0, collision_margin_m=args.margin)
+            config = MissionConfig(localization=args.localization, max_time_s=300.0, collision_margin_m=args.margin, explore_margin_m=args.explore_margin)
             result = run_mission(None, config, seed=seed, plant=MetaDrivePlant(lot))
             free = sum(not s.occupied for s in lot.spaces)
             print(f"seed {seed}: {result.outcome:15s} success={result.success} {result.time_s:6.1f} s {result.distance_m:6.1f} m  free spaces {free}  {result.evaluation}")

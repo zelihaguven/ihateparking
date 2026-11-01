@@ -85,10 +85,13 @@ class MissionConfig:
     inspection_candidates: int = 2
     inspection_standoff_m: float = 3.5
     escape_margin_m: float = 0.03
-    # Clearance the planner keeps from mapped structure. The built-in
-    # simulator tracks plans within ~4 cm; a real chassis (MetaDrive: up to
-    # ~27 cm) needs more.
+    # Clearance the planner keeps from mapped structure: in the final park
+    # manoeuvre (slow, into a bay sized for the car) and while exploring or
+    # approaching (longer legs round row ends). The built-in simulator tracks
+    # plans within ~4 cm; a real chassis (MetaDrive: up to ~27 cm) needs more
+    # room on the longer legs.
     collision_margin_m: float = 0.15
+    explore_margin_m: float = 0.15
     waypoint_reach_m: float = 10.0
     frontier_attempts: int = 6
     lookahead_check_m: float = 5.0
@@ -489,7 +492,7 @@ def run_mission(lot: Optional[ProceduralLot], config: MissionConfig = MissionCon
                     # car ahead of the gap, then reverse in from there.
                     staging = _parallel_staging(world, candidate, config.park_planner)
                     if staging is not None:
-                        approach = HybridAStar(MapWorld(grid, vehicle, pose, collision_margin=config.collision_margin_m, unknown_is_obstacle=False), config.explore_planner).plan(start=pose, goal=staging)
+                        approach = HybridAStar(MapWorld(grid, vehicle, pose, collision_margin=config.explore_margin_m, unknown_is_obstacle=False), config.explore_planner).plan(start=pose, goal=staging)
                         if approach.success:
                             staged_bays.append(candidate.center)
                             plan = approach
@@ -516,7 +519,7 @@ def run_mission(lot: Optional[ProceduralLot], config: MissionConfig = MissionCon
                 # Exploration is optimistic: unknown space counts as passable,
                 # and the plan is re-checked after every scan. Parking is not:
                 # the bay and its approach must be seen free.
-                optimistic = MapWorld(grid, vehicle, pose, collision_margin=config.collision_margin_m, unknown_is_obstacle=False)
+                optimistic = MapWorld(grid, vehicle, pose, collision_margin=config.explore_margin_m, unknown_is_obstacle=False)
                 plan = _inspection_plan(grid, optimistic, pose, config, inspected, rejected)
                 if plan is not None:
                     log("inspect", f"promising gap at ({inspected[-1][0]:.1f}, {inspected[-1][1]:.1f}); driving up to look into it")
@@ -606,7 +609,7 @@ def run_mission(lot: Optional[ProceduralLot], config: MissionConfig = MissionCon
         if mode == "explore" and travelled - leg_start >= config.explore_horizon_m:
             mode = "decide"
             continue
-        if not _plan_still_clear(grid, vehicle, pose, plan, config.lookahead_check_m, config.collision_margin_m):
+        if not _plan_still_clear(grid, vehicle, pose, plan, config.lookahead_check_m, config.collision_margin_m if mode == "park" else config.explore_margin_m):
             log("replan", "newly seen obstacle blocks the plan; replanning")
             if mode == "park" and target is not None:
                 rejected.append(target.center)
@@ -653,12 +656,12 @@ def scenario_lot(seed: int, scenario: str = "mixed") -> ProceduralLot:
     return generate_lot(seed)
 
 
-def _run_seed(seed: int, localization: str = "truth", scenario: str = "mixed", margin: float = 0.15) -> dict:
+def _run_seed(seed: int, localization: str = "truth", scenario: str = "mixed", margin: float = 0.15, explore_margin: float = 0.15) -> dict:
     import time as _time
 
     started = _time.perf_counter()
     lot = scenario_lot(seed, scenario)
-    result = run_mission(lot, MissionConfig(localization=localization, collision_margin_m=margin), seed=seed)
+    result = run_mission(lot, MissionConfig(localization=localization, collision_margin_m=margin, explore_margin_m=explore_margin), seed=seed)
     return {
         "seed": seed,
         "free_bays": len(lot.free_bays),
@@ -690,14 +693,15 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--json", default="artifacts/mission/benchmark.json")
     parser.add_argument("--localization", choices=LOCALIZATION_MODES, default="truth", help="where the car believes it is")
     parser.add_argument("--scenario", choices=SCENARIOS, default="mixed", help="kind of lot")
-    parser.add_argument("--margin", type=float, default=0.15, help="planner clearance from mapped structure, m")
+    parser.add_argument("--margin", type=float, default=0.15, help="planner clearance in the park manoeuvre, m")
+    parser.add_argument("--explore-margin", type=float, default=0.15, help="planner clearance while exploring and approaching, m")
     args = parser.parse_args(argv)
 
     if not args.benchmark:
         from .mission_render import render_mission
 
         lot = scenario_lot(args.seed, args.scenario)
-        result = run_mission(lot, MissionConfig(localization=args.localization, collision_margin_m=args.margin), seed=args.seed)
+        result = run_mission(lot, MissionConfig(localization=args.localization, collision_margin_m=args.margin, explore_margin_m=args.explore_margin), seed=args.seed)
         for event in result.events:
             print(f"{event.time_s:7.1f} s  {event.kind:8s} {event.message}")
         print(json.dumps({"outcome": result.outcome, "success": result.success, "evaluation": result.evaluation}, indent=2))
@@ -707,7 +711,7 @@ def main(argv: list[str] | None = None) -> int:
     first, last = (int(part) for part in args.benchmark.split(":"))
     rows = []
     with ProcessPoolExecutor(max_workers=args.workers) as executor:
-        futures = [executor.submit(_run_seed, seed, args.localization, args.scenario, args.margin) for seed in range(first, last)]
+        futures = [executor.submit(_run_seed, seed, args.localization, args.scenario, args.margin, args.explore_margin) for seed in range(first, last)]
         for future in as_completed(futures):
             row = future.result()
             rows.append(row)
