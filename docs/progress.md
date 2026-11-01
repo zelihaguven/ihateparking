@@ -151,9 +151,27 @@ Park time = from committing to the bay to standing in it.
 
 Both are development sets (tuned on); the step 2 sign-off needs a fresh acceptance run.
 
+## Step 2 acceptance (d4cbb6f, scan matching, unseen mixed lots 7100–7199, run once)
+
+| PRD metric | Target | Result | |
+|---|---|---|---|
+| Correct park | ≥ 95% | **98/100** (2 NO_SPACE_FOUND, stopped safely) | met |
+| Wrong park / collisions | 0 / 0 | 0 / 0 | met |
+| Overlap, every park | ≥ 80% | min 90% | met |
+| Position error median / p95 | ≤ 20 / 40 cm | **22.7 / 40.2 cm** | **missed** (by 2.7 cm / 2 mm) |
+| Axis error median / p95 | ≤ 5° / 10° | 2.0° / 7.3° | met |
+| Total time median | ≤ 90 s | 35 s | met |
+| Park time worst | ≤ 240 s | 44 s | met |
+| Pose estimate error at the end | — | median 5 cm, max 21 cm | |
+
+Bays parked in: 60 perpendicular, 27 angled, 11 parallel. Position error by kind: perpendicular
+25 / 38 cm, angled 26 / 45 cm, parallel (lateral) 16 / 26 cm. Step 1 acceptance (truth pose, lots
+7000–7099) had perpendicular 19 / 40 cm and angled 21 / 38 cm; different lots, so how much of the
+rise comes from pose estimation is not separated yet.
+
 ## Next steps
 
-1. Parallel success (25 NO_SPACE_FOUND, mostly free bays only at the wall end of a row): needs
-   row-level bay-kind reasoning before gap rules (see the wall-end attempts above).
-2. Fresh acceptance run with scan matching (mixed, e.g. 7100–7199) to sign off step 2 for mixed lots.
+1. Position error: run 7100–7199 with truth pose to separate lot difficulty from localization,
+   then tighten the bay-centre estimate (target choice) for perpendicular/angled bays.
+2. Wall-end parallel bays (row-kind evidence): in progress, held-out precision not yet 100%.
 3. Free Mac simulator (MetaDrive) feasibility check; ROS2 layer.
