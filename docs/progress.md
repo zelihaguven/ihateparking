@@ -200,10 +200,31 @@ Bays parked in: 58 perpendicular, 34 angled, 2 parallel. The two acceptance runs
 7100–7199, 94/100 here) bracket the 95% target; step 2 is not signed off. These lots are not
 to be analysed (no tuning on acceptance data).
 
+## Step 2 acceptance, third run (8abb834, scan matching, fresh lots 7300–7399, run once) — signed off
+
+| PRD metric | Target | Result | |
+|---|---|---|---|
+| Correct park | ≥ 95% | **100/100** | met |
+| Wrong park / collisions | 0 / 0 | 0 / 0 | met |
+| Overlap, every park | ≥ 80% | min 89.1% | met |
+| Position error median / p95 | ≤ 25 / 45 cm | 21.5 / 42.0 cm | met |
+| Axis error median / p95 | ≤ 5° / 10° | 2.1° / 5.9° | met |
+| Total time median | ≤ 90 s | 35 s | met |
+| Park time worst | ≤ 240 s | 48 s | met |
+| Pose estimate error at the end | — | median 4.5 cm, max 41 cm | |
+
+Bays parked in: 53 perpendicular, 35 angled, 12 parallel. Between the second (94/100) and this
+run: lattice width-edge rule (7154), closing-side 2.1 m, snap reach 1.5 m, row direction by
+whole-car evidence. The three step-2 acceptance runs were 98, 94 and 100 of 100 (0 wrong parks
+in all), so the true rate is around 95–99%, not 100%.
+
+Dev lots 6000–6119 at 8abb834: 115/120; the five failures are sparse lots whose free bays sit in
+long runs with too few parked cars for a lattice (e.g. 6066: three cars per row). Placing a car
+there needs the bay lines, i.e. camera perception.
+
 ## Next steps
 
-1. Raise success on the dev set: classify the NO_SPACE_FOUND failures again at the current code
-   (dev 6000–6059 and a second dev set 6060–6119), fix the largest class, then a fresh
-   acceptance run (7300–7399).
-2. Wall-end parallel bays (branch wip/wall-end-parallel): needs row-level evidence before merging.
-3. Free Mac simulator (MetaDrive) feasibility check; ROS2 layer.
+1. Parallel-only scenario is still 34/59 (wall-end bays; branch wip/wall-end-parallel needs
+   row-level evidence before merging).
+2. Free Mac simulator (MetaDrive) feasibility check; ROS2 layer.
+3. Camera line perception (would lift sparse lots and the position error floor).
