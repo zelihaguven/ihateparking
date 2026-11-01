@@ -41,6 +41,9 @@ METADRIVE_VEHICLE = VehicleSpec(
 SPACE_WIDTH_M = 2.7  # MetaDrive derives the space width from the lane width (default 3.5 m)
 KERB_PIECE_M = 2.0  # MetaDrive TrafficBarrier length, which lies square to its heading
 KERB_OFFSET_M = 0.3  # behind the end of a space
+SPEED_KP = 0.6
+SPEED_KI = 0.3
+SPEED_INTEGRAL_LIMIT = 2.0
 
 
 @dataclass(frozen=True)
@@ -79,6 +82,7 @@ class MetaDriveLot:
                 self.engine.update_manager("map_manager", _LotMapManager())
 
         self.vehicle = METADRIVE_VEHICLE
+        self._speed_integral = 0.0
         self.env = _LotEnv(dict(use_render=False, num_scenarios=1, log_level=50, traffic_density=0.0, vehicle_config=dict(enable_reverse=True)))
         self.env.reset()
         rng = random.Random(seed)
@@ -138,6 +142,33 @@ class MetaDriveLot:
         ranges = np.where(hits, cloud * config.max_range, config.max_range)
         angles = float(agent.heading_theta) + np.arange(config.beams) * 2.0 * math.pi / config.beams
         return LidarScan((float(agent.position[0]), float(agent.position[1])), angles, ranges, hits)
+
+    @property
+    def step_s(self) -> float:
+        cfg = self.env.engine.global_config
+        return float(cfg["physics_world_step_size"]) * int(cfg["decision_repeat"])
+
+    def signed_speed(self) -> float:
+        agent = self.env.agent
+        return float(np.dot(agent.velocity, (math.cos(agent.heading_theta), math.sin(agent.heading_theta))))
+
+    def drive(self, steering: float, target_speed: float) -> None:
+        """One MetaDrive step towards a steering angle (rad) and a signed speed (m/s).
+
+        MetaDrive takes a normalised steering and one throttle/brake value; a
+        negative value brakes and, once stopped, reverses. A PI loop on the
+        signed speed turns the stack's speed into that value.
+        """
+        error = target_speed - self.signed_speed()
+        if target_speed == 0.0 or (self._speed_integral * error < 0):
+            self._speed_integral = 0.0
+        self._speed_integral = float(np.clip(self._speed_integral + error * self.step_s, -SPEED_INTEGRAL_LIMIT, SPEED_INTEGRAL_LIMIT))
+        throttle = float(np.clip(SPEED_KP * error + SPEED_KI * self._speed_integral, -1.0, 1.0))
+        self.env.step([float(np.clip(steering / self.vehicle.max_steering, -1.0, 1.0)), throttle])
+
+    def crashed(self) -> bool:
+        agent = self.env.agent
+        return bool(agent.crash_vehicle or agent.crash_object or agent.crash_building)
 
     def teleport(self, pose: Pose) -> None:
         """Place the ego car (rear-axle pose); used for sensing checks, not for driving."""
