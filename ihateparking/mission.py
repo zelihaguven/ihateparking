@@ -85,6 +85,10 @@ class MissionConfig:
     inspection_candidates: int = 2
     inspection_standoff_m: float = 3.5
     escape_margin_m: float = 0.03
+    # Clearance the planner keeps from mapped structure. The built-in
+    # simulator tracks plans within ~4 cm; a real chassis (MetaDrive: up to
+    # ~27 cm) needs more.
+    collision_margin_m: float = 0.15
     waypoint_reach_m: float = 10.0
     frontier_attempts: int = 6
     lookahead_check_m: float = 5.0
@@ -453,8 +457,8 @@ def run_mission(lot: Optional[ProceduralLot], config: MissionConfig = MissionCon
     pose = observe(pose)
     while t < config.max_time_s:
         if mode == "decide":
-            world = MapWorld(grid, vehicle, pose)
-            full_margin = MapWorld(grid, vehicle, pose, unknown_is_obstacle=False)
+            world = MapWorld(grid, vehicle, pose, collision_margin=config.collision_margin_m)
+            full_margin = MapWorld(grid, vehicle, pose, collision_margin=config.collision_margin_m, unknown_is_obstacle=False)
             if full_margin.is_collision(pose) and escapes < config.max_recoveries:
                 # Structure seen only on arrival sits inside the safety margin
                 # around the car, so every plan from here would be refused.
@@ -485,7 +489,7 @@ def run_mission(lot: Optional[ProceduralLot], config: MissionConfig = MissionCon
                     # car ahead of the gap, then reverse in from there.
                     staging = _parallel_staging(world, candidate, config.park_planner)
                     if staging is not None:
-                        approach = HybridAStar(MapWorld(grid, vehicle, pose, unknown_is_obstacle=False), config.explore_planner).plan(start=pose, goal=staging)
+                        approach = HybridAStar(MapWorld(grid, vehicle, pose, collision_margin=config.collision_margin_m, unknown_is_obstacle=False), config.explore_planner).plan(start=pose, goal=staging)
                         if approach.success:
                             staged_bays.append(candidate.center)
                             plan = approach
@@ -512,7 +516,7 @@ def run_mission(lot: Optional[ProceduralLot], config: MissionConfig = MissionCon
                 # Exploration is optimistic: unknown space counts as passable,
                 # and the plan is re-checked after every scan. Parking is not:
                 # the bay and its approach must be seen free.
-                optimistic = MapWorld(grid, vehicle, pose, unknown_is_obstacle=False)
+                optimistic = MapWorld(grid, vehicle, pose, collision_margin=config.collision_margin_m, unknown_is_obstacle=False)
                 plan = _inspection_plan(grid, optimistic, pose, config, inspected, rejected)
                 if plan is not None:
                     log("inspect", f"promising gap at ({inspected[-1][0]:.1f}, {inspected[-1][1]:.1f}); driving up to look into it")
@@ -602,7 +606,7 @@ def run_mission(lot: Optional[ProceduralLot], config: MissionConfig = MissionCon
         if mode == "explore" and travelled - leg_start >= config.explore_horizon_m:
             mode = "decide"
             continue
-        if not _plan_still_clear(grid, vehicle, pose, plan, config.lookahead_check_m):
+        if not _plan_still_clear(grid, vehicle, pose, plan, config.lookahead_check_m, config.collision_margin_m):
             log("replan", "newly seen obstacle blocks the plan; replanning")
             if mode == "park" and target is not None:
                 rejected.append(target.center)
@@ -610,10 +614,10 @@ def run_mission(lot: Optional[ProceduralLot], config: MissionConfig = MissionCon
     return finish("TIMEOUT", f"no parking within {config.max_time_s:.0f} s")
 
 
-def _plan_still_clear(grid: OccupancyGrid, vehicle, pose: Pose, plan: Optional[PlanResult], horizon: float) -> bool:
+def _plan_still_clear(grid: OccupancyGrid, vehicle, pose: Pose, plan: Optional[PlanResult], horizon: float, margin: float = 0.15) -> bool:
     if plan is None:
         return True
-    world = MapWorld(grid, vehicle, pose, unknown_is_obstacle=False)
+    world = MapWorld(grid, vehicle, pose, collision_margin=margin, unknown_is_obstacle=False)
     nearest = min(range(len(plan.poses)), key=lambda index: distance(plan.poses[index], pose))
     covered = 0.0
     for previous, current in zip(plan.poses[nearest:], plan.poses[nearest + 1:]):

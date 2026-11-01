@@ -59,7 +59,7 @@ class TruthSpace:
 class MetaDriveLot:
     """One MetaDrive parking lot with parked cars and kerbs, ego in the entrance road."""
 
-    def __init__(self, seed: int, occupancy: float = 0.5, spaces_per_side: int = 4, jitter: bool = True):
+    def __init__(self, seed: int, occupancy: float = 0.5, spaces_per_side: int = 4, jitter: bool = True, decision_repeat: int = 5):
         from metadrive.component.static_object.traffic_object import TrafficBarrier
         from metadrive.component.vehicle.vehicle_type import DefaultVehicle
         from metadrive.envs.marl_envs.marl_parking_lot import MAParkingLotMap
@@ -83,7 +83,7 @@ class MetaDriveLot:
 
         self.vehicle = METADRIVE_VEHICLE
         self._speed_integral = 0.0
-        self.env = _LotEnv(dict(use_render=False, num_scenarios=1, log_level=50, traffic_density=0.0, vehicle_config=dict(enable_reverse=True)))
+        self.env = _LotEnv(dict(use_render=False, num_scenarios=1, log_level=50, traffic_density=0.0, decision_repeat=decision_repeat, vehicle_config=dict(enable_reverse=True)))
         self.env.reset()
         rng = random.Random(seed)
         lot_map = self.env.current_map
