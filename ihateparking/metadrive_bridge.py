@@ -206,3 +206,56 @@ def space_overlap(space: TruthSpace, pose: Pose, vehicle: VehicleSpec) -> float:
     dx, dy = xs - space.center[0], ys - space.center[1]
     inside = (np.abs(bc * dx + bs * dy) <= space.length / 2) & (np.abs(-bs * dx + bc * dy) <= space.width / 2)
     return float(inside.mean())
+
+
+class MetaDrivePlant:
+    """MetaDrive behind the mission's ``Plant`` interface.
+
+    Unlike the built-in simulator's guard, MetaDrive reports contact after
+    it happens, so any contact ends the mission as a collision.
+    """
+
+    def __init__(self, lot: MetaDriveLot, lidar: LidarConfig = LidarConfig(range_noise_std=0.0, dropout=0.0)):
+        self.lot = lot
+        self.vehicle = lot.vehicle
+        self.dt = lot.step_s
+        self.lidar = lidar
+        self._last = (0.0, 0.0)
+
+    def true_pose(self) -> Pose:
+        return self.lot.pose()
+
+    def scan(self) -> LidarScan:
+        return self.lot.scan(self.lidar)
+
+    def apply(self, steering: float, speed: float) -> bool:
+        self.lot.drive(steering, speed)
+        clipped = float(np.clip(steering, -self.vehicle.max_steering, self.vehicle.max_steering))
+        self._last = (self.lot.signed_speed(), clipped)
+        return not self.lot.crashed()
+
+    def odometry(self) -> tuple[float, float]:
+        return self._last
+
+    def evaluate(self, pose: Pose) -> dict:
+        """The space the car overlaps most, scored like the built-in simulator's bays."""
+        best = max(self.lot.spaces, key=lambda space: space_overlap(space, pose, self.vehicle))
+        overlap = space_overlap(best, pose, self.vehicle)
+        if overlap == 0.0:
+            return {"in_bay": False, "bay": None, "overlap": 0.0}
+        difference = abs(wrap_angle(pose.yaw - best.yaw))
+        axis_error = math.degrees(min(difference, math.pi - difference))
+        offset = self.vehicle.length / 2.0 - self.vehicle.rear_overhang
+        centre = np.array([pose.x + offset * math.cos(pose.yaw), pose.y + offset * math.sin(pose.yaw)]) - np.array(best.center)
+        axis = np.array([math.cos(best.yaw), math.sin(best.yaw)])
+        return {
+            "in_bay": overlap >= 0.8 and axis_error <= 15.0 and not best.occupied,
+            "bay": best.space_id,
+            "bay_kind": "perpendicular",
+            "bay_was_free": not best.occupied,
+            "overlap": round(overlap, 3),
+            "axis_error_deg": round(axis_error, 1),
+            "center_error_m": round(float(np.hypot(*centre)), 3),
+            "along_error_m": round(float(abs(centre @ axis)), 3),
+            "lateral_error_m": round(float(abs(centre @ np.array([-axis[1], axis[0]]))), 3),
+        }
