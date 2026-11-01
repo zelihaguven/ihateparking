@@ -171,6 +171,9 @@ MAX_CENTERING_SHIFT_M = 0.8
 PARALLEL_GAP_SEARCH_M = 6.0
 PARALLEL_END_GAP_M = 0.6
 KERB_GAP_M = 0.4  # leaves the planner its 0.15 m margin even along a slightly skewed kerb
+WALL_END_SNAP_M = 6.0
+AISLE_STRIP_M = 2.5
+AISLE_FREE_FRACTION = 0.8
 KERB_MIN_LENGTH_M = 7.0  # a parked car's side is never this long (cars are 4.2-4.9 m)
 RUN_PROBE_SPACING_M = 1.0
 RUN_SCORE_PENALTY = 10.0
@@ -355,13 +358,37 @@ def _place_along_kerb(grid: OccupancyGrid, states: np.ndarray, edge_dir: np.ndar
     # square to it, which also lines up with the bay, ends within a car length.
     if not _long_kerb(grid, states, center, u, sides[0], vehicle):
         return None
-    offset = row_lattice.kerb_slot_offset(grid, states, center, u, aisle, (-vehicle.width / 2 + 0.2, vehicle.width / 2 + 0.6), vehicle.length)
+    band = (-vehicle.width / 2 + 0.2, vehicle.width / 2 + 0.6)
+    offset = row_lattice.kerb_slot_offset(grid, states, center, u, aisle, band, vehicle.length)
     if offset is None:
+        # The wall end of a parallel row: the evidence that this row is
+        # parallel is the car parked along the kerb that closes the gap.
+        found = row_lattice.wall_end_offset(*row_lattice.kerb_profile(grid, states, center, u, aisle, band), vehicle.length)
+        if found is None:
+            return None
+        offset, car = found
+        # A car parked along the kerb has the aisle beside it; the last car
+        # of a row parked square to a wall has the next car of that row.
+        if not _aisle_beside(grid, states, center, u, aisle, car, band[1]):
+            return None
+    if offset is None or abs(offset) > WALL_END_SNAP_M:
         return None
     placed = center + offset * u
     if not _footprint_clear(grid, states, placed, yaw, vehicle.length / 2 + SIDE_CLEARANCE_M, vehicle.width / 2 + 0.1, max_unknown):
         return None
     return SlotCandidate((float(placed[0]), float(placed[1])), yaw, snug.row, snug.score)
+
+
+def _aisle_beside(grid: OccupancyGrid, states: np.ndarray, center: np.ndarray, u: np.ndarray, aisle: np.ndarray, car: tuple[float, float], band_end: float) -> bool:
+    """The strip on the aisle side of a parked car, as long as the car and AISLE_STRIP_M deep, is seen free."""
+    along = np.arange(car[0], car[1] + 1e-9, 0.15)
+    across = np.arange(band_end, band_end + AISLE_STRIP_M + 1e-9, 0.15)
+    points = center + along[:, None, None] * u + across[None, :, None] * aisle
+    rows, cols = grid.to_cell(points[..., 0], points[..., 1])
+    inside = (rows >= 0) & (rows < grid.shape[0]) & (cols >= 0) & (cols < grid.shape[1])
+    free = np.zeros(rows.shape, dtype=bool)
+    free[inside] = states[rows[inside], cols[inside]] == FREE
+    return bool(free.mean() >= AISLE_FREE_FRACTION)
 
 
 def _long_kerb(grid: OccupancyGrid, states: np.ndarray, center: np.ndarray, u: np.ndarray, kerb_side: np.ndarray, vehicle: VehicleSpec) -> bool:
