@@ -183,10 +183,27 @@ rise comes from pose estimation is not separated yet.
   (medians). With bay lines invisible and parked cars up to ~0.45 m off their bay centre, a ~20 cm
   median is close to the floor of what neighbours can tell; seeing the lines (camera) would lift it.
 
+## Step 2 acceptance, second run (98c0062, scan matching, fresh lots 7200–7299, run once)
+
+| PRD metric | Target | Result | |
+|---|---|---|---|
+| Correct park | ≥ 95% | **94/100** (5 NO_SPACE_FOUND, 1 TIMEOUT; all stopped safely) | **missed by 1** |
+| Wrong park / collisions | 0 / 0 | 0 / 0 | met |
+| Overlap, every park | ≥ 80% | min 95.2% | met |
+| Position error median / p95 | ≤ 25 / 45 cm | 21.3 / 40.9 cm | met |
+| Axis error median / p95 | ≤ 5° / 10° | 2.1° / 7.0° | met |
+| Total time median | ≤ 90 s | 39 s | met |
+| Park time worst | ≤ 240 s | 61 s | met |
+| Pose estimate error at the end | — | median 5 cm, max 74 cm | |
+
+Bays parked in: 58 perpendicular, 34 angled, 2 parallel. The two acceptance runs (98/100 on
+7100–7199, 94/100 here) bracket the 95% target; step 2 is not signed off. These lots are not
+to be analysed (no tuning on acceptance data).
+
 ## Next steps
 
-1. Fresh acceptance run with scan matching at 98c0062 (7200–7299, running).
-2. PRD decision for the user: keep the 20 cm median target (needs line perception) or set it to
-   the measured floor.
-3. Wall-end parallel bays (branch wip/wall-end-parallel): needs row-level evidence before merging.
-4. Free Mac simulator (MetaDrive) feasibility check; ROS2 layer.
+1. Raise success on the dev set: classify the NO_SPACE_FOUND failures again at the current code
+   (dev 6000–6059 and a second dev set 6060–6119), fix the largest class, then a fresh
+   acceptance run (7300–7399).
+2. Wall-end parallel bays (branch wip/wall-end-parallel): needs row-level evidence before merging.
+3. Free Mac simulator (MetaDrive) feasibility check; ROS2 layer.
