@@ -169,9 +169,24 @@ Bays parked in: 60 perpendicular, 27 angled, 11 parallel. Position error by kind
 7000–7099) had perpendicular 19 / 40 cm and angled 21 / 38 cm; different lots, so how much of the
 rise comes from pose estimation is not separated yet.
 
+### Where the position error comes from
+
+- Same lots 7100–7199 with the true pose: 96/100 correct, **1 wrong park (7154)**, position error
+  median 20.6 / p95 39.1 cm. On the 65 parks into the same bay, pose estimation adds 0.7 cm on
+  average: localization is not the cause.
+- 7154 was a run bay placed from a lattice aliased onto the edge of the width range (2.45 m for a
+  2.83 m row); fixed in 98c0062 (lattice on a range edge is refused). Lots 7100–7199 were opened
+  for this bug, so the next acceptance run uses fresh lots (7200–7299).
+- Tracking is not the cause either: on 34 dev missions the car stops 3.6 cm (median, p95 8.4 cm)
+  from its target; the target itself is 20 cm (median, p95 37 cm) from the true bay centre.
+- Detector target error on dev sweeps, perpendicular / angled: along 11 / 10 cm, lateral 10 / 12 cm
+  (medians). With bay lines invisible and parked cars up to ~0.45 m off their bay centre, a ~20 cm
+  median is close to the floor of what neighbours can tell; seeing the lines (camera) would lift it.
+
 ## Next steps
 
-1. Position error: run 7100–7199 with truth pose to separate lot difficulty from localization,
-   then tighten the bay-centre estimate (target choice) for perpendicular/angled bays.
-2. Wall-end parallel bays (row-kind evidence): in progress, held-out precision not yet 100%.
-3. Free Mac simulator (MetaDrive) feasibility check; ROS2 layer.
+1. Fresh acceptance run with scan matching at 98c0062 (7200–7299, running).
+2. PRD decision for the user: keep the 20 cm median target (needs line perception) or set it to
+   the measured floor.
+3. Wall-end parallel bays (branch wip/wall-end-parallel): needs row-level evidence before merging.
+4. Free Mac simulator (MetaDrive) feasibility check; ROS2 layer.
