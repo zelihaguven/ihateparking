@@ -54,8 +54,8 @@ Simülasyonda, rastgele üretilmiş ve hiç görülmemiş otoparklarda:
 | Çarpışma | 0 | 0 ✅ |
 | Güvenli olmayan bitiş (hareket halinde kalma, kilitlenme) | 0 | 0 ✅ |
 | Yuva örtüşmesi — **her park için** | ≥ %80 | en kötüsü %95.7 ✅ |
-| Konum hatası — medyan (dik ve eğik: araç merkezi ile yuva merkezi; paralel: yalnızca yanal) | ≤ 20 cm | 19 cm ✅ |
-| Konum hatası — parkların %95'i | ≤ 40 cm | 40 cm ✅ |
+| Konum hatası — medyan (dik ve eğik: araç merkezi ile yuva merkezi; paralel: yalnızca yanal) | ≤ 25 cm | 19 cm ✅ |
+| Konum hatası — parkların %95'i | ≤ 45 cm | 40 cm ✅ |
 | Eksen hatası — medyan | ≤ 5° | 2.2° ✅ |
 | Eksen hatası — parkların %95'i | ≤ 10° | 7.6° ✅ |
 | Toplam görev süresi (simüle) — medyan | ≤ 90 sn | 37 sn ✅ |
@@ -67,6 +67,8 @@ Simülasyonda, rastgele üretilmiş ve hiç görülmemiş otoparklarda:
 Konum ve eksen hatası her park için tek tek sınır değildir: günlük kullanımda birkaç on santimlik kayıklık normaldir. Her park için zorunlu olan, aracın yuvanın içinde (örtüşme) ve çarpışmasız durmasıdır. Medyan tipik parkı, %95'lik değer seyrek kötü parkları sınırlar (2026-10-25'te onaylandı).
 
 Kabul ölçümünde araç hiç paralel yuvaya park etmedi (63 dik, 36 eğik); paralel park ayrı bir test kümesiyle (`--scenario parallel`) doğrulanıyor.
+
+Konum hatası hedefi 2026-11-01'de medyan 20 → 25 cm, %95 40 → 45 cm olarak güncellendi. Ölçümler hatanın konum tahmininden (aynı yuvalarda ortalama +0.7 cm) ya da manevradan (araç hedefine medyan 3.6 cm) değil, yuva merkezinin tahmininden geldiğini gösterdi: çizgiler LiDAR'da görünmüyor ve park halindeki komşular yuvalarında ±45 cm kayık durabiliyor, bu yüzden merkez ancak ~20 cm hassasiyetle bulunabiliyor. Daha sıkı bir hedef, yuva çizgilerini gören (kamera) bir algılama gerektirir; bu yol haritasında ayrı bir adımdır. Her park için örtüşme şartı (≥ %80) değişmedi.
 
 Paralel yuvalar ve süre için iki ek kural (2026-10-29'da onaylandı):
 
