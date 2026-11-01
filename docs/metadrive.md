@@ -35,6 +35,32 @@ uv pip install --python .venv-metadrive/bin/python metadrive-simulator==0.4.3
   space (precision 100%). Recall is low because MetaDrive's block has 4 spaces per side: most free
   spaces sit at a row end, where the stack does not park by design.
 
+## Step 3.2: the full mission in MetaDrive
+
+- `MetaDrivePlant` puts MetaDrive behind the mission's `Plant` interface (`ihateparking/plant.py`);
+  the stack's mission loop runs unchanged (`scripts/metadrive_mission.py`). Any contact counts as
+  a collision (MetaDrive reports contact after it happens).
+- Low-level driving: steering angle -> MetaDrive's normalised steering; a PI loop on the signed
+  speed -> MetaDrive's throttle/brake (tracks 1.5 m/s forward and 1 m/s reverse within 0.01 m/s).
+- Found by MetaDrive, invisible in the built-in simulator:
+  1. Heading from steering drifts on a real chassis (MetaDrive turns up to 7% less at large angles;
+     -11 deg in 60 s). Odometry now uses a yaw-rate gyro when the plant has one.
+  2. The car follows plans within 5 / 16 / 27 cm (median / p95 / max) in MetaDrive against
+     1 / 3 / 4 cm in the built-in simulator. Exploring and approaching legs now keep 0.30 m from
+     mapped structure; the park manoeuvre keeps 0.15 m.
+
+12 MetaDrive lots (scan matching, 6 spaces a side):
+
+| Clearance explore / park | Correct park | Contact | Wrong park |
+|---|---|---|---|
+| 0.15 / 0.15 m, steering odometry | 7 | 2 | 0 |
+| 0.15 / 0.15 m, gyro | 8 | 1 | 0 |
+| 0.30 / 0.30 m, gyro | 7 | 0 | 0 |
+| **0.30 / 0.15 m, gyro** | **9** | **0** | **0** |
+
+The three failures are timeouts or no space found while exploring MetaDrive's open, wall-less
+surroundings.
+
 ## Next
 
 An adapter that builds a parking lot from the `ParkingLot` block, parks static vehicles in some

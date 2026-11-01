@@ -63,7 +63,7 @@ def main() -> int:
     parser.add_argument("--localization", default="truth")
     parser.add_argument("--spaces-per-side", type=int, default=6)
     parser.add_argument("--margin", type=float, default=0.15, help="planner clearance in the park manoeuvre, m")
-    parser.add_argument("--explore-margin", type=float, default=0.15, help="planner clearance while exploring and approaching, m")
+    parser.add_argument("--explore-margin", type=float, default=0.30, help="planner clearance while exploring and approaching, m")
     args = parser.parse_args()
     failures = 0
     for seed in args.seeds:

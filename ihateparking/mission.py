@@ -91,7 +91,7 @@ class MissionConfig:
     # plans within ~4 cm; a real chassis (MetaDrive: up to ~27 cm) needs more
     # room on the longer legs.
     collision_margin_m: float = 0.15
-    explore_margin_m: float = 0.15
+    explore_margin_m: float = 0.30
     waypoint_reach_m: float = 10.0
     frontier_attempts: int = 6
     lookahead_check_m: float = 5.0
@@ -656,7 +656,7 @@ def scenario_lot(seed: int, scenario: str = "mixed") -> ProceduralLot:
     return generate_lot(seed)
 
 
-def _run_seed(seed: int, localization: str = "truth", scenario: str = "mixed", margin: float = 0.15, explore_margin: float = 0.15) -> dict:
+def _run_seed(seed: int, localization: str = "truth", scenario: str = "mixed", margin: float = 0.15, explore_margin: float = 0.30) -> dict:
     import time as _time
 
     started = _time.perf_counter()
@@ -694,7 +694,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--localization", choices=LOCALIZATION_MODES, default="truth", help="where the car believes it is")
     parser.add_argument("--scenario", choices=SCENARIOS, default="mixed", help="kind of lot")
     parser.add_argument("--margin", type=float, default=0.15, help="planner clearance in the park manoeuvre, m")
-    parser.add_argument("--explore-margin", type=float, default=0.15, help="planner clearance while exploring and approaching, m")
+    parser.add_argument("--explore-margin", type=float, default=0.30, help="planner clearance while exploring and approaching, m")
     args = parser.parse_args(argv)
 
     if not args.benchmark:
