@@ -171,6 +171,10 @@ MAX_CENTERING_SHIFT_M = 0.8
 PARALLEL_GAP_SEARCH_M = 6.0
 PARALLEL_END_GAP_M = 0.6
 KERB_GAP_M = 0.4  # leaves the planner its 0.15 m margin even along a slightly skewed kerb
+BACK_GAP_M = 0.3  # a side-by-side bay: the car's end this far from the nearest structure behind
+PULL_SEARCH_M = 2.5
+MAX_PULL_IN_M = 1.5
+MAX_PULL_BACK_M = 0.5
 KERB_MIN_LENGTH_M = 7.0  # a parked car's side is never this long (cars are 4.2-4.9 m)
 RUN_PROBE_SPACING_M = 1.0
 RUN_SCORE_PENALTY = 10.0
@@ -404,7 +408,26 @@ def _place_in_run(grid: OccupancyGrid, states: np.ndarray, edge_dir: np.ndarray,
     placed = center + offset * r
     if not _footprint_clear(grid, states, placed, yaw, half_l + SIDE_CLEARANCE_M, vehicle.width / 2 + SIDE_CLEARANCE_M, max_unknown):
         return None
+    # The snap moves the car along the row; where the row direction is a
+    # little off (angled rows) that also moves it out of the bay. The back
+    # of the bay must still be close behind it, as for any anchor.
+    if not _back_close_behind(grid, states, placed, u, half_l + SIDE_CLEARANCE_M, vehicle.width / 2):
+        return None
+    placed = _pull_in(grid, states, placed, u, vehicle, max_unknown)
     return SlotCandidate((float(placed[0]), float(placed[1])), yaw, candidate.row, candidate.score)
+
+
+def _back_close_behind(grid: OccupancyGrid, states: np.ndarray, center: np.ndarray, u: np.ndarray, start: float, half_w: float) -> bool:
+    """Occupied structure within NEAR_BACK_M behind the footprint over enough of its width."""
+    v = np.array([-u[1], u[0]])
+    across = np.arange(-half_w, half_w + 1e-9, COVERAGE_BIN_M)
+    depth = np.arange(start, start + NEAR_BACK_M + 1e-9, 0.1)
+    points = center + depth[None, :, None] * u + across[:, None, None] * v
+    rows, cols = grid.to_cell(points[..., 0], points[..., 1])
+    inside = (rows >= 0) & (rows < grid.shape[0]) & (cols >= 0) & (cols < grid.shape[1])
+    occupied = np.zeros(rows.shape, dtype=bool)
+    occupied[inside] = states[rows[inside], cols[inside]] == OCCUPIED
+    return bool(occupied.any(axis=1).mean() >= NEAR_BACK_COVERAGE)
 
 
 def _refine(grid: OccupancyGrid, states: np.ndarray, edge_dir: np.ndarray, vehicle: VehicleSpec, candidate: SlotCandidate, max_unknown: float = MAX_UNKNOWN_FRACTION) -> SlotCandidate | None:
@@ -448,7 +471,45 @@ def _refine(grid: OccupancyGrid, states: np.ndarray, edge_dir: np.ndarray, vehic
         center = center + v * float(np.clip((left - right) / 2.0, -MAX_CENTERING_SHIFT_M, MAX_CENTERING_SHIFT_M))
     if not _footprint_clear(grid, states, center, refined, half_l + SIDE_CLEARANCE_M, half_w, max_unknown):
         return None
+    center = _pull_in(grid, states, center, u, vehicle, max_unknown)
     return SlotCandidate((float(center[0]), float(center[1])), wrap_angle(refined), candidate.row, candidate.score)
+
+
+def _pull_in(grid: OccupancyGrid, states: np.ndarray, center: np.ndarray, u: np.ndarray, vehicle: VehicleSpec, max_unknown: float) -> np.ndarray:
+    """Move the car along the bay axis until its end is BACK_GAP_M from the
+    nearest structure behind it, as a driver pulls fully into a bay.
+
+    The anchor's depth is wherever the best-scoring lattice cell fell; the
+    nearest point behind (a corner of an oblique kerb in an angled row)
+    sets a consistent depth instead. Unchanged when nothing is seen close
+    behind or the moved footprint would not be clear.
+    """
+    gap = _nearest_behind(grid, states, center, u, vehicle.length / 2.0, vehicle.width / 2.0)
+    if gap is None:
+        return center
+    shift = float(np.clip(gap - BACK_GAP_M, -MAX_PULL_BACK_M, MAX_PULL_IN_M))
+    for step in np.arange(shift, -MAX_PULL_BACK_M - 1e-9, -0.1) if shift > 0 else (shift,):
+        moved = center + u * step
+        if _footprint_clear(grid, states, moved, math.atan2(u[1], u[0]), vehicle.length / 2.0 + SIDE_CLEARANCE_M, vehicle.width / 2.0 + SIDE_CLEARANCE_M, max_unknown):
+            return moved
+    return center
+
+
+def _nearest_behind(grid: OccupancyGrid, states: np.ndarray, center: np.ndarray, u: np.ndarray, start: float, half_w: float) -> float | None:
+    """Smallest free distance from the car's end to occupied cells behind it, over its width."""
+    v = np.array([-u[1], u[0]])
+    res = grid.config.resolution
+    steps = np.arange(0.0, PULL_SEARCH_M, res / 2.0)
+    offsets = np.arange(-half_w, half_w + 1e-9, 0.15)
+    points = center + offsets[:, None, None] * v + (start + steps)[None, :, None] * u
+    rows, cols = grid.to_cell(points[..., 0], points[..., 1])
+    inside = (rows >= 0) & (rows < grid.shape[0]) & (cols >= 0) & (cols < grid.shape[1])
+    occupied = np.zeros(rows.shape, dtype=bool)
+    occupied[inside] = states[rows[inside], cols[inside]] == OCCUPIED
+    hit = occupied.any(axis=1)
+    if hit.sum() < max(1, len(offsets) // 4):
+        return None
+    return float(steps[np.argmax(occupied[hit], axis=1)].min())
 
 
 def _center_end_to_end(grid: OccupancyGrid, states: np.ndarray, edge_dir: np.ndarray, vehicle: VehicleSpec, candidate: SlotCandidate, max_unknown: float) -> SlotCandidate | None:

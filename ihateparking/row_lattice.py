@@ -25,6 +25,7 @@ BAY_WIDTH_RANGE_M = (2.45, 2.95)
 MIN_LATTICE_CARS = 4
 LATTICE_COHERENCE = 0.75
 LATTICE_MAX_RMS_M = 0.4
+LATTICE_EDGE_M = 0.03  # a best width this close to the range edge is an alias
 LATTICE_MARGIN_M = 0.1  # the bay may overlap a closing car's outline by this much
 WHOLE_CAR_WIDTH_M = (1.6, 2.4)  # a car's width plus a few degrees of skew over its length
 ANGLED_ROW_RANGE = (math.radians(20.0), math.radians(75.0))
@@ -185,7 +186,7 @@ def fit_lattice(centres: list[float], width_range: tuple[float, float] = BAY_WID
     # Cars far apart fit several widths almost equally well (7 x 2.45 m is
     # nearly 6 x 2.83 m); a best width on the edge of the search range is
     # such an alias, not a measurement.
-    if best in (0, len(widths) - 1):
+    if widths[best] - widths[0] < LATTICE_EDGE_M or widths[-1] - widths[best] < LATTICE_EDGE_M:
         return None
     width = float(widths[best])
     phase = float(np.angle(phasors[best]) / (2 * np.pi) * width)
