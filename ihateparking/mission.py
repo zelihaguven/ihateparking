@@ -379,6 +379,8 @@ def evaluate_parking(lot: ProceduralLot, pose: Pose) -> dict:
         return {"in_bay": False, "bay": None, "overlap": 0.0}
     difference = abs(wrap_angle(pose.yaw - bay.slot.yaw))
     axis_error = math.degrees(min(difference, math.pi - difference))
+    axis = np.array([math.cos(bay.slot.yaw), math.sin(bay.slot.yaw)])  # of the bay found, not the last one looped over
+    offset_from_centre = center - np.array(bay.slot.center)
     return {
         "in_bay": fraction >= 0.8 and axis_error <= 15.0 and not bay.occupied,
         "bay": bay.bay_id,
@@ -389,8 +391,8 @@ def evaluate_parking(lot: ProceduralLot, pose: Pose) -> dict:
         "center_error_m": round(float(np.hypot(*(center - np.array(bay.slot.center)))), 3),
         # Along the bay axis and across it: in a parallel bay much longer than
         # the car, only the lateral error says how well the car is placed.
-        "along_error_m": round(float(abs((center - np.array(bay.slot.center)) @ np.array([bc, bs]))), 3),
-        "lateral_error_m": round(float(abs((center - np.array(bay.slot.center)) @ np.array([-bs, bc]))), 3),
+        "along_error_m": round(float(abs(offset_from_centre @ axis)), 3),
+        "lateral_error_m": round(float(abs(offset_from_centre @ np.array([-axis[1], axis[0]]))), 3),
     }
 
 

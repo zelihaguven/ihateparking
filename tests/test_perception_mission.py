@@ -203,6 +203,20 @@ class MissionTests(unittest.TestCase):
         self.assertIsNotNone(result.park_time_s)
         self.assertLessEqual(result.park_time_s, result.time_s)
 
+    def test_along_and_lateral_error_use_the_bay_found(self) -> None:
+        # Regression: they used the axis of the last bay looped over, so a
+        # parallel park in a lot with perpendicular rows had them swapped.
+        lot = scenario_lot(7513)
+        bay = next(b for b in lot.bays if b.bay_id == "P04")
+        u = (math.cos(bay.slot.yaw), math.sin(bay.slot.yaw))
+        offset = lot.vehicle.length / 2 - lot.vehicle.rear_overhang
+        # Footprint centre 0.5 m along the bay and 0.1 m across it.
+        cx, cy = bay.slot.center[0] + 0.5 * u[0] - 0.1 * u[1], bay.slot.center[1] + 0.5 * u[1] + 0.1 * u[0]
+        verdict = evaluate_parking(lot, Pose(cx - offset * u[0], cy - offset * u[1], bay.slot.yaw))
+        self.assertEqual(verdict["bay"], "P04")
+        self.assertAlmostEqual(verdict["along_error_m"], 0.5, delta=0.002)
+        self.assertAlmostEqual(verdict["lateral_error_m"], 0.1, delta=0.002)
+
     def test_evaluation_rejects_a_pose_in_the_aisle(self) -> None:
         lot = generate_lot(8)
         verdict = evaluate_parking(lot, lot.start)
