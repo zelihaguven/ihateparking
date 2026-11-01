@@ -36,6 +36,11 @@ PARALLEL_BAY_LENGTH_M = (6.0, 7.2)
 MIN_PARALLEL_CARS = 3
 MAX_KERB_SNAP_M = 3.5
 FLANK_GAP_M = 0.4  # gaps between parked cars along a kerb are wider than this
+END_WALL_THICKNESS_M = 0.8
+END_WALL_SLACK_M = 1.0  # missed cells along a wall's length
+END_WALL_REACH_M = 5.5  # past the parked-car band into the aisle: longer than any car, as a wall across the row end is
+END_CLEARANCE_M = 0.6
+TYPICAL_PARALLEL_BAY_M = 6.6
 MAX_SNAP_M = 1.5  # over half a bay: any anchor in the run reaches its nearest lattice bay
 CLOSING_SIDE_M = 2.1  # a closing car's side seen along the bay depth; a car nose is ~1.9 m
 MAX_CAR_SIDE_M = 6.0
@@ -196,6 +201,76 @@ def fit_lattice(centres: list[float], width_range: tuple[float, float] = BAY_WID
     return width, phase
 
 
+def kerb_profile(grid: OccupancyGrid, states: np.ndarray, center: np.ndarray, u: np.ndarray, aisle: np.ndarray, band: tuple[float, float]) -> tuple[list[tuple[float, float]], list[tuple[float, float]]]:
+    """Occupied runs along the kerb in the parked-car band, and which of them are walls.
+
+    A probe across the band (``band`` metres along ``aisle``) slides along
+    the kerb. A parked car shows its aisle-side flank: one line across the
+    band, as long as the car. A wall across the kerb fills the band and the
+    aisle beyond it, but is thin. Returns (all runs, wall runs), as (first, last) offsets along ``u``.
+    """
+    ts = np.arange(-KERB_SEARCH_M, KERB_SEARCH_M + 1e-9, STEP_M)
+    occupied = _probe(grid, states, center, aisle, u, ts, np.arange(band[0], band[1], 0.15))
+    # A wall runs on across the aisle; the end face of a car is only a car wide.
+    # A wall is unbroken; the fronts of a row of parked cars have gaps.
+    filled = _longest_run(_probe(grid, states, center, aisle, u, ts, np.arange(band[0], band[1] + END_WALL_REACH_M, 0.15))) * 0.15 >= band[1] - band[0] + END_WALL_REACH_M - END_WALL_SLACK_M
+    runs: list[tuple[float, float]] = []
+    walls: list[tuple[float, float]] = []
+    start = None
+    for index, value in enumerate(np.append(occupied.any(axis=1), False)):
+        if value and start is None:
+            start = index
+        elif not value and start is not None:
+            first, last = float(ts[start]), float(ts[index - 1])
+            if last - first <= END_WALL_THICKNESS_M and filled[start:index].any():
+                walls.append((first, last))
+                runs.append((first, last))
+                start = None
+                continue
+            # A flank seen in pieces (a few cells missed) is still one car.
+            if runs and runs[-1] not in walls and first - runs[-1][1] <= FLANK_GAP_M:
+                first = runs.pop()[0]
+            runs.append((first, last))
+            start = None
+    return runs, walls
+
+
+def wall_end_offset(runs: list[tuple[float, float]], walls: list[tuple[float, float]], car_length: float) -> tuple[float, tuple[float, float]] | None:
+    """(offset along the kerb to a parallel bay between a wall and a parked car, that car's run), or None.
+
+    At the wall end of a parallel row the bays cannot be counted from the
+    cars, so the car does what a driver does: with a wall across the kerb
+    on one side and a car parked along the kerb (its whole flank seen) on
+    the other, it parks one bay length from that car, as far as the gap
+    allows.
+    """
+    behind = [run for run in runs if run[1] < 0]
+    ahead = [run for run in runs if run[0] > 0]
+    if not behind or not ahead:
+        return None
+    near_behind, near_ahead = max(behind), min(ahead)
+
+    def whole_car(run):
+        return run not in walls and PARKED_CAR_LENGTH_M[0] <= run[1] - run[0] <= PARKED_CAR_LENGTH_M[1]
+
+    if near_behind in walls and whole_car(near_ahead):
+        wall_side, car, toward_wall = near_behind[1], near_ahead, -1.0
+    elif near_ahead in walls and whole_car(near_behind):
+        wall_side, car, toward_wall = near_ahead[0], near_behind, 1.0
+    else:
+        return None
+    car_end = car[0] if toward_wall < 0 else car[1]
+    if abs(car_end - wall_side) < car_length + 2.0 * END_CLEARANCE_M:
+        return None
+    # The neighbouring bay is one bay length from the parked car's centre
+    # (it sits roughly centred in its own bay), kept clear of the car and
+    # of the wall.
+    target = (car[0] + car[1]) / 2.0 + toward_wall * TYPICAL_PARALLEL_BAY_M
+    half = car_length / 2.0 + END_CLEARANCE_M
+    low, high = sorted((wall_side - toward_wall * half, car_end + toward_wall * half))
+    return float(np.clip(target, low, high)), car
+
+
 def kerb_slot_offset(grid: OccupancyGrid, states: np.ndarray, center: np.ndarray, u: np.ndarray, aisle: np.ndarray, band: tuple[float, float], car_length: float) -> float | None:
     """Offset along the kerb from ``center`` to the parallel bay it falls in, or None.
 
@@ -206,20 +281,7 @@ def kerb_slot_offset(grid: OccupancyGrid, states: np.ndarray, center: np.ndarray
     between whole cars and clear of every parked car. A run longer than any
     car is a wall along the kerb line: no bay is placed.
     """
-    ts = np.arange(-KERB_SEARCH_M, KERB_SEARCH_M + 1e-9, STEP_M)
-    occupied = _probe(grid, states, center, aisle, u, ts, np.arange(band[0], band[1], 0.15))
-    runs: list[tuple[float, float]] = []
-    start = None
-    for index, value in enumerate(np.append(occupied.any(axis=1), False)):
-        if value and start is None:
-            start = index
-        elif not value and start is not None:
-            first, last = float(ts[start]), float(ts[index - 1])
-            # A flank seen in pieces (a few cells missed) is still one car.
-            if runs and first - runs[-1][1] <= FLANK_GAP_M:
-                first = runs.pop()[0]
-            runs.append((first, last))
-            start = None
+    runs, _ = kerb_profile(grid, states, center, u, aisle, band)
     if any(last - first > MAX_CAR_SIDE_M for first, last in runs):
         return None
     whole = [(first + last) / 2.0 for first, last in runs if PARKED_CAR_LENGTH_M[0] <= last - first <= PARKED_CAR_LENGTH_M[1]]

@@ -177,6 +177,11 @@ PULL_SEARCH_M = 2.5
 MAX_PULL_IN_M = 1.5
 MAX_PULL_BACK_M = 0.5
 SQUARE_BACK_SPREAD_M = 0.4
+WALL_END_SNAP_M = 6.0
+AISLE_STRIP_M = 2.5
+AISLE_FREE_FRACTION = 0.8
+AISLE_ON_M = 2.0  # the aisle runs on past the closing car's far end
+END_CAR_STRIP_M = 4.0  # along each end car, from the bay's end
 KERB_MIN_LENGTH_M = 7.0  # a parked car's side is never this long (cars are 4.2-4.9 m)
 RUN_PROBE_SPACING_M = 1.0
 RUN_SCORE_PENALTY = 10.0
@@ -364,13 +369,81 @@ def _place_along_kerb(grid: OccupancyGrid, states: np.ndarray, edge_dir: np.ndar
     # square to it, which also lines up with the bay, ends within a car length.
     if not _long_kerb(grid, states, center, u, sides[0], vehicle):
         return None
-    offset = row_lattice.kerb_slot_offset(grid, states, center, u, aisle, (-vehicle.width / 2 + 0.2, vehicle.width / 2 + 0.6), vehicle.length)
+    band = (-vehicle.width / 2 + 0.2, vehicle.width / 2 + 0.6)
+    offset = row_lattice.kerb_slot_offset(grid, states, center, u, aisle, band, vehicle.length)
     if offset is None:
+        # The wall end of a parallel row: the evidence that this row is
+        # parallel is the car parked along the kerb that closes the gap.
+        found = row_lattice.wall_end_offset(*row_lattice.kerb_profile(grid, states, center, u, aisle, band), vehicle.length)
+        if found is None:
+            return None
+        offset, car = found
+        # A car parked along the kerb has the aisle beside it; the last car
+        # of a row parked square to a wall has the next car of that row.
+        if not _aisle_beside(grid, states, center, u, aisle, car, band[1], offset):
+            return None
+    if offset is None or abs(offset) > WALL_END_SNAP_M:
         return None
     placed = center + offset * u
     if not _footprint_clear(grid, states, placed, yaw, vehicle.length / 2 + SIDE_CLEARANCE_M, vehicle.width / 2 + 0.1, max_unknown):
         return None
     return SlotCandidate((float(placed[0]), float(placed[1])), yaw, snug.row, snug.score)
+
+
+def _aisle_beside(grid: OccupancyGrid, states: np.ndarray, center: np.ndarray, u: np.ndarray, aisle: np.ndarray, car: tuple[float, float], band_end: float, bay: float) -> bool:
+    """The strip on the aisle side of a parked car, AISLE_STRIP_M deep, is seen free.
+
+    It runs along the car and AISLE_ON_M past its far end (away from the
+    bay at offset ``bay``): beside a parallel row the aisle runs on along
+    the kerb, while the last car of a row parked square to a wall has its
+    row's back kerb at its far end.
+    """
+    first, last = (car[0], car[1] + AISLE_ON_M) if bay < car[0] else (car[0] - AISLE_ON_M, car[1])
+    along = np.arange(first, last + 1e-9, 0.15)
+    across = np.arange(band_end, band_end + AISLE_STRIP_M + 1e-9, 0.15)
+    points = center + along[:, None, None] * u + across[None, :, None] * aisle
+    rows, cols = grid.to_cell(points[..., 0], points[..., 1])
+    inside = (rows >= 0) & (rows < grid.shape[0]) & (cols >= 0) & (cols < grid.shape[1])
+    free = np.zeros(rows.shape, dtype=bool)
+    free[inside] = states[rows[inside], cols[inside]] == FREE
+    return bool(free.mean() >= AISLE_FREE_FRACTION)
+
+
+def _free_fraction(grid: OccupancyGrid, states: np.ndarray, center: np.ndarray, u: np.ndarray, v: np.ndarray, along: tuple[float, float], across: tuple[float, float]) -> float:
+    """Fraction of the box (``along`` u, ``across`` v from ``center``) seen free; unseen and off-map count as not free."""
+    a = np.arange(along[0], along[1] + 1e-9, 0.15)
+    b = np.arange(across[0], across[1] + 1e-9, 0.15)
+    points = center + a[:, None, None] * u + b[None, :, None] * v
+    rows, cols = grid.to_cell(points[..., 0], points[..., 1])
+    inside = (rows >= 0) & (rows < grid.shape[0]) & (cols >= 0) & (cols < grid.shape[1])
+    free = np.zeros(rows.shape, dtype=bool)
+    free[inside] = states[rows[inside], cols[inside]] == FREE
+    return float(free.mean())
+
+
+def _ends_beside_aisle(grid: OccupancyGrid, states: np.ndarray, candidate: SlotCandidate, vehicle: VehicleSpec) -> bool:
+    """A parallel bay between two cars: both end cars have the aisle beside them.
+
+    A car parked along a kerb has the aisle on its aisle side. The last car
+    of a row parked square to a wall can lie along that wall too, and then
+    looks the same from the gap; but beside it stands the next car of its
+    row (11063: the aisle's end wall between two rows' end cars).
+    """
+    yaw = candidate.axis_yaw
+    u = np.array([math.cos(yaw), math.sin(yaw)])
+    v = np.array([-math.sin(yaw), math.cos(yaw)])
+    center = np.array(candidate.center)
+    half_l, half_w = vehicle.length / 2, vehicle.width / 2
+    across = (half_w + SIDE_CLEARANCE_M, half_w + SIDE_CLEARANCE_M + AISLE_STRIP_M)
+    # The aisle is on the side where the strip beside the bay itself is free.
+    aisle = max((v, -v), key=lambda side: _free_fraction(grid, states, center, u, side, (-half_l, half_l), across))
+    ends = []
+    for direction in (u, -u):
+        gap = _free_run(grid, states, center, direction, v, half_l, PARALLEL_GAP_SEARCH_M, half_w)
+        if gap is None:
+            return False
+        ends.append((half_l + gap, half_l + gap + END_CAR_STRIP_M) if direction is u else (-half_l - gap - END_CAR_STRIP_M, -half_l - gap))
+    return all(_free_fraction(grid, states, center, u, aisle, end, across) >= AISLE_FREE_FRACTION for end in ends)
 
 
 def _long_kerb(grid: OccupancyGrid, states: np.ndarray, center: np.ndarray, u: np.ndarray, kerb_side: np.ndarray, vehicle: VehicleSpec) -> bool:
@@ -442,7 +515,10 @@ def _refine(grid: OccupancyGrid, states: np.ndarray, edge_dir: np.ndarray, vehic
     neighbours give its true axis to within a few degrees.
     """
     if candidate.row != "side_by_side":
-        return _center_end_to_end(grid, states, edge_dir, vehicle, candidate, max_unknown)
+        centred = _center_end_to_end(grid, states, edge_dir, vehicle, candidate, max_unknown)
+        if centred is None or not _ends_beside_aisle(grid, states, centred, vehicle):
+            return None
+        return centred
     yaw = candidate.axis_yaw
     u = np.array([math.cos(yaw), math.sin(yaw)])
     v = np.array([-math.sin(yaw), math.cos(yaw)])
