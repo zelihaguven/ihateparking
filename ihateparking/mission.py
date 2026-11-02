@@ -38,6 +38,8 @@ from .procedural_lot import ProceduralLot
 from .slot_detector import SlotCandidate, detect_slots
 
 
+PARK_END_POSITION_M = 0.25  # a park plan must end this close to the bay's goal
+PARK_END_YAW = math.radians(5.0)
 STAGING_AHEAD_M = (5.5, 6.5)
 STAGING_LATERAL_M = (2.2, 2.6, 3.0)
 LOCALIZATION_MODES = ("truth", "odometry", "scan_matching")
@@ -167,6 +169,12 @@ def _best_plan(world: MapWorld, start: Pose, candidate: SlotCandidate, config: P
             continue
         plan = HybridAStar(world, config).plan(start=start, goal=goal)
         if not plan.success:
+            continue
+        # A plan that only gets near the goal must still end in the bay: the
+        # planner's own tolerance is for exploring, and it may have moved a
+        # blocked goal. Judge the end against the bay's own goal.
+        end = plan.poses[-1]
+        if distance(end, goal) > PARK_END_POSITION_M or abs(wrap_angle(end.yaw - goal.yaw)) > PARK_END_YAW:
             continue
         exact = "Reeds-Shepp" in plan.message
         key = (not exact, plan.cost)
