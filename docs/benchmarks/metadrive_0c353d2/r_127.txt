@@ -1,0 +1,5 @@
+seed 127: NO_SPACE_FOUND  success=False   54.0 s   39.2 m  free spaces 6  gaps between cars 0  {}
+       28.0 s  recover  boxed in; manoeuvring to open space at (28.4, 1.2)
+       36.8 s  recover  boxed in; manoeuvring to open space at (31.7, 0.9)
+       45.2 s  recover  boxed in; manoeuvring to open space at (34.6, 1.5)
+       54.0 s  end      no verified bay; nothing left to explore after repeated recovery; the vehicle stops

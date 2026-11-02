@@ -76,6 +76,21 @@ one, stopping is the designed outcome (no bay lines to place a car in a run).
 Parks: overlap 100% in every one; lateral error median 7 cm, max 18 cm; axis error median 2.1 deg,
 max 4.9 deg. Raw outputs: docs/benchmarks/metadrive_e38607e/.
 
+## Step 3.4: the four remaining MetaDrive failures (0c353d2)
+
+- 104: a neighbour parked deep in an 8 m space showed only 1.9 m of its side from the aisle; the
+  tentative detector (where to drive up and look) now accepts 1.5 m, parking still needs 3 m.
+- 138: gaps refused as "no route" while the map was incomplete were never retried; refusals now
+  expire after 20 s.
+- 103, 112 (no gap between cars): recovery after recovery until the timeout; three recoveries in a
+  row with no frontier or bay now end the mission.
+
+Same 40 lots (seeds 101–140): **29 of 29 lots with a gap between cars parked correctly; the 11
+without one stopped (one parked correctly anyway); 0 contacts, 0 wrong parks, 0 timeouts.** Every
+park fully inside its space; lateral error median 7 cm, max 33 cm; axis error max 4.9 deg; longest
+mission 175 s. Built-in dev 6000–6119 with the same code: 116/120 (was 115), 0 wrong parks,
+position error 16 / 35 cm. Raw: docs/benchmarks/metadrive_0c353d2/.
+
 ## Next
 
 An adapter that builds a parking lot from the `ParkingLot` block, parks static vehicles in some
