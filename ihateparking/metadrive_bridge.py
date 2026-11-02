@@ -237,6 +237,23 @@ def _rows(spaces: tuple[TruthSpace, ...]) -> list[list[TruthSpace]]:
     return rows
 
 
+def gaps_between_cars(spaces: tuple[TruthSpace, ...]) -> list[TruthSpace]:
+    """Free spaces with an occupied space on both sides in the same row.
+
+    Without bay lines this is what LiDAR alone can place a car in safely;
+    free spaces only in runs or at row ends are left alone by design.
+    """
+    gaps = []
+    for row in _rows(spaces):
+        yaw = row[0].yaw
+        along_axis = np.array([-math.sin(yaw), math.cos(yaw)])
+        ordered = sorted(row, key=lambda sp: float(np.array(sp.center) @ along_axis))
+        for left, space, right in zip(ordered, ordered[1:], ordered[2:]):
+            if not space.occupied and left.occupied and right.occupied:
+                gaps.append(space)
+    return gaps
+
+
 def space_overlap(space: TruthSpace, pose: Pose, vehicle: VehicleSpec) -> float:
     """Share of the car footprint (rear-axle ``pose``) inside the space."""
     offset = vehicle.length / 2.0 - vehicle.rear_overhang

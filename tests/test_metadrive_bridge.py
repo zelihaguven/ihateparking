@@ -2,7 +2,7 @@ import math
 import unittest
 
 from ihateparking.geometry import Pose
-from ihateparking.metadrive_bridge import METADRIVE_VEHICLE, TruthSpace, space_overlap
+from ihateparking.metadrive_bridge import METADRIVE_VEHICLE, TruthSpace, gaps_between_cars, space_overlap
 
 
 class MetaDriveBridgeTests(unittest.TestCase):
@@ -19,6 +19,11 @@ class MetaDriveBridgeTests(unittest.TestCase):
     def test_vehicle_matches_metadrive_default_vehicle(self) -> None:
         self.assertAlmostEqual(METADRIVE_VEHICLE.wheelbase, 2.46894, places=4)
         self.assertAlmostEqual(METADRIVE_VEHICLE.length / 2 - METADRIVE_VEHICLE.rear_overhang, 1.4166, places=4)
+
+
+    def test_gaps_between_cars_need_both_neighbours(self) -> None:
+        row = tuple(TruthSpace(f"P{i}", (2.7 * i, 0.0), math.pi / 2, 8.0, 2.7, occupied) for i, occupied in enumerate([True, False, True, False, False, True]))
+        self.assertEqual([s.space_id for s in gaps_between_cars(row)], ["P1"])
 
 
 if __name__ == "__main__":

@@ -17,7 +17,7 @@ import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from ihateparking.metadrive_bridge import MetaDriveLot, MetaDrivePlant  # noqa: E402
+from ihateparking.metadrive_bridge import MetaDriveLot, MetaDrivePlant, gaps_between_cars  # noqa: E402
 from ihateparking.mission import MissionConfig, run_mission  # noqa: E402
 from ihateparking.occupancy_map import FREE, OCCUPIED  # noqa: E402
 
@@ -72,7 +72,8 @@ def main() -> int:
             config = MissionConfig(localization=args.localization, max_time_s=300.0, collision_margin_m=args.margin, explore_margin_m=args.explore_margin)
             result = run_mission(None, config, seed=seed, plant=MetaDrivePlant(lot))
             free = sum(not s.occupied for s in lot.spaces)
-            print(f"seed {seed}: {result.outcome:15s} success={result.success} {result.time_s:6.1f} s {result.distance_m:6.1f} m  free spaces {free}  {result.evaluation}")
+            gaps = len(gaps_between_cars(lot.spaces))
+            print(f"seed {seed}: {result.outcome:15s} success={result.success} {result.time_s:6.1f} s {result.distance_m:6.1f} m  free spaces {free}  gaps between cars {gaps}  {result.evaluation}")
             for event in result.events[-4:]:
                 print(f"    {event.time_s:7.1f} s  {event.kind:8s} {event.message}")
             draw(lot, result, Path(f"artifacts/metadrive/mission_{seed}.png"))
