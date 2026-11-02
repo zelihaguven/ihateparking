@@ -61,7 +61,7 @@ Simülasyonda, rastgele üretilmiş ve hiç görülmemiş otoparklarda:
 | Toplam görev süresi (simüle) — medyan | ≤ 90 sn | 37 sn ✅ |
 | Park süresi (yuva bulunduktan sonra) — en kötü | ≤ 240 sn | ölçülecek (toplam görev en kötü 224 sn) |
 | Yuva tespiti kesinliği (tespit edilenlerin gerçekten boş olması) | %100 | %100 (görev içinde yanlış park 0) ✅ |
-| Konum tahmini açıkken doğru park oranı | ≥ %95 | %100 (100/100; 8abb834, seed 7300–7399, odometri + LiDAR eşleme) ✅ |
+| Konum tahmini açıkken doğru park oranı | ≥ %95 | %96 (96/100; f2ba1ea, seed 7600–7699, odometri + jiroskop + LiDAR eşleme; yanlış park 0, çarpışma 0, konum hatası 16 / 36 cm) ✅ |
 | Otomatik test paketi | tamamı geçer | 80 geçti, 3 atlandı (CasADi yok) ✅ |
 
 Konum ve eksen hatası her park için tek tek sınır değildir: günlük kullanımda birkaç on santimlik kayıklık normaldir. Her park için zorunlu olan, aracın yuvanın içinde (örtüşme) ve çarpışmasız durmasıdır. Medyan tipik parkı, %95'lik değer seyrek kötü parkları sınırlar (2026-10-25'te onaylandı).

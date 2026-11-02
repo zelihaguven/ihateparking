@@ -222,9 +222,35 @@ Dev lots 6000–6119 at 8abb834: 115/120; the five failures are sparse lots whos
 long runs with too few parked cars for a lattice (e.g. 6066: three cars per row). Placing a car
 there needs the bay lines, i.e. camera perception.
 
+## Step 3 (MetaDrive) and its fixes, then a fresh acceptance (f2ba1ea, lots 7600–7699)
+
+MetaDrive (see docs/metadrive.md) exposed weaknesses the built-in simulator hid; fixed since the
+step-2 sign-off:
+- heading from a yaw-rate gyro when the plant has one (b143d67);
+- 0.30 m clearance while exploring, 0.15 m in the park manoeuvre (f2cefed);
+- acceptance 7400–7499 then had a wrong park (7474): lattice width edge rule widened, bays pulled
+  in to a square back (bf9cd2a, f2ba1ea);
+- evaluate_parking computed along/lateral error with the wrong bay's axis (94eda15): parallel
+  lateral errors had been over-reported; parks and verdicts were never affected.
+
+| PRD metric | Target | 7600–7699 (scan matching) |
+|---|---|---|
+| Correct park | ≥ 95% | **96/100** |
+| Wrong park / collisions | 0 / 0 | 0 / 0 |
+| Overlap, every park | ≥ 80% | min 84.3% |
+| Position error median / p95 | ≤ 25 / 45 cm | 16.1 / 36.3 cm |
+| Axis error median / p95 | ≤ 5° / 10° | 2.5° / 7.1° |
+| Total time median / park time worst | ≤ 90 / 240 s | 38 / 69 s |
+
+By kind: perpendicular 17 / 33 cm, angled 14 / 37 cm, parallel (lateral) 21 / 47 cm.
+Acceptance lots used so far: 7000–7699. Next acceptance needs lots ≥ 7700.
+
+MetaDrive, 12 lots at f2cefed: 9 parked, 0 contacts, 0 wrong parks (3 failures exploring
+MetaDrive's open, wall-less surroundings).
+
 ## Next steps
 
-1. Parallel-only scenario is still 34/59 (wall-end bays; branch wip/wall-end-parallel needs
-   row-level evidence before merging).
-2. Free Mac simulator (MetaDrive) feasibility check; ROS2 layer.
-3. Camera line perception (would lift sparse lots and the position error floor).
+1. MetaDrive: a perimeter around the lot (realistic, should end the open-field timeouts), then a
+   larger MetaDrive run (40 lots).
+2. Parallel-only scenario (34/59) and wall-end bays (branch wip/wall-end-parallel).
+3. ROS2 layer over stack_contracts.
