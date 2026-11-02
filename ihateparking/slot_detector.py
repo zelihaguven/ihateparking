@@ -158,6 +158,7 @@ class _AlignedMap:
 COVERAGE_BIN_M = 0.5
 FLANK_COVERAGE = 0.3
 FLANK_RUN_M = 3.0
+TENTATIVE_FLANK_RUN_M = 1.5
 FLANK_STAGGER_M = 3.0
 BACK_COVERAGE = 0.75
 KERB_COVERAGE = 0.85
@@ -197,7 +198,7 @@ def _coverage(m: _AlignedMap, iv, iu, along_u: bool, a0: float, a1: float, b0: f
     return hits / max(1, len(edges))
 
 
-def _side_by_side(m: _AlignedMap, iv, iu, half_l: float, half_w: float, near_back_needed: float = NEAR_BACK_COVERAGE) -> list[tuple[np.ndarray, np.ndarray, float, np.ndarray]]:
+def _side_by_side(m: _AlignedMap, iv, iu, half_l: float, half_w: float, near_back_needed: float = NEAR_BACK_COVERAGE, flank_run_needed: float = FLANK_RUN_M) -> list[tuple[np.ndarray, np.ndarray, float, np.ndarray]]:
     """Anchors passing the side-by-side rules, for a back at +u and at -u.
 
     Returns (both flanks seen, enclosed but missing a flank, back, score).
@@ -230,7 +231,7 @@ def _side_by_side(m: _AlignedMap, iv, iu, half_l: float, half_w: float, near_bac
         for strip, cover, run in zip(flank_strips, flank_cover, flank_run):
             continues = _coverage(m, iv, iu, True, *beyond, *strip, PARALLEL_EDGE)
             no_wall &= continues < WALL_CONTINUATION
-            flank_ok &= (cover >= FLANK_COVERAGE) & (run >= FLANK_RUN_M)
+            flank_ok &= (cover >= FLANK_COVERAGE) & (run >= flank_run_needed)
             flank_score += cover
         back_cover = _coverage(m, iv, iu, False, -inner_w, inner_w, *back_box)
         front_free = m.box(FREE, iv, iu, *front_box, -inner_w, inner_w) / m.area(*front_box, -inner_w, inner_w)
@@ -285,6 +286,9 @@ def detect_slots(grid: OccupancyGrid, vehicle: VehicleSpec, tentative: bool = Fa
     """
     max_unknown = TENTATIVE_UNKNOWN_FRACTION if tentative else MAX_UNKNOWN_FRACTION
     near_back_needed = 0.0 if tentative else NEAR_BACK_COVERAGE
+    # A neighbour deep in its bay shows only part of its side from the aisle;
+    # that is reason enough to drive up and look (tentative), not to park.
+    flank_run_needed = TENTATIVE_FLANK_RUN_M if tentative else FLANK_RUN_M
     states = grid.states()
     rows, cols = np.nonzero(states != UNKNOWN)
     if rows.size == 0:
@@ -313,7 +317,7 @@ def detect_slots(grid: OccupancyGrid, vehicle: VehicleSpec, tentative: bool = Fa
             if not clear.any():
                 continue
             # Side-by-side: ego length along the lattice u axis.
-            for ok, open_flank, back, snug in _side_by_side(m, iv, iu, half_l, half_w, near_back_needed):
+            for ok, open_flank, back, snug in _side_by_side(m, iv, iu, half_l, half_w, near_back_needed, flank_run_needed):
                 heading = axis if back > 0 else axis + math.pi
                 hits = np.nonzero(clear & ok)[0]
                 for point, score in zip(m.world(iv[hits], iu[hits]), snug[hits]):

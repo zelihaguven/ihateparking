@@ -85,6 +85,8 @@ class MissionConfig:
     inspection_candidates: int = 2
     inspection_standoff_m: float = 3.5
     escape_margin_m: float = 0.03
+    reject_retry_s: float = 20.0
+    max_idle_recoveries: int = 3
     # Clearance the planner keeps from mapped structure: in the final park
     # manoeuvre (slow, into a bay sized for the car) and while exploring or
     # approaching (longer legs round row ends). The built-in simulator tracks
@@ -420,6 +422,9 @@ def run_mission(lot: Optional[ProceduralLot], config: MissionConfig = MissionCon
     tracker: Optional[PlanTracker] = None
     plan: Optional[PlanResult] = None
     target: Optional[SlotCandidate] = None
+    # Bays refused for want of a route, with when: the map was incomplete
+    # then, so each refusal expires and the bay is tried again later.
+    rejections: list[tuple[tuple[float, float], float]] = []
     rejected: list[tuple[float, float]] = []
     # Frontiers that could not be planned to from the current position. A
     # frontier being driven towards is not excluded: it stays the target
@@ -434,6 +439,7 @@ def run_mission(lot: Optional[ProceduralLot], config: MissionConfig = MissionCon
     staged_bays: list[tuple[float, float]] = []  # parallel bays already approached via a staging pose
     leg_start = 0.0
     recoveries = 0
+    idle_recoveries = 0  # recoveries in a row without a frontier or a bay in between
     escapes = 0
     step = 0
     controller = config.controller
@@ -479,6 +485,7 @@ def run_mission(lot: Optional[ProceduralLot], config: MissionConfig = MissionCon
                     tracker = PlanTracker(plan, vehicle.wheelbase, vehicle.max_steering, controller)
                     leg_start = travelled
                     continue
+            rejected = [centre for centre, when in rejections if t - when < config.reject_retry_s]
             candidates = [
                 item for item in detect_slots(grid, vehicle)
                 if all(math.dist(item.center, other) > 1.5 for other in rejected)
@@ -502,7 +509,7 @@ def run_mission(lot: Optional[ProceduralLot], config: MissionConfig = MissionCon
                             staged = True
                             break
                 if found is None:
-                    rejected.append(candidate.center)
+                    rejections.append((candidate.center, t))
                     log("reject", f"bay candidate at ({candidate.center[0]:.1f}, {candidate.center[1]:.1f}) has no route yet")
                     continue
                 plan, heading = found
@@ -510,6 +517,7 @@ def run_mission(lot: Optional[ProceduralLot], config: MissionConfig = MissionCon
                 entry = "reversing in" if next((g for g in reversed(plan.gears) if g), 1) < 0 else "driving in"
                 log("park", f"verified bay at ({candidate.center[0]:.1f}, {candidate.center[1]:.1f}); {entry}")
                 mode = "park"
+                idle_recoveries = 0
                 if bay_found_t is None:
                     bay_found_t = t
                 break
@@ -524,6 +532,7 @@ def run_mission(lot: Optional[ProceduralLot], config: MissionConfig = MissionCon
                 optimistic = MapWorld(grid, vehicle, pose, collision_margin=config.explore_margin_m, unknown_is_obstacle=False)
                 plan = _inspection_plan(grid, optimistic, pose, config, inspected, rejected)
                 if plan is not None:
+                    idle_recoveries = 0
                     log("inspect", f"promising gap at ({inspected[-1][0]:.1f}, {inspected[-1][1]:.1f}); driving up to look into it")
                     mode = "inspect"
                     tracker = PlanTracker(plan, vehicle.wheelbase, vehicle.max_steering, controller)
@@ -546,6 +555,7 @@ def run_mission(lot: Optional[ProceduralLot], config: MissionConfig = MissionCon
                         if waypoint is not None:
                             attempt = HybridAStar(optimistic, config.explore_planner).plan(start=pose, goal=waypoint)
                     if attempt.success:
+                        idle_recoveries = 0
                         plan = attempt
                         unreachable.clear()
                         # Viewpoints aimed at repeatedly without the frontier
@@ -557,8 +567,13 @@ def run_mission(lot: Optional[ProceduralLot], config: MissionConfig = MissionCon
                         break
                     unreachable.append(centroid)
                     log("explore", f"frontier near ({goal.x:.1f}, {goal.y:.1f}) unreachable; trying another")
+                if plan is None and idle_recoveries >= config.max_idle_recoveries:
+                    # Recovery after recovery has turned up no frontier and no
+                    # bay: everything reachable has been seen.
+                    return finish("NO_SPACE_FOUND", "no verified bay; nothing left to explore after repeated recovery; the vehicle stops")
                 if plan is None and recoveries < config.max_recoveries:
                     recoveries += 1
+                    idle_recoveries += 1
                     escape_world = optimistic
                     if optimistic.is_collision(pose):
                         # Newly seen structure is inside the safety margin of
@@ -585,7 +600,7 @@ def run_mission(lot: Optional[ProceduralLot], config: MissionConfig = MissionCon
             recoveries = 0
             escapes = 0
             # "No route" was relative to where the car stood; retry from here.
-            rejected.clear()
+            rejections.clear()
             mode = "decide"
             continue
         signed = command.speed * command.gear
@@ -614,7 +629,7 @@ def run_mission(lot: Optional[ProceduralLot], config: MissionConfig = MissionCon
         if not _plan_still_clear(grid, vehicle, pose, plan, config.lookahead_check_m, config.collision_margin_m if mode == "park" else config.explore_margin_m):
             log("replan", "newly seen obstacle blocks the plan; replanning")
             if mode == "park" and target is not None:
-                rejected.append(target.center)
+                rejections.append((target.center, t))
             mode = "decide"
     return finish("TIMEOUT", f"no parking within {config.max_time_s:.0f} s")
 
