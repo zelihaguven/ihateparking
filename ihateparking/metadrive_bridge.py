@@ -41,6 +41,9 @@ METADRIVE_VEHICLE = VehicleSpec(
 SPACE_WIDTH_M = 2.7  # MetaDrive derives the space width from the lane width (default 3.5 m)
 KERB_PIECE_M = 2.0  # MetaDrive TrafficBarrier length, which lies square to its heading
 KERB_OFFSET_M = 0.3  # behind the end of a space
+PERIMETER_GAP_M = 0.5  # perimeter wall behind the row kerbs
+PERIMETER_END_M = 6.0  # room beyond the outer spaces at each end of the aisle
+PERIMETER_START_M = 3.0  # ego start: this far in from the entrance wall
 SPEED_KP = 0.6
 SPEED_KI = 0.3
 SPEED_INTEGRAL_LIMIT = 2.0
@@ -59,7 +62,7 @@ class TruthSpace:
 class MetaDriveLot:
     """One MetaDrive parking lot with parked cars and kerbs, ego in the entrance road."""
 
-    def __init__(self, seed: int, occupancy: float = 0.5, spaces_per_side: int = 4, jitter: bool = True, decision_repeat: int = 5):
+    def __init__(self, seed: int, occupancy: float = 0.5, spaces_per_side: int = 4, jitter: bool = True, decision_repeat: int = 5, enclose: bool = True):
         from metadrive.component.static_object.traffic_object import TrafficBarrier
         from metadrive.component.vehicle.vehicle_type import DefaultVehicle
         from metadrive.envs.marl_envs.marl_parking_lot import MAParkingLotMap
@@ -123,8 +126,47 @@ class MetaDriveLot:
                 point = depth * np.array([c, s]) + t * along_row
                 barrier = engine.spawn_object(TrafficBarrier, position=(float(point[0]), float(point[1])), heading_theta=yaw, static=True)
                 self.kerbs.append(barrier)
+        if enclose:
+            self._enclose(engine, TrafficBarrier)
         # The world changed after reset: let physics settle one step.
         self.env.step([0.0, 0.0])
+
+    def _enclose(self, engine, barrier_class) -> None:
+        """Wall the lot in, as a real car park is, and start the ego at its entrance.
+
+        MetaDrive's lot block sits in open ground; with nothing around it the
+        car explores outward until it runs out of time. The perimeter runs
+        along the backs of the rows (just behind the kerbs) and closes both
+        ends PERIMETER_END_M beyond the outer spaces; the ego starts inside,
+        in the aisle at one end, facing along it.
+        """
+        yaw = self.spaces[0].yaw
+        depth_axis = np.array([math.cos(yaw), math.sin(yaw)])
+        along_axis = np.array([-math.sin(yaw), math.cos(yaw)])
+        along = [float(np.array(sp.center) @ along_axis) for sp in self.spaces]
+        backs = [float(np.array(sp.center) @ depth_axis) + (sp.length / 2.0 + KERB_OFFSET_M + PERIMETER_GAP_M) * math.copysign(1.0, math.cos(wrap_angle(sp.yaw - yaw))) for sp in self.spaces]
+        width = self.spaces[0].width
+        a0, a1 = min(along) - width / 2.0 - PERIMETER_END_M, max(along) + width / 2.0 + PERIMETER_END_M
+        d0, d1 = min(backs), max(backs)
+
+        def wall(start: np.ndarray, end: np.ndarray) -> None:
+            direction = end - start
+            length = float(np.linalg.norm(direction))
+            heading = math.atan2(direction[1], direction[0]) - math.pi / 2.0  # a barrier lies square to its heading
+            for t in np.arange(KERB_PIECE_M / 2.0, length, KERB_PIECE_M):
+                point = start + direction / length * t
+                self.kerbs.append(engine.spawn_object(barrier_class, position=(float(point[0]), float(point[1])), heading_theta=heading, static=True))
+
+        corner = lambda a, d: a * along_axis + d * depth_axis  # noqa: E731
+        wall(corner(a0, d0), corner(a1, d0))
+        wall(corner(a0, d1), corner(a1, d1))
+        wall(corner(a0, d0), corner(a0, d1))
+        wall(corner(a1, d0), corner(a1, d1))
+        entrances = [np.array(sp.center) - sp.length / 2.0 * np.array([math.cos(sp.yaw), math.sin(sp.yaw)]) for sp in self.spaces]
+        aisle_middle = float(np.mean([e @ depth_axis for e in entrances]))
+        start = corner(a0 + PERIMETER_START_M, aisle_middle)
+        heading = math.atan2(along_axis[1], along_axis[0])
+        self.teleport(Pose(float(start[0]), float(start[1]), heading))
 
     # -- the stack's view ---------------------------------------------------
     def pose(self) -> Pose:
