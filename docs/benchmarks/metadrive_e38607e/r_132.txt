@@ -1,0 +1,5 @@
+seed 132: PARKED          success=True   46.8 s   35.2 m  free spaces 7  gaps between cars 1  {'in_bay': True, 'bay': '1P10_1_', 'bay_kind': 'perpendicular', 'bay_was_free': True, 'overlap': 1.0, 'axis_error_deg': 4.5, 'center_error_m': 1.501, 'along_error_m': 1.5, 'lateral_error_m': 0.056}
+       11.0 s  replan   newly seen obstacle blocks the plan; replanning
+       11.0 s  explore  no verified bay yet; exploring towards (22.5, 11.5)
+       18.8 s  park     verified bay at (32.2, -9.5); reversing in
+       46.8 s  end      parked after 46.8 s and 35.2 m

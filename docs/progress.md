@@ -245,12 +245,11 @@ step-2 sign-off:
 By kind: perpendicular 17 / 33 cm, angled 14 / 37 cm, parallel (lateral) 21 / 47 cm.
 Acceptance lots used so far: 7000–7699. Next acceptance needs lots ≥ 7700.
 
-MetaDrive, 12 lots at f2cefed: 9 parked, 0 contacts, 0 wrong parks (3 failures exploring
-MetaDrive's open, wall-less surroundings).
+MetaDrive, 40 walled lots at e38607e: 27 of 29 lots with a gap between cars parked correctly,
+0 contacts, 0 wrong parks; every park fully inside its space (see docs/metadrive.md).
 
 ## Next steps
 
-1. MetaDrive: a perimeter around the lot (realistic, should end the open-field timeouts), then a
-   larger MetaDrive run (40 lots).
+1. MetaDrive: the 2 missed gaps and 2 timeouts of the 40-lot run.
 2. Parallel-only scenario (34/59) and wall-end bays (branch wip/wall-end-parallel).
 3. ROS2 layer over stack_contracts.

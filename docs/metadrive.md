@@ -61,6 +61,21 @@ uv pip install --python .venv-metadrive/bin/python metadrive-simulator==0.4.3
 The three failures are timeouts or no space found while exploring MetaDrive's open, wall-less
 surroundings.
 
+## Step 3.3: walled lot, 40 lots (e38607e, scan matching, seeds 101–140)
+
+The lot is walled in (perimeter behind the row kerbs, 6 m beyond the outer spaces) and the ego
+starts at its entrance. A lot "has a gap" when a free space has parked cars on both sides; without
+one, stopping is the designed outcome (no bay lines to place a car in a run).
+
+| Lots | Count | Result |
+|---|---|---|
+| with a gap between cars | 29 | **27 parked correctly (93%)**, 2 no space found |
+| without one | 11 | 8 stopped (correct), 1 parked correctly anyway, 2 timed out |
+| all | 40 | **0 contacts, 0 wrong parks** |
+
+Parks: overlap 100% in every one; lateral error median 7 cm, max 18 cm; axis error median 2.1 deg,
+max 4.9 deg. Raw outputs: docs/benchmarks/metadrive_e38607e/.
+
 ## Next
 
 An adapter that builds a parking lot from the `ParkingLot` block, parks static vehicles in some

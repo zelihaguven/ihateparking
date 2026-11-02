@@ -1,0 +1,5 @@
+seed 101: PARKED          success=True   80.0 s   54.4 m  free spaces 6  {'in_bay': True, 'bay': '1P10_1_', 'bay_kind': 'perpendicular', 'bay_was_free': True, 'overlap': 1.0, 'axis_error_deg': 1.7, 'center_error_m': 1.534, 'along_error_m': 1.523, 'lateral_error_m': 0.183}
+       45.6 s  recover  boxed in; manoeuvring to open space at (31.3, 1.7)
+       53.4 s  recover  boxed in; manoeuvring to open space at (32.3, 1.7)
+       60.0 s  park     verified bay at (32.3, -9.5); driving in
+       80.0 s  end      parked after 80.0 s and 54.4 m

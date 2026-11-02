@@ -1,0 +1,5 @@
+seed 104: NO_SPACE_FOUND  success=False   52.0 s   39.1 m  free spaces 7  {}
+       28.2 s  recover  boxed in; manoeuvring to open space at (26.5, 1.5)
+       36.6 s  recover  boxed in; manoeuvring to open space at (32.9, 1.4)
+       44.4 s  recover  boxed in; manoeuvring to open space at (37.0, 2.3)
+       52.0 s  end      no verified bay and no reachable frontier left; the vehicle stops
