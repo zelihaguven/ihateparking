@@ -13,12 +13,12 @@
       "sha256": "af081dbc0b4531699d9d10d19963714058a3c2c6b54abdd96719e30f3e9e5f2d"
     },
     "planning_profiles.json": {
-      "bytes": 1711,
-      "sha256": "d33d9104460115193f6cc21c37b62e9e30994a339c1010e3d201a62ef02eee78"
+      "bytes": 2866,
+      "sha256": "2fee2a18fc4bc5ebe09bf5dd2c17fc32a61d1859b6e8b9e7af26a7a3a6ccf83f"
     },
     "scenario_suite.json": {
-      "bytes": 47181,
-      "sha256": "4f7686ba53b545187330d7a26a088b62c1b343ac96a76c3235fd2bac524e0bc1"
+      "bytes": 47242,
+      "sha256": "90a5e2759d9830cc194442153f9f168200bddb7fa6e6a210c49a82ac024ad482"
     }
   }
 }

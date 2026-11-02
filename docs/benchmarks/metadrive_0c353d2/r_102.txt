@@ -1,0 +1,5 @@
+seed 102: PARKED          success=True   24.1 s   15.2 m  free spaces 8  gaps between cars 1  {'in_bay': True, 'bay': '1P2_1_', 'bay_kind': 'perpendicular', 'bay_was_free': True, 'overlap': 1.0, 'axis_error_deg': 2.6, 'center_error_m': 1.424, 'along_error_m': 1.424, 'lateral_error_m': 0.03}
+        0.0 s  explore  no verified bay yet; exploring towards (27.9, 11.5)
+        8.2 s  inspect  promising gap at (35.0, 12.3); driving up to look into it
+       15.8 s  park     verified bay at (34.8, 12.1); driving in
+       24.1 s  end      parked after 24.1 s and 15.2 m

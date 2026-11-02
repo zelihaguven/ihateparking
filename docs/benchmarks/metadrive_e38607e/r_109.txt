@@ -1,0 +1,5 @@
+seed 109: PARKED          success=True   41.9 s   31.5 m  free spaces 7  {'in_bay': True, 'bay': '1P3_1_', 'bay_kind': 'perpendicular', 'bay_was_free': True, 'overlap': 1.0, 'axis_error_deg': 0.4, 'center_error_m': 1.619, 'along_error_m': 1.611, 'lateral_error_m': 0.161}
+       14.6 s  replan   newly seen obstacle blocks the plan; replanning
+       14.6 s  explore  no verified bay yet; exploring towards (28.2, 10.8)
+       22.8 s  park     verified bay at (32.0, 12.3); driving in
+       41.9 s  end      parked after 41.9 s and 31.5 m

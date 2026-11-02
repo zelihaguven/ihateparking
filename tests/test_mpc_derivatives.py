@@ -1,6 +1,7 @@
 """Numerical-equivalence and safety tests for the optional MPC derivative path."""
 from __future__ import annotations
 
+from dataclasses import replace
 import importlib.util
 import math
 import unittest
@@ -8,6 +9,7 @@ import unittest
 import numpy as np
 
 from ihateparking.geometry import Pose
+from ihateparking.world import RectangleObstacle
 from scripts.demo_constrained_mpc import (
     MPCConfig,
     PolygonConstrainedMPC,
@@ -158,12 +160,23 @@ class MpcDerivativeTests(unittest.TestCase):
         next_pose = next_poses[-1]
         self.assertFalse(self.world.is_collision(next_pose, extra_margin=config.extra_clearance_m))
 
-    def test_pure_pursuit_guard_rejects_next_pose_before_it_is_recorded(self) -> None:
+    def test_reverse_pure_pursuit_baseline_parks_the_tight_slot(self) -> None:
         rollout = rollout_from_pure_pursuit(self.world, self.path)
+        self.assertTrue(rollout.success, rollout.message)
+        self.assertEqual(rollout.collisions, 0)
+        self.assertGreater(rollout.min_clearance_m, 0.0)
+
+    def test_pure_pursuit_guard_rejects_next_pose_before_it_is_recorded(self) -> None:
+        # A bollard on the reference line forces the guard to act.
+        blocked = replace(
+            self.world,
+            obstacles=[*self.world.obstacles, RectangleObstacle("bollard", (7.53, 6.4), 0.3, 0.3)],
+        )
+        rollout = rollout_from_pure_pursuit(blocked, self.path)
         self.assertFalse(rollout.success)
         self.assertGreater(rollout.collisions, 0)
         self.assertIn("rejected", rollout.message.lower())
-        self.assertTrue(all(not self.world.is_collision(pose) for pose in rollout.poses))
+        self.assertTrue(all(not blocked.is_collision(pose) for pose in rollout.poses))
 
 
 if __name__ == "__main__":

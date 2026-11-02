@@ -22,8 +22,8 @@ parking world -> collision model -> Hybrid A* -> reverse-aware Pure Pursuit -> c
 - Rear-axle bicycle model
 - Slot goals converted from footprint centers to rear-axle poses
 - Oriented-rectangle collision checking using the separating-axis theorem
-- Hybrid A* with forward/reverse motion primitives and steering discretisation
-- Reverse-aware Pure Pursuit controller
+- Hybrid A* with forward/reverse motion primitives, steering discretisation and Reeds-Shepp analytic expansion to the exact goal pose
+- Segment-aware path tracking: planned-curvature feedforward plus lateral/heading feedback, one gear segment at a time with a stop at every cusp (reverse-aware Pure Pursuit remains selectable)
 - Headless matplotlib artifact and JSON metrics
 - No dependency on YOLO or RoadLens
 
@@ -84,9 +84,14 @@ mock_carla_server.py GPU-free JSON-lines server and pipeline smoke test
 dashboard.py FastAPI real-time dynamic safety visualization API
 parking_search.py Synthetic slot-fit gate, no-go decisions and guarded park simulation
 stack_contracts.py Sensor, perception, trajectory, control and safety messages
-geometry.py    Pose, oriented rectangles, polygon intersection
+geometry.py    Pose, oriented rectangles, polygon intersection and distance
 planner.py     Hybrid A* search with kinematic motion primitives
-controller.py  Reverse-aware Pure Pursuit + simulator
+reeds_shepp.py Reeds-Shepp curves for the analytic expansion
+controller.py  Segment-aware PlanTracker, Pure Pursuit law + simulator
+scenario_sweep.py Multi-seed plan-and-execute benchmark
+holonomic_heuristic.py Obstacle-aware grid distance for the Hybrid A* heuristic
+parking_lot.py Seeded multi-row lot with mixed bay types and occupancy
+autopark.py    Bay-level parking: chooses the manoeuvre, plans, executes
 render.py      Static visualization for experiments
 run.py         Reproducible CLI entry point + browser trace export
 video_assist.py OpenCV-based footage perception and English guidance signals
@@ -205,6 +210,47 @@ The parallel baseline uses a 6 m manoeuvring slot rather than a barely
 vehicle-length gap. This keeps the scenario physically plausible while still
 testing tight clearance around parked vehicles.
 
+Forward variants finish nose-in. Reverse variants finish **tail-in**: the
+generator flips the slot heading so the rear-axle goal faces out of the bay
+(perpendicular reverse ends facing the lane; parallel reverse keeps the
+direction of travel). A start pose that would overlap a parked car is slid
+along the lane until it has 0.30 m clearance.
+
+## Autopark: tell it which bay, it works out how
+
+```bash
+python3 -m ihateparking.autopark --seed 3 --list      # bays and occupancy
+python3 -m ihateparking.autopark --seed 3 --bay C4    # park in C4
+python3 -m ihateparking.autopark --seed 3             # nearest free bay
+```
+
+In a seeded 21-bay lot (parallel, perpendicular and angled rows; parked cars
+in about half the bays) the caller names only the bay. The vehicle refuses
+an occupied bay. Otherwise it plans nose-in and tail-in (or both kerb
+directions), picks the best collision-free plan and drives it in closed
+loop. On every free bay of five lots it parked 54 of 54 with no collisions.
+See [`docs/autopark.md`](docs/autopark.md).
+
+In the web app, open `/web/autopark.html` and click a bay. The page calls
+`POST /api/autopark/run` with `{"seed": 3, "occupancy": 0.5, "bay": "B8"}`
+(omit `bay` to take the nearest free bay) and replays the executed trace;
+`GET /api/autopark/lot?seed=3` returns the lot geometry.
+
+## Scenario sweep benchmark
+
+Plan and execute every manoeuvre over 100 seeds each and report success rate,
+collisions, final position/yaw error, minimum obstacle clearance, manoeuvre
+time, path length, gear changes and planning time:
+
+```bash
+python3 -m ihateparking.scenario_sweep --seeds 100 --workers 8
+```
+
+Latest result (600 cases): **598 parked, 0 collisions**, median final error
+0.028 m / 0.9°. The code before the Reeds-Shepp/tracker changes parked 35 of
+120 cases on the same protocol. Per-manoeuvre tables, the two remaining
+failures and the limitations are in [`docs/scenario-sweep.md`](docs/scenario-sweep.md).
+
 ## Deployment export and Docker
 
 Export the NumPy perception checkpoint, algorithmic planner profiles, all six
@@ -305,7 +351,7 @@ steps, and every executed MPC step is independently checked by the existing coll
 - [x] closed-loop controller
 - [x] reproducible render + metrics
 - [x] browser replay dashboard
-- [ ] automated scenario sweep
+- [x] automated scenario sweep (`python3 -m ihateparking.scenario_sweep`)
 
 ### v2 — research layer
 
@@ -313,7 +359,7 @@ steps, and every executed MPC step is independently checked by the existing coll
 - [ ] add noisy parking-slot/obstacle estimates
 - [ ] model uncertainty-aware safety margins
 - [ ] dynamic pedestrian/vehicle obstacle
-- [ ] success-rate benchmark across 100 randomized seeds
+- [x] success-rate benchmark across 100 randomized seeds ([results](docs/scenario-sweep.md))
 
 ### v3 — perception and demo layer
 

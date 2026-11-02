@@ -1,0 +1,1243 @@
+[
+ {
+  "seed": 6000,
+  "outcome": "PARKED",
+  "success": true,
+  "bays": []
+ },
+ {
+  "seed": 6001,
+  "outcome": "PARKED",
+  "success": true,
+  "bays": []
+ },
+ {
+  "seed": 6002,
+  "outcome": "PARKED",
+  "success": true,
+  "bays": []
+ },
+ {
+  "seed": 6003,
+  "outcome": "PARKED",
+  "success": true,
+  "bays": []
+ },
+ {
+  "seed": 6004,
+  "outcome": "PARKED",
+  "success": true,
+  "bays": []
+ },
+ {
+  "seed": 6005,
+  "outcome": "PARKED",
+  "success": true,
+  "bays": []
+ },
+ {
+  "seed": 6006,
+  "outcome": "PARKED",
+  "success": true,
+  "bays": []
+ },
+ {
+  "seed": 6007,
+  "outcome": "PARKED",
+  "success": true,
+  "bays": []
+ },
+ {
+  "seed": 6008,
+  "outcome": "PARKED",
+  "success": true,
+  "bays": []
+ },
+ {
+  "seed": 6009,
+  "outcome": "PARKED",
+  "success": true,
+  "bays": []
+ },
+ {
+  "seed": 6010,
+  "outcome": "NO_SPACE_FOUND",
+  "success": false,
+  "bays": [
+   {
+    "bay": "P11",
+    "kind": "perpendicular",
+    "flanks": 1,
+    "stage": "seen, not detected"
+   },
+   {
+    "bay": "P12",
+    "kind": "perpendicular",
+    "flanks": 0,
+    "stage": "seen, not detected"
+   },
+   {
+    "bay": "P13",
+    "kind": "perpendicular",
+    "flanks": 0,
+    "stage": "seen, not detected"
+   },
+   {
+    "bay": "P14",
+    "kind": "perpendicular",
+    "flanks": 0,
+    "stage": "seen, not detected"
+   },
+   {
+    "bay": "P15",
+    "kind": "perpendicular",
+    "flanks": 0,
+    "stage": "seen, not detected"
+   },
+   {
+    "bay": "P16",
+    "kind": "perpendicular",
+    "flanks": 0,
+    "stage": "seen, not detected"
+   },
+   {
+    "bay": "P17",
+    "kind": "perpendicular",
+    "flanks": 0,
+    "stage": "seen, not detected"
+   },
+   {
+    "bay": "P18",
+    "kind": "perpendicular",
+    "flanks": 1,
+    "stage": "seen, not detected"
+   },
+   {
+    "bay": "P20",
+    "kind": "perpendicular",
+    "flanks": 1,
+    "stage": "seen, not detected"
+   },
+   {
+    "bay": "P21",
+    "kind": "perpendicular",
+    "flanks": 1,
+    "stage": "seen, not detected"
+   },
+   {
+    "bay": "P25",
+    "kind": "perpendicular",
+    "flanks": 1,
+    "stage": "seen, not detected"
+   },
+   {
+    "bay": "P26",
+    "kind": "perpendicular",
+    "flanks": 0,
+    "stage": "seen, not detected"
+   },
+   {
+    "bay": "P27",
+    "kind": "perpendicular",
+    "flanks": 0,
+    "stage": "seen, not detected"
+   },
+   {
+    "bay": "P28",
+    "kind": "perpendicular",
+    "flanks": 0,
+    "stage": "seen, not detected"
+   },
+   {
+    "bay": "P29",
+    "kind": "perpendicular",
+    "flanks": 0,
+    "stage": "seen, not detected"
+   },
+   {
+    "bay": "P30",
+    "kind": "perpendicular",
+    "flanks": 0,
+    "stage": "seen, not detected"
+   },
+   {
+    "bay": "P31",
+    "kind": "perpendicular",
+    "flanks": 0,
+    "stage": "seen, not detected"
+   },
+   {
+    "bay": "P32",
+    "kind": "perpendicular",
+    "flanks": 0,
+    "stage": "seen, not detected"
+   },
+   {
+    "bay": "P33",
+    "kind": "parallel",
+    "flanks": 0,
+    "stage": "seen, not detected"
+   },
+   {
+    "bay": "P34",
+    "kind": "parallel",
+    "flanks": 0,
+    "stage": "seen, not detected"
+   },
+   {
+    "bay": "P35",
+    "kind": "parallel",
+    "flanks": 1,
+    "stage": "seen, not detected"
+   },
+   {
+    "bay": "P37",
+    "kind": "parallel",
+    "flanks": 1,
+    "stage": "seen, not detected"
+   }
+  ]
+ },
+ {
+  "seed": 6011,
+  "outcome": "PARKED",
+  "success": true,
+  "bays": []
+ },
+ {
+  "seed": 6012,
+  "outcome": "PARKED",
+  "success": true,
+  "bays": []
+ },
+ {
+  "seed": 6013,
+  "outcome": "PARKED",
+  "success": true,
+  "bays": []
+ },
+ {
+  "seed": 6014,
+  "outcome": "PARKED",
+  "success": true,
+  "bays": []
+ },
+ {
+  "seed": 6015,
+  "outcome": "PARKED",
+  "success": true,
+  "bays": []
+ },
+ {
+  "seed": 6016,
+  "outcome": "PARKED",
+  "success": true,
+  "bays": []
+ },
+ {
+  "seed": 6017,
+  "outcome": "PARKED",
+  "success": true,
+  "bays": []
+ },
+ {
+  "seed": 6018,
+  "outcome": "PARKED",
+  "success": true,
+  "bays": []
+ },
+ {
+  "seed": 6019,
+  "outcome": "PARKED",
+  "success": true,
+  "bays": []
+ },
+ {
+  "seed": 6020,
+  "outcome": "PARKED",
+  "success": true,
+  "bays": []
+ },
+ {
+  "seed": 6021,
+  "outcome": "PARKED",
+  "success": true,
+  "bays": []
+ },
+ {
+  "seed": 6022,
+  "outcome": "PARKED",
+  "success": true,
+  "bays": []
+ },
+ {
+  "seed": 6023,
+  "outcome": "PARKED",
+  "success": true,
+  "bays": []
+ },
+ {
+  "seed": 6024,
+  "outcome": "PARKED",
+  "success": true,
+  "bays": []
+ },
+ {
+  "seed": 6025,
+  "outcome": "PARKED",
+  "success": true,
+  "bays": []
+ },
+ {
+  "seed": 6026,
+  "outcome": "PARKED",
+  "success": true,
+  "bays": []
+ },
+ {
+  "seed": 6027,
+  "outcome": "PARKED",
+  "success": true,
+  "bays": []
+ },
+ {
+  "seed": 6028,
+  "outcome": "PARKED",
+  "success": true,
+  "bays": []
+ },
+ {
+  "seed": 6029,
+  "outcome": "PARKED",
+  "success": true,
+  "bays": []
+ },
+ {
+  "seed": 6030,
+  "outcome": "PARKED",
+  "success": true,
+  "bays": []
+ },
+ {
+  "seed": 6031,
+  "outcome": "PARKED",
+  "success": true,
+  "bays": []
+ },
+ {
+  "seed": 6032,
+  "outcome": "PARKED",
+  "success": true,
+  "bays": []
+ },
+ {
+  "seed": 6033,
+  "outcome": "PARKED",
+  "success": true,
+  "bays": []
+ },
+ {
+  "seed": 6034,
+  "outcome": "PARKED",
+  "success": true,
+  "bays": []
+ },
+ {
+  "seed": 6035,
+  "outcome": "TIMEOUT",
+  "success": false,
+  "bays": [
+   {
+    "bay": "A04",
+    "kind": "angled",
+    "flanks": 1,
+    "stage": "seen, not detected"
+   },
+   {
+    "bay": "A05",
+    "kind": "angled",
+    "flanks": 1,
+    "stage": "seen, not detected"
+   },
+   {
+    "bay": "P13",
+    "kind": "perpendicular",
+    "flanks": 2,
+    "stage": "unseen"
+   },
+   {
+    "bay": "P15",
+    "kind": "perpendicular",
+    "flanks": 1,
+    "stage": "seen, not detected"
+   },
+   {
+    "bay": "P16",
+    "kind": "perpendicular",
+    "flanks": 1,
+    "stage": "seen, not detected"
+   },
+   {
+    "bay": "P18",
+    "kind": "parallel",
+    "flanks": 1,
+    "stage": "unseen"
+   }
+  ]
+ },
+ {
+  "seed": 6036,
+  "outcome": "PARKED",
+  "success": true,
+  "bays": []
+ },
+ {
+  "seed": 6037,
+  "outcome": "PARKED",
+  "success": true,
+  "bays": []
+ },
+ {
+  "seed": 6038,
+  "outcome": "PARKED",
+  "success": true,
+  "bays": []
+ },
+ {
+  "seed": 6039,
+  "outcome": "PARKED",
+  "success": true,
+  "bays": []
+ },
+ {
+  "seed": 6040,
+  "outcome": "PARKED",
+  "success": true,
+  "bays": []
+ },
+ {
+  "seed": 6041,
+  "outcome": "PARKED",
+  "success": true,
+  "bays": []
+ },
+ {
+  "seed": 6042,
+  "outcome": "PARKED",
+  "success": true,
+  "bays": []
+ },
+ {
+  "seed": 6043,
+  "outcome": "PARKED",
+  "success": true,
+  "bays": []
+ },
+ {
+  "seed": 6044,
+  "outcome": "PARKED",
+  "success": true,
+  "bays": []
+ },
+ {
+  "seed": 6045,
+  "outcome": "PARKED",
+  "success": true,
+  "bays": []
+ },
+ {
+  "seed": 6046,
+  "outcome": "PARKED",
+  "success": true,
+  "bays": []
+ },
+ {
+  "seed": 6047,
+  "outcome": "PARKED",
+  "success": true,
+  "bays": []
+ },
+ {
+  "seed": 6048,
+  "outcome": "PARKED",
+  "success": true,
+  "bays": []
+ },
+ {
+  "seed": 6049,
+  "outcome": "PARKED",
+  "success": true,
+  "bays": []
+ },
+ {
+  "seed": 6050,
+  "outcome": "PARKED",
+  "success": true,
+  "bays": []
+ },
+ {
+  "seed": 6051,
+  "outcome": "PARKED",
+  "success": true,
+  "bays": []
+ },
+ {
+  "seed": 6052,
+  "outcome": "PARKED",
+  "success": true,
+  "bays": []
+ },
+ {
+  "seed": 6053,
+  "outcome": "PARKED",
+  "success": true,
+  "bays": []
+ },
+ {
+  "seed": 6054,
+  "outcome": "PARKED",
+  "success": true,
+  "bays": []
+ },
+ {
+  "seed": 6055,
+  "outcome": "PARKED",
+  "success": true,
+  "bays": []
+ },
+ {
+  "seed": 6056,
+  "outcome": "PARKED",
+  "success": true,
+  "bays": []
+ },
+ {
+  "seed": 6057,
+  "outcome": "PARKED",
+  "success": true,
+  "bays": []
+ },
+ {
+  "seed": 6058,
+  "outcome": "PARKED",
+  "success": true,
+  "bays": []
+ },
+ {
+  "seed": 6059,
+  "outcome": "PARKED",
+  "success": true,
+  "bays": []
+ },
+ {
+  "seed": 6060,
+  "outcome": "PARKED",
+  "success": true,
+  "bays": []
+ },
+ {
+  "seed": 6061,
+  "outcome": "PARKED",
+  "success": true,
+  "bays": []
+ },
+ {
+  "seed": 6062,
+  "outcome": "PARKED",
+  "success": true,
+  "bays": []
+ },
+ {
+  "seed": 6063,
+  "outcome": "PARKED",
+  "success": true,
+  "bays": []
+ },
+ {
+  "seed": 6064,
+  "outcome": "PARKED",
+  "success": true,
+  "bays": []
+ },
+ {
+  "seed": 6065,
+  "outcome": "PARKED",
+  "success": true,
+  "bays": []
+ },
+ {
+  "seed": 6066,
+  "outcome": "NO_SPACE_FOUND",
+  "success": false,
+  "bays": [
+   {
+    "bay": "P02",
+    "kind": "parallel",
+    "flanks": 1,
+    "stage": "seen, not detected"
+   },
+   {
+    "bay": "P03",
+    "kind": "parallel",
+    "flanks": 0,
+    "stage": "seen, not detected"
+   },
+   {
+    "bay": "P04",
+    "kind": "parallel",
+    "flanks": 0,
+    "stage": "seen, not detected"
+   },
+   {
+    "bay": "P05",
+    "kind": "parallel",
+    "flanks": 0,
+    "stage": "seen, not detected"
+   },
+   {
+    "bay": "P06",
+    "kind": "parallel",
+    "flanks": 0,
+    "stage": "seen, not detected"
+   },
+   {
+    "bay": "A07",
+    "kind": "angled",
+    "flanks": 1,
+    "stage": "seen, not detected"
+   },
+   {
+    "bay": "A09",
+    "kind": "angled",
+    "flanks": 1,
+    "stage": "seen, not detected"
+   },
+   {
+    "bay": "A10",
+    "kind": "angled",
+    "flanks": 0,
+    "stage": "seen, not detected"
+   },
+   {
+    "bay": "A11",
+    "kind": "angled",
+    "flanks": 0,
+    "stage": "seen, not detected"
+   },
+   {
+    "bay": "A12",
+    "kind": "angled",
+    "flanks": 0,
+    "stage": "seen, not detected"
+   },
+   {
+    "bay": "A13",
+    "kind": "angled",
+    "flanks": 0,
+    "stage": "seen, not detected"
+   },
+   {
+    "bay": "A14",
+    "kind": "angled",
+    "flanks": 0,
+    "stage": "seen, not detected"
+   },
+   {
+    "bay": "P16",
+    "kind": "perpendicular",
+    "flanks": 1,
+    "stage": "seen, not detected"
+   },
+   {
+    "bay": "P17",
+    "kind": "perpendicular",
+    "flanks": 0,
+    "stage": "seen, not detected"
+   },
+   {
+    "bay": "P18",
+    "kind": "perpendicular",
+    "flanks": 1,
+    "stage": "seen, not detected"
+   },
+   {
+    "bay": "P20",
+    "kind": "perpendicular",
+    "flanks": 1,
+    "stage": "seen, not detected"
+   },
+   {
+    "bay": "P21",
+    "kind": "perpendicular",
+    "flanks": 0,
+    "stage": "seen, not detected"
+   },
+   {
+    "bay": "P22",
+    "kind": "perpendicular",
+    "flanks": 0,
+    "stage": "seen, not detected"
+   },
+   {
+    "bay": "P23",
+    "kind": "perpendicular",
+    "flanks": 1,
+    "stage": "seen, not detected"
+   },
+   {
+    "bay": "P25",
+    "kind": "perpendicular",
+    "flanks": 1,
+    "stage": "seen, not detected"
+   },
+   {
+    "bay": "P26",
+    "kind": "perpendicular",
+    "flanks": 0,
+    "stage": "seen, not detected"
+   },
+   {
+    "bay": "P27",
+    "kind": "perpendicular",
+    "flanks": 0,
+    "stage": "seen, not detected"
+   },
+   {
+    "bay": "P28",
+    "kind": "perpendicular",
+    "flanks": 0,
+    "stage": "seen, not detected"
+   },
+   {
+    "bay": "P29",
+    "kind": "perpendicular",
+    "flanks": 0,
+    "stage": "seen, not detected"
+   },
+   {
+    "bay": "P30",
+    "kind": "perpendicular",
+    "flanks": 0,
+    "stage": "seen, not detected"
+   },
+   {
+    "bay": "P31",
+    "kind": "perpendicular",
+    "flanks": 0,
+    "stage": "seen, not detected"
+   },
+   {
+    "bay": "P32",
+    "kind": "perpendicular",
+    "flanks": 0,
+    "stage": "seen, not detected"
+   },
+   {
+    "bay": "P33",
+    "kind": "perpendicular",
+    "flanks": 1,
+    "stage": "seen, not detected"
+   },
+   {
+    "bay": "P35",
+    "kind": "perpendicular",
+    "flanks": 1,
+    "stage": "seen, not detected"
+   },
+   {
+    "bay": "P36",
+    "kind": "perpendicular",
+    "flanks": 0,
+    "stage": "seen, not detected"
+   },
+   {
+    "bay": "P37",
+    "kind": "perpendicular",
+    "flanks": 1,
+    "stage": "seen, not detected"
+   },
+   {
+    "bay": "P39",
+    "kind": "perpendicular",
+    "flanks": 1,
+    "stage": "seen, not detected"
+   },
+   {
+    "bay": "P40",
+    "kind": "perpendicular",
+    "flanks": 1,
+    "stage": "seen, not detected"
+   }
+  ]
+ },
+ {
+  "seed": 6067,
+  "outcome": "PARKED",
+  "success": true,
+  "bays": []
+ },
+ {
+  "seed": 6068,
+  "outcome": "PARKED",
+  "success": true,
+  "bays": []
+ },
+ {
+  "seed": 6069,
+  "outcome": "PARKED",
+  "success": true,
+  "bays": []
+ },
+ {
+  "seed": 6070,
+  "outcome": "PARKED",
+  "success": true,
+  "bays": []
+ },
+ {
+  "seed": 6071,
+  "outcome": "PARKED",
+  "success": true,
+  "bays": []
+ },
+ {
+  "seed": 6072,
+  "outcome": "PARKED",
+  "success": true,
+  "bays": []
+ },
+ {
+  "seed": 6073,
+  "outcome": "PARKED",
+  "success": true,
+  "bays": []
+ },
+ {
+  "seed": 6074,
+  "outcome": "PARKED",
+  "success": true,
+  "bays": []
+ },
+ {
+  "seed": 6075,
+  "outcome": "PARKED",
+  "success": true,
+  "bays": []
+ },
+ {
+  "seed": 6076,
+  "outcome": "PARKED",
+  "success": true,
+  "bays": []
+ },
+ {
+  "seed": 6077,
+  "outcome": "PARKED",
+  "success": true,
+  "bays": []
+ },
+ {
+  "seed": 6078,
+  "outcome": "PARKED",
+  "success": true,
+  "bays": []
+ },
+ {
+  "seed": 6079,
+  "outcome": "PARKED",
+  "success": true,
+  "bays": []
+ },
+ {
+  "seed": 6080,
+  "outcome": "PARKED",
+  "success": true,
+  "bays": []
+ },
+ {
+  "seed": 6081,
+  "outcome": "PARKED",
+  "success": true,
+  "bays": []
+ },
+ {
+  "seed": 6082,
+  "outcome": "PARKED",
+  "success": true,
+  "bays": []
+ },
+ {
+  "seed": 6083,
+  "outcome": "PARKED",
+  "success": true,
+  "bays": []
+ },
+ {
+  "seed": 6084,
+  "outcome": "PARKED",
+  "success": true,
+  "bays": []
+ },
+ {
+  "seed": 6085,
+  "outcome": "PARKED",
+  "success": true,
+  "bays": []
+ },
+ {
+  "seed": 6086,
+  "outcome": "PARKED",
+  "success": true,
+  "bays": []
+ },
+ {
+  "seed": 6087,
+  "outcome": "PARKED",
+  "success": true,
+  "bays": []
+ },
+ {
+  "seed": 6088,
+  "outcome": "PARKED",
+  "success": true,
+  "bays": []
+ },
+ {
+  "seed": 6089,
+  "outcome": "NO_SPACE_FOUND",
+  "success": false,
+  "bays": [
+   {
+    "bay": "A07",
+    "kind": "angled",
+    "flanks": 1,
+    "stage": "seen, not detected"
+   },
+   {
+    "bay": "A08",
+    "kind": "angled",
+    "flanks": 0,
+    "stage": "seen, not detected"
+   },
+   {
+    "bay": "A12",
+    "kind": "angled",
+    "flanks": 1,
+    "stage": "seen, not detected"
+   },
+   {
+    "bay": "A13",
+    "kind": "angled",
+    "flanks": 0,
+    "stage": "seen, not detected"
+   },
+   {
+    "bay": "A14",
+    "kind": "angled",
+    "flanks": 1,
+    "stage": "seen, not detected"
+   },
+   {
+    "bay": "P19",
+    "kind": "parallel",
+    "flanks": 0,
+    "stage": "seen, not detected"
+   },
+   {
+    "bay": "P20",
+    "kind": "parallel",
+    "flanks": 1,
+    "stage": "seen, not detected"
+   },
+   {
+    "bay": "P24",
+    "kind": "parallel",
+    "flanks": 1,
+    "stage": "seen, not detected"
+   }
+  ]
+ },
+ {
+  "seed": 6090,
+  "outcome": "PARKED",
+  "success": true,
+  "bays": []
+ },
+ {
+  "seed": 6091,
+  "outcome": "PARKED",
+  "success": true,
+  "bays": []
+ },
+ {
+  "seed": 6092,
+  "outcome": "PARKED",
+  "success": true,
+  "bays": []
+ },
+ {
+  "seed": 6093,
+  "outcome": "NO_SPACE_FOUND",
+  "success": false,
+  "bays": [
+   {
+    "bay": "P01",
+    "kind": "parallel",
+    "flanks": 1,
+    "stage": "seen, not detected"
+   },
+   {
+    "bay": "P03",
+    "kind": "parallel",
+    "flanks": 1,
+    "stage": "seen, not detected"
+   },
+   {
+    "bay": "P04",
+    "kind": "parallel",
+    "flanks": 0,
+    "stage": "seen, not detected"
+   },
+   {
+    "bay": "P05",
+    "kind": "parallel",
+    "flanks": 0,
+    "stage": "seen, not detected"
+   },
+   {
+    "bay": "P11",
+    "kind": "perpendicular",
+    "flanks": 1,
+    "stage": "seen, not detected"
+   },
+   {
+    "bay": "P12",
+    "kind": "perpendicular",
+    "flanks": 1,
+    "stage": "seen, not detected"
+   },
+   {
+    "bay": "A16",
+    "kind": "angled",
+    "flanks": 1,
+    "stage": "seen, not detected"
+   },
+   {
+    "bay": "A17",
+    "kind": "angled",
+    "flanks": 0,
+    "stage": "seen, not detected"
+   },
+   {
+    "bay": "A18",
+    "kind": "angled",
+    "flanks": 1,
+    "stage": "seen, not detected"
+   },
+   {
+    "bay": "A22",
+    "kind": "angled",
+    "flanks": 1,
+    "stage": "seen, not detected"
+   },
+   {
+    "bay": "A23",
+    "kind": "angled",
+    "flanks": 0,
+    "stage": "seen, not detected"
+   },
+   {
+    "bay": "A24",
+    "kind": "angled",
+    "flanks": 1,
+    "stage": "seen, not detected"
+   },
+   {
+    "bay": "P27",
+    "kind": "perpendicular",
+    "flanks": 1,
+    "stage": "seen, not detected"
+   },
+   {
+    "bay": "P28",
+    "kind": "perpendicular",
+    "flanks": 0,
+    "stage": "seen, not detected"
+   },
+   {
+    "bay": "P29",
+    "kind": "perpendicular",
+    "flanks": 1,
+    "stage": "seen, not detected"
+   },
+   {
+    "bay": "P31",
+    "kind": "perpendicular",
+    "flanks": 1,
+    "stage": "seen, not detected"
+   },
+   {
+    "bay": "P32",
+    "kind": "perpendicular",
+    "flanks": 1,
+    "stage": "seen, not detected"
+   }
+  ]
+ },
+ {
+  "seed": 6094,
+  "outcome": "PARKED",
+  "success": true,
+  "bays": []
+ },
+ {
+  "seed": 6095,
+  "outcome": "PARKED",
+  "success": true,
+  "bays": []
+ },
+ {
+  "seed": 6096,
+  "outcome": "PARKED",
+  "success": true,
+  "bays": []
+ },
+ {
+  "seed": 6097,
+  "outcome": "PARKED",
+  "success": true,
+  "bays": []
+ },
+ {
+  "seed": 6098,
+  "outcome": "PARKED",
+  "success": true,
+  "bays": []
+ },
+ {
+  "seed": 6099,
+  "outcome": "PARKED",
+  "success": true,
+  "bays": []
+ },
+ {
+  "seed": 6100,
+  "outcome": "PARKED",
+  "success": true,
+  "bays": []
+ },
+ {
+  "seed": 6101,
+  "outcome": "PARKED",
+  "success": true,
+  "bays": []
+ },
+ {
+  "seed": 6102,
+  "outcome": "PARKED",
+  "success": true,
+  "bays": []
+ },
+ {
+  "seed": 6103,
+  "outcome": "PARKED",
+  "success": true,
+  "bays": []
+ },
+ {
+  "seed": 6104,
+  "outcome": "PARKED",
+  "success": true,
+  "bays": []
+ },
+ {
+  "seed": 6105,
+  "outcome": "PARKED",
+  "success": true,
+  "bays": []
+ },
+ {
+  "seed": 6106,
+  "outcome": "PARKED",
+  "success": true,
+  "bays": []
+ },
+ {
+  "seed": 6107,
+  "outcome": "PARKED",
+  "success": true,
+  "bays": []
+ },
+ {
+  "seed": 6108,
+  "outcome": "PARKED",
+  "success": true,
+  "bays": []
+ },
+ {
+  "seed": 6109,
+  "outcome": "PARKED",
+  "success": true,
+  "bays": []
+ },
+ {
+  "seed": 6110,
+  "outcome": "PARKED",
+  "success": true,
+  "bays": []
+ },
+ {
+  "seed": 6111,
+  "outcome": "PARKED",
+  "success": true,
+  "bays": []
+ },
+ {
+  "seed": 6112,
+  "outcome": "PARKED",
+  "success": true,
+  "bays": []
+ },
+ {
+  "seed": 6113,
+  "outcome": "PARKED",
+  "success": true,
+  "bays": []
+ },
+ {
+  "seed": 6114,
+  "outcome": "PARKED",
+  "success": true,
+  "bays": []
+ },
+ {
+  "seed": 6115,
+  "outcome": "PARKED",
+  "success": true,
+  "bays": []
+ },
+ {
+  "seed": 6116,
+  "outcome": "PARKED",
+  "success": true,
+  "bays": []
+ },
+ {
+  "seed": 6117,
+  "outcome": "PARKED",
+  "success": true,
+  "bays": []
+ },
+ {
+  "seed": 6118,
+  "outcome": "PARKED",
+  "success": true,
+  "bays": []
+ },
+ {
+  "seed": 6119,
+  "outcome": "PARKED",
+  "success": true,
+  "bays": []
+ }
+]

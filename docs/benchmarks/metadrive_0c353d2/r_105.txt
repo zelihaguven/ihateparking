@@ -1,0 +1,5 @@
+seed 105: PARKED          success=True   37.2 s   25.3 m  free spaces 6  gaps between cars 1  {'in_bay': True, 'bay': '1P10_1_', 'bay_kind': 'perpendicular', 'bay_was_free': True, 'overlap': 1.0, 'axis_error_deg': 2.3, 'center_error_m': 1.501, 'along_error_m': 1.5, 'lateral_error_m': 0.056}
+        8.0 s  reject   bay candidate at (32.2, -9.4) has no route yet
+        8.0 s  inspect  promising gap at (32.2, -9.5); driving up to look into it
+       28.7 s  park     verified bay at (32.1, -9.5); driving in
+       37.2 s  end      parked after 37.2 s and 25.3 m

@@ -1,0 +1,5 @@
+seed 130: NO_SPACE_FOUND  success=False  117.0 s   74.0 m  free spaces 8  gaps between cars 0  {}
+       25.0 s  recover  boxed in; manoeuvring to open space at (30.7, 1.7)
+       90.0 s  recover  boxed in; manoeuvring to open space at (28.0, 1.2)
+      109.0 s  recover  boxed in; manoeuvring to open space at (31.0, 1.7)
+      117.0 s  end      no verified bay and no reachable frontier left; the vehicle stops

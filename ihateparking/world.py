@@ -6,7 +6,7 @@ import math
 
 import numpy as np
 
-from .geometry import Pose, oriented_box, point_in_bounds, polygons_intersect, vehicle_polygon
+from .geometry import Pose, oriented_box, vehicle_polygon
 
 
 @dataclass(frozen=True)
@@ -65,11 +65,33 @@ class ParkingWorld:
         return vehicle_polygon(pose, self.vehicle.length, self.vehicle.width, self.vehicle.rear_overhang)
 
     def is_collision(self, pose: Pose, extra_margin: float = 0.0) -> bool:
-        footprint = self.vehicle_polygon(pose)
-        if not point_in_bounds(footprint, self.bounds, margin=self.collision_margin + extra_margin):
+        """Footprint-versus-bounds and footprint-versus-obstacle test.
+
+        Equivalent to intersecting vehicle_polygon() with each inflated
+        obstacle polygon (touching counts as contact), but computed as an
+        oriented-box separating-axis test without NumPy, because the planner
+        calls it for every sampled state.
+        """
+        margin = self.collision_margin + extra_margin
+        vehicle = self.vehicle
+        c, s = math.cos(pose.yaw), math.sin(pose.yaw)
+        half_length = vehicle.length / 2.0
+        half_width = vehicle.width / 2.0
+        offset = half_length - vehicle.rear_overhang
+        cx, cy = pose.x + offset * c, pose.y + offset * s
+        reach_x = half_length * abs(c) + half_width * abs(s)
+        reach_y = half_length * abs(s) + half_width * abs(c)
+        xmin, xmax, ymin, ymax = self.bounds
+        if (
+            cx - reach_x < xmin + margin
+            or cx + reach_x > xmax - margin
+            or cy - reach_y < ymin + margin
+            or cy + reach_y > ymax - margin
+        ):
             return True
+        vehicle_radius = math.hypot(half_length, half_width)
         for obstacle in self.obstacles:
-            if polygons_intersect(footprint, obstacle.polygon(margin=self.collision_margin + extra_margin)):
+            if _boxes_overlap(cx, cy, c, s, half_length, half_width, vehicle_radius, obstacle, margin):
                 return True
         return False
 
@@ -78,6 +100,34 @@ class ParkingWorld:
         position_error = math.hypot(pose.x - goal.x, pose.y - goal.y)
         yaw_error = abs((pose.yaw - goal.yaw + math.pi) % (2 * math.pi) - math.pi)
         return position_error <= position_tolerance and yaw_error <= yaw_tolerance
+
+
+def _boxes_overlap(
+    cx: float,
+    cy: float,
+    c: float,
+    s: float,
+    half_length: float,
+    half_width: float,
+    radius: float,
+    obstacle: RectangleObstacle,
+    margin: float,
+) -> bool:
+    ox, oy = obstacle.center
+    obstacle_half_length = obstacle.length / 2.0 + margin
+    obstacle_half_width = obstacle.width / 2.0 + margin
+    dx, dy = ox - cx, oy - cy
+    reach = radius + math.hypot(obstacle_half_length, obstacle_half_width)
+    if dx * dx + dy * dy > reach * reach:
+        return False
+    oc, os_ = math.cos(obstacle.yaw), math.sin(obstacle.yaw)
+    axes = ((c, s), (-s, c), (oc, os_), (-os_, oc))
+    for ax, ay in axes:
+        first = half_length * abs(c * ax + s * ay) + half_width * abs(-s * ax + c * ay)
+        second = obstacle_half_length * abs(oc * ax + os_ * ay) + obstacle_half_width * abs(-os_ * ax + oc * ay)
+        if abs(dx * ax + dy * ay) > first + second:
+            return False
+    return True
 
 
 def default_world() -> ParkingWorld:

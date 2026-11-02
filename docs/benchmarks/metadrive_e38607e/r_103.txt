@@ -1,0 +1,5 @@
+seed 103: TIMEOUT         success=False  300.1 s  185.8 m  free spaces 6  {}
+      266.1 s  recover  boxed in; manoeuvring to open space at (37.3, 1.1)
+      273.3 s  recover  boxed in; manoeuvring to open space at (32.6, 1.4)
+      299.8 s  recover  boxed in; manoeuvring to open space at (34.7, 0.9)
+      300.1 s  end      no parking within 300 s

@@ -3,6 +3,7 @@ __pycache__/
 .pytest_cache/
 *.egg-info/
 .venv/
+.venv-metadrive/
 build/
 
 # Keep runtime simulation output out of Git, but ship the read-only website fixtures.

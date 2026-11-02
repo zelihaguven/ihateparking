@@ -1,0 +1,18 @@
+.lot-canvas-wrap{position:relative;margin-top:16px;border:1px solid #1a3036;background:#061013;aspect-ratio:40/28;width:100%;overflow:hidden}
+.lot-canvas-wrap canvas{position:absolute;inset:0;width:100%;height:100%;display:block;cursor:crosshair}
+.lot-canvas-wrap canvas.busy{cursor:progress}
+.replay-controls{display:flex;gap:14px;align-items:end;margin-top:12px}
+.replay-controls label{display:flex;flex-direction:column;gap:6px;font:700 9px var(--mono);letter-spacing:.12em;color:var(--muted);text-transform:uppercase}
+.replay-controls select{background:#071114;border:1px solid #29444b;color:var(--text);padding:8px 10px;font:12px var(--mono)}
+.button.secondary:disabled{opacity:.45;cursor:not-allowed}
+.options-table{width:100%;border-collapse:collapse;margin-top:12px;font:11px var(--mono)}
+.options-table th{text-align:left;color:var(--muted);font-weight:700;font-size:9px;letter-spacing:.09em;text-transform:uppercase;padding:0 6px 8px 0;border-bottom:1px solid var(--line)}
+.options-table td{padding:8px 6px 8px 0;border-bottom:1px solid #15282d;color:#c8d6d2}
+.options-table tr.chosen td{color:var(--mint)}
+.options-table tr.chosen td:first-child::before{content:"▶ ";color:var(--mint)}
+.options-table tr.unplanned td{color:#7d8f8c}
+.search-toolbar label[for="bay-select"] select{min-width:110px}
+.search-toolbar label:first-child{flex:0 1 auto;min-width:0}
+.search-toolbar label:first-child input{min-width:110px}
+@media (prefers-reduced-motion:reduce){.lot-canvas-wrap canvas{transition:none}}
+@media(max-width:580px){.replay-controls{flex-wrap:wrap}}

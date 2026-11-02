@@ -9,15 +9,16 @@ from pathlib import Path
 import threading
 from typing import Any, Literal
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from .ai_perception import ObstacleEstimate, ParkingSlotEstimate
+from .controller import ControllerConfig, PlanTracker
 from .dynamic_safety import DynamicReplanner, SafetyAction, SafetyConfig, SafetyDecision
-from .geometry import Pose, distance
+from .geometry import Pose
 from .mock_carla_server import MockCarlaWorld
 from .planner import HybridAStar, PlanResult, PlannerConfig
 from .scenario_generator import ScenarioSpec
@@ -65,6 +66,15 @@ class ParkingSearchRequest(BaseModel):
     ] = "clear_slot"
 
 
+DASHBOARD_PLANNER_EXPANSIONS = 12_000
+
+
+class AutoparkRequest(BaseModel):
+    seed: int = Field(default=3, ge=0, le=2_147_483_647)
+    occupancy: float = Field(default=0.5, ge=0.0, le=0.9)
+    bay: str | None = Field(default=None, pattern=r"^[A-C][1-9]$")
+
+
 class DashboardSession:
     GOAL_POSITION_TOLERANCE_M = .25
     GOAL_YAW_TOLERANCE_RAD = math.radians(7.0)
@@ -72,26 +82,16 @@ class DashboardSession:
     def __init__(self, output_dir: str | Path | None = None):
         self.output_dir = Path(output_dir or os.environ.get("IHATEPARKING_OUTPUT_DIR", "artifacts/dashboard"))
         self.world = MockCarlaWorld(self.output_dir / "mock_carla")
+        # The default search ends exactly on the goal via a Reeds-Shepp shot;
+        # the expansion cap bounds the worst-case reset latency.
+        # A tolerance-only fallback plan must still end inside the capture
+        # tolerance that tick() uses to declare the vehicle parked.
         self.initial_planner_config = PlannerConfig(
-            xy_resolution=.8,
-            yaw_bins=16,
-            primitive_length=1.2,
-            primitive_sample=.4,
-            steering_samples=5,
-            goal_position_tolerance=.7,
-            goal_yaw_tolerance=math.radians(28.0),
-            max_expansions=30_000,
+            max_expansions=DASHBOARD_PLANNER_EXPANSIONS,
+            goal_position_tolerance=self.GOAL_POSITION_TOLERANCE_M,
+            goal_yaw_tolerance=self.GOAL_YAW_TOLERANCE_RAD,
         )
-        self.capture_planner_config = PlannerConfig(
-            xy_resolution=.65,
-            yaw_bins=16,
-            primitive_length=.75,
-            primitive_sample=.25,
-            steering_samples=5,
-            goal_position_tolerance=.35,
-            goal_yaw_tolerance=math.radians(12.0),
-            max_expansions=180,
-        )
+        self.tracking_config = ControllerConfig(dt=.10, speed=.5)
         self.safety = DynamicReplanner(
             planner_config=PlannerConfig(
                 xy_resolution=.8,
@@ -106,6 +106,9 @@ class DashboardSession:
             safety_config=SafetyConfig(),
         )
         self.current_plan: PlanResult | None = None
+        self.tracker: PlanTracker | None = None
+        self.plan_exhausted = False
+        self._pending_plans = 0
         self._lock = threading.RLock()
         self.completed = False
         self.last_safety = SafetyDecision(SafetyAction.PROCEED, True, "waiting for reset", 999.0, 0.45, None)
@@ -117,8 +120,22 @@ class DashboardSession:
         with self._lock:
             snapshot = self.world.reset(seed, kind, dynamic_actor_count)
             scenario = self._require_scenario()
-            planner_config = self.capture_planner_config if kind == "perpendicular_reverse" else self.initial_planner_config
-            self.current_plan = HybridAStar(scenario.to_world(), planner_config).plan(start=self.world.pose)
+            start = self.world.pose
+            self.current_plan = None
+            self.tracker = None
+            self._pending_plans += 1
+        # The search can take seconds; run it outside the lock so /api/state
+        # stays responsive. tick() holds the vehicle still meanwhile.
+        try:
+            plan = HybridAStar(scenario.to_world(), self.initial_planner_config).plan(start=start)
+        finally:
+            with self._lock:
+                self._pending_plans -= 1
+        with self._lock:
+            if self.world.scenario is not scenario:
+                # A newer reset replaced the scene while this plan was computed.
+                return self.state(self.world.snapshot())
+            self._adopt_plan(plan)
             self.safety.replan_count = 0
             self.completed = False
             self.last_safety = SafetyDecision(SafetyAction.PROCEED, True, "initial plan ready", 999.0, .45, None)
@@ -129,8 +146,13 @@ class DashboardSession:
     def tick(self, dt: float = .10) -> dict[str, Any]:
         with self._lock:
             snapshot = self.world.snapshot()
+            if self._pending_plans:
+                return self.state(snapshot)
             scenario = self._require_scenario()
-            if self.completed or scenario.to_world().at_goal(self.world.pose, self.GOAL_POSITION_TOLERANCE_M, self.GOAL_YAW_TOLERANCE_RAD):
+            # Drive the plan to its end (it finishes on the exact goal) before
+            # judging the pose; stopping at the first tolerance entry parks crooked.
+            plan_done = self.tracker is None or self.tracker.finished
+            if self.completed or (plan_done and scenario.to_world().at_goal(self.world.pose, self.GOAL_POSITION_TOLERANCE_M, self.GOAL_YAW_TOLERANCE_RAD)):
                 self.completed = True
                 self.world.speed_mps = 0.0
                 self.world.gear = Gear.PARK
@@ -148,7 +170,7 @@ class DashboardSession:
             )
             self.last_safety = assessment.decision
             if assessment.replanned and assessment.plan is not None:
-                self.current_plan = assessment.plan
+                self._adopt_plan(assessment.plan)
                 self._event("replan", assessment.plan.message)
             if assessment.decision.action is SafetyAction.BRAKE:
                 self.world.step(0.0, 0.0, Gear.PARK.value, dt)
@@ -199,30 +221,22 @@ class DashboardSession:
             "events": list(self.event_log[-30:]),
         }
 
-    def _control_from_plan(self) -> tuple[Gear, float, float]:
-        plan = self.current_plan
-        if plan is None or not plan.success or len(plan.poses) < 2:
-            return Gear.PARK, 0.0, 0.0
+    def _adopt_plan(self, plan: PlanResult) -> None:
+        self.current_plan = plan
         scenario = self._require_scenario()
-        pose = self.world.pose
-        closest = min(range(len(plan.poses)), key=lambda index: distance(pose, plan.poses[index]))
-        target_index = min(len(plan.poses) - 1, closest + 2)
-        goal = scenario.target_slot.goal_pose(scenario.vehicle)
-        final_approach = target_index >= len(plan.poses) - 2 or distance(pose, goal) < 1.5
-        if final_approach:
-            target = goal
-            dx, dy = target.x - pose.x, target.y - pose.y
-            local_x = math.cos(pose.yaw) * dx + math.sin(pose.yaw) * dy
-            raw_gear = -1 if local_x < -0.05 else 1
-            speed = .16
-        else:
-            raw_gear = plan.gears[target_index]
-            target = plan.poses[target_index]
-            speed = .35
-        gear = Gear.REVERSE if raw_gear < 0 else Gear.DRIVE
-        from .controller import pure_pursuit
-        steering = pure_pursuit(pose, target, raw_gear, scenario.vehicle.wheelbase, .6, scenario.vehicle.max_steering)
-        return gear, steering, speed
+        self.tracker = PlanTracker(plan, scenario.vehicle.wheelbase, scenario.vehicle.max_steering, self.tracking_config)
+        self.plan_exhausted = False
+
+    def _control_from_plan(self) -> tuple[Gear, float, float]:
+        """Next segment-aware tracking command; hold still once the plan ends."""
+        command = self.tracker.command(self.world.pose) if self.tracker is not None else None
+        if command is None:
+            if not self.plan_exhausted and self.current_plan is not None and self.current_plan.success:
+                self.plan_exhausted = True
+                self._event("info", "plan executed; final pose is outside the capture tolerance, holding still")
+            return Gear.PARK, 0.0, 0.0
+        gear = Gear.REVERSE if command.gear < 0 else Gear.DRIVE
+        return gear, command.steering, command.speed
 
     @staticmethod
     def _perception_from_dict(data: dict[str, Any]) -> PerceptionFrame:
@@ -355,6 +369,35 @@ async def run_parking_search_demo(body: ParkingSearchRequest) -> dict[str, Any]:
         from ihateparking.parking_search import run_parking_search
 
         return await run_in_threadpool(run_parking_search, body.seed, body.case)
+    finally:
+        _heavy_simulation_lock.release()
+
+
+@app.get("/api/autopark/lot")
+def autopark_lot(
+    seed: int = Query(default=3, ge=0, le=2_147_483_647),
+    occupancy: float = Query(default=0.5, ge=0.0, le=0.9),
+) -> dict[str, Any]:
+    from ihateparking.autopark import lot_payload
+    from ihateparking.parking_lot import build_lot
+
+    return lot_payload(build_lot(seed, occupancy))
+
+
+@app.post("/api/autopark/run")
+async def run_autopark_demo(body: AutoparkRequest) -> dict[str, Any]:
+    if not _heavy_simulation_lock.acquire(blocking=False):
+        raise HTTPException(
+            status_code=429,
+            detail="Another compute-intensive simulation is running on this worker; retry after it finishes.",
+        )
+    try:
+        from ihateparking.autopark import run_autopark
+
+        try:
+            return await run_in_threadpool(run_autopark, body.seed, body.occupancy, body.bay)
+        except KeyError as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
     finally:
         _heavy_simulation_lock.release()
 

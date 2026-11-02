@@ -17,7 +17,7 @@
     <aside class="lab-disclaimer" role="note"><strong>RESEARCH PROTOTYPE — SIMULATION ONLY</strong><span>This is a synthetic replay, not a live CARLA session or a real-vehicle interface. It is not production-certified and must not be used to operate a vehicle.</span></aside>
 
     <section class="hero-copy">
-      <div><p class="eyebrow">CLOSED-LOOP SIMULATION</p><h2>Make the car <em>earn</em> its parking spot.</h2><p class="lede">Hybrid A* generates the manoeuvre. A reverse-aware Pure Pursuit controller follows it in closed loop — no teleporting, no scripted shortcut.</p></div>
+      <div><p class="eyebrow">CLOSED-LOOP SIMULATION</p><h2>Make the car <em>earn</em> its parking spot.</h2><p class="lede">Hybrid A* generates the manoeuvre and finishes it with an exact Reeds-Shepp connection to the goal. A segment-aware tracker follows it gear by gear in closed loop — no teleporting, no scripted shortcut.</p></div>
       <div class="hero-tag"><span>01</span><strong>PLAN → TRACK → PARK</strong></div>
     </section>
 
@@ -30,7 +30,7 @@
       </div>
 
       <aside class="side-stack">
-        <section class="panel metric-panel"><div class="panel-head compact"><div><p class="eyebrow">RUN TELEMETRY</p><h3>Mission status</h3></div><span id="mission-badge" class="badge good">SUCCESS</span></div><div class="metric-grid"><div class="metric"><span>Planner</span><strong id="metric-planner">Hybrid A*</strong><small id="metric-expanded">— expansions</small></div><div class="metric"><span>Controller</span><strong>Pure Pursuit</strong><small id="metric-gear">gear —</small></div><div class="metric"><span>Path length</span><strong id="metric-path">— m</strong><small>generated route</small></div><div class="metric"><span>Collisions</span><strong id="metric-collisions">—</strong><small>recorded contacts</small></div></div></section>
+        <section class="panel metric-panel"><div class="panel-head compact"><div><p class="eyebrow">RUN TELEMETRY</p><h3>Mission status</h3></div><span id="mission-badge" class="badge good">SUCCESS</span></div><div class="metric-grid"><div class="metric"><span>Planner</span><strong id="metric-planner">Hybrid A*</strong><small id="metric-expanded">— expansions</small></div><div class="metric"><span>Controller</span><strong>Path tracker</strong><small id="metric-gear">gear —</small></div><div class="metric"><span>Path length</span><strong id="metric-path">— m</strong><small>generated route</small></div><div class="metric"><span>Collisions</span><strong id="metric-collisions">—</strong><small>recorded contacts</small></div></div></section>
         <section class="panel signal-panel"><div class="panel-head compact"><div><p class="eyebrow">CONTROL LOOP</p><h3>Trace signals</h3></div><span class="pulse"></span></div><div class="signal-row"><span>position</span><strong id="signal-position">—</strong></div><div class="signal-row"><span>heading</span><strong id="signal-heading">—</strong></div><div class="signal-row"><span>steering</span><strong id="signal-steering">—</strong></div><div class="signal-row"><span>elapsed</span><strong id="signal-time">0.0 s</strong></div></section>
         <section class="panel note-panel"><p class="eyebrow">INDEPENDENT RESEARCH PROJECT</p><p>This lab studies whether a parking system can move safely with the information it has. The replay exposes the plan, closed-loop trace and safety outcome in one view.</p><div class="stack-label"><span>v1 stack</span><span>kinematics · planning · control</span></div></section>
       </aside>

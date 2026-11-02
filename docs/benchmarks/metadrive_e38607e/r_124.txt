@@ -1,0 +1,4 @@
+seed 124: PARKED          success=True   32.3 s   22.3 m  free spaces 6  gaps between cars 1  {'in_bay': True, 'bay': '1P9_1_', 'bay_kind': 'perpendicular', 'bay_was_free': True, 'overlap': 1.0, 'axis_error_deg': 3.4, 'center_error_m': 1.457, 'along_error_m': 1.453, 'lateral_error_m': 0.114}
+        0.0 s  explore  no verified bay yet; exploring towards (30.8, -8.8)
+        8.6 s  park     verified bay at (29.4, -9.5); reversing in
+       32.3 s  end      parked after 32.3 s and 22.3 m

@@ -1,0 +1,5 @@
+seed 112: TIMEOUT         success=False  300.1 s  179.5 m  free spaces 7  gaps between cars 0  {}
+      273.8 s  recover  boxed in; manoeuvring to open space at (28.1, 2.7)
+      284.0 s  recover  boxed in; manoeuvring to open space at (28.9, 4.1)
+      292.2 s  recover  boxed in; manoeuvring to open space at (27.7, 2.6)
+      300.1 s  end      no parking within 300 s
