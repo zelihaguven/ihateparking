@@ -175,6 +175,7 @@ BACK_GAP_M = 0.3  # a side-by-side bay: the car's end this far from the nearest 
 PULL_SEARCH_M = 2.5
 MAX_PULL_IN_M = 1.5
 MAX_PULL_BACK_M = 0.5
+SQUARE_BACK_SPREAD_M = 0.4
 KERB_MIN_LENGTH_M = 7.0  # a parked car's side is never this long (cars are 4.2-4.9 m)
 RUN_PROBE_SPACING_M = 1.0
 RUN_SCORE_PENALTY = 10.0
@@ -484,9 +485,14 @@ def _pull_in(grid: OccupancyGrid, states: np.ndarray, center: np.ndarray, u: np.
     sets a consistent depth instead. Unchanged when nothing is seen close
     behind or the moved footprint would not be clear.
     """
-    gap = _nearest_behind(grid, states, center, u, vehicle.length / 2.0, vehicle.width / 2.0)
-    if gap is None:
+    behind = _distances_behind(grid, states, center, u, vehicle.length / 2.0, vehicle.width / 2.0)
+    # Only a back square to the bay (a kerb or wall along a perpendicular
+    # row, the fronts of the row opposite) says where the bay ends. An
+    # oblique kerb behind an angled bay is nearest at one corner, which
+    # would pull the car past the bay's end.
+    if behind is None or behind.max() - behind.min() > SQUARE_BACK_SPREAD_M:
         return center
+    gap = float(behind.min())
     shift = float(np.clip(gap - BACK_GAP_M, -MAX_PULL_BACK_M, MAX_PULL_IN_M))
     for step in np.arange(shift, -MAX_PULL_BACK_M - 1e-9, -0.1) if shift > 0 else (shift,):
         moved = center + u * step
@@ -495,8 +501,8 @@ def _pull_in(grid: OccupancyGrid, states: np.ndarray, center: np.ndarray, u: np.
     return center
 
 
-def _nearest_behind(grid: OccupancyGrid, states: np.ndarray, center: np.ndarray, u: np.ndarray, start: float, half_w: float) -> float | None:
-    """Smallest free distance from the car's end to occupied cells behind it, over its width."""
+def _distances_behind(grid: OccupancyGrid, states: np.ndarray, center: np.ndarray, u: np.ndarray, start: float, half_w: float) -> np.ndarray | None:
+    """Free distance from the car's end to occupied cells behind it, for rays across its width that hit."""
     v = np.array([-u[1], u[0]])
     res = grid.config.resolution
     steps = np.arange(0.0, PULL_SEARCH_M, res / 2.0)
@@ -509,7 +515,7 @@ def _nearest_behind(grid: OccupancyGrid, states: np.ndarray, center: np.ndarray,
     hit = occupied.any(axis=1)
     if hit.sum() < max(1, len(offsets) // 4):
         return None
-    return float(steps[np.argmax(occupied[hit], axis=1)].min())
+    return steps[np.argmax(occupied[hit], axis=1)]
 
 
 def _center_end_to_end(grid: OccupancyGrid, states: np.ndarray, edge_dir: np.ndarray, vehicle: VehicleSpec, candidate: SlotCandidate, max_unknown: float) -> SlotCandidate | None:
