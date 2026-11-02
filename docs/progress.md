@@ -249,8 +249,21 @@ MetaDrive, 40 walled lots at 0c353d2: 29 of 29 lots with a gap between cars park
 11 without one stopped; 0 contacts, 0 wrong parks, 0 timeouts (see docs/metadrive.md). Built-in dev
 6000–6119 at 0c353d2: 116/120, 0 wrong parks.
 
+## Release check before merging to master (08f6bb0)
+
+Acceptance 7700–7799 (6413938) had a wrong park (7760): a "near the goal" park plan ending 16 deg
+off; fixed in 08f6bb0 (a park plan must end within 0.25 m / 5 deg of the bay's goal). Then:
+
+| Check | Result |
+|---|---|
+| Acceptance, fresh lots 7800–7899 (scan matching) | **97/100, 0 wrong, 0 collisions**, overlap min 90%, position 16 / 35 cm, axis 1.9 / 6.8 deg, park time max 44 s |
+| Built-in dev 6000–6119 | 116/120, 0 wrong, 0 collisions |
+| MetaDrive, 40 walled lots | 29/29 lots with a gap parked; 0 contacts, 0 wrong parks, 0 timeouts |
+
+Acceptance lots used so far: 7000–7899. Next acceptance needs lots ≥ 7900.
+
 ## Next steps
 
-1. Merge feat/pose-estimation into master (pull request).
-2. Parallel-only scenario (34/59) and wall-end bays (branch wip/wall-end-parallel).
-3. ROS2 layer over stack_contracts.
+1. Parallel-only scenario (34/59) and wall-end bays (branch wip/wall-end-parallel).
+2. ROS2 layer over stack_contracts.
+3. Camera line perception (sparse lots, position-error floor).
