@@ -97,7 +97,8 @@ PRD targets met on dev, success right at 95%.
 | 0cf2693 | 6/59 | 1 (9021: parked past the end of a row) |
 | 7428a63 | 23/59 | 0 |
 | a9d9a69 | 32/59 | 1 (9016: kerb was the side of a perpendicular car) |
-| ffc2211 | **34/59** | **0** |
+| ffc2211 | 34/59 | 0 |
+| be69ac4 (wall-end bays) | **55/59** | **0** |
 
 ffc2211 (parallel scenario): 0 collisions; axis error median 0.8° / p95 5.0°; centre error
 median 42 cm / p95 109 cm, almost all along the bay (a 4.4 m car in a 6.2–7.0 m bay; bay ends
@@ -262,8 +263,25 @@ off; fixed in 08f6bb0 (a park plan must end within 0.25 m / 5 deg of the bay's g
 
 Acceptance lots used so far: 7000–7899. Next acceptance needs lots ≥ 7900.
 
+## Wall-end parallel bays adopted (be69ac4, scan matching)
+
+The wip rule (wall across the kerb on one side, a car parked along the kerb on the other) plus
+two row-level checks: the aisle beside the closing car runs on 2 m past its far end (8061), and
+both end cars of a gap between two cars have the aisle beside them (11063, also on master).
+
+| Check | Result |
+|---|---|
+| Parallel scenario 9000–9059 | **55/59** (was 34), 0 wrong, 0 collisions, lateral 24 / 34 cm, park time max 51 s, min overlap 86% |
+| Dev 6000–6119 | 119/120, 0 wrong, 0 collisions |
+| Detector, fresh 9100–9299 parallel | 160/160 true |
+| Detector, 11000–12299 mixed | 1340 true, 1 false (12144, also on master, see below) |
+
+Open: 12144, a run of three free perpendicular bays where the parked cars stand about 6 deg off
+the painted lines; the lattice from the cars puts the bay 0.86 m off (overlap 76%). Lot
+11000–12299 and 9100–9299 are now used for detector work.
+
 ## Next steps
 
-1. Parallel-only scenario (34/59) and wall-end bays (branch wip/wall-end-parallel).
+1. Perpendicular run bays when parked cars stand off the painted lines (12144).
 2. ROS2 layer over stack_contracts.
 3. Camera line perception (sparse lots, position-error floor).
