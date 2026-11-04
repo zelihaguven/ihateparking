@@ -280,8 +280,20 @@ Open: 12144, a run of three free perpendicular bays where the parked cars stand 
 the painted lines; the lattice from the cars puts the bay 0.86 m off (overlap 76%). Lot
 11000–12299 and 9100–9299 are now used for detector work.
 
+## Detector fixes (1551495): run bays square to their kerb, whole closing cars, wider centring
+
+Three false detections, all also on master: 12144 (cars skewed in their bays, row read 10 deg
+off), 12014 (two cars seen as one outline closing a run), 13036 (a neighbour beyond the flank
+search). Detector, true / false: fresh 14000–14299 764/0 (master 663/2), 6000–6119 273/0 (243),
+8000–8199 439/0 (388), 11000–11299 714/0, 12000–12299 745/0, 13000–13299 667/0, parallel
+9000–9299 246/0. Lots 13000–14299 are now used for detector work.
+
+**Not yet measured at mission level (stopped before the Mac slept, 2026-11-04).** Before a PR to
+master, run at 1551495 or later: dev 6000–6119, parallel 9000–9059, MetaDrive 101–140 and the
+acceptance on fresh lots 7900–7999 (all scan matching).
+
 ## Next steps
 
-1. Perpendicular run bays when parked cars stand off the painted lines (12144).
+1. Mission-level checks of 1551495 (above), then a PR of feat/parallel-wall-end to master.
 2. ROS2 layer over stack_contracts.
 3. Camera line perception (sparse lots, position-error floor).
