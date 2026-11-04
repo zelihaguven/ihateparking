@@ -51,6 +51,33 @@ SPEED_INTEGRAL_LIMIT = 2.0
 WINDOW_MULTISAMPLES = 4  # 3-D window antialiasing; macOS refuses MetaDrive's 8
 
 
+def _fit_window_multisampling() -> None:
+    """Ask for multisampling this Mac's OpenGL accepts in MetaDrive's 3-D window.
+
+    MetaDrive asks for 8x on the window when its module loads, and for 16x
+    on the lighting pass's offscreen buffer (simplepbr); macOS refuses both
+    (scripts/metadrive_window_check.py). Set after MetaDrive's import, so
+    this wins. If the buffer is refused even at 4x, simplepbr finds no
+    buffer and fails: retry without multisampling.
+    """
+    from metadrive.engine.core import engine_core
+    from panda3d.core import loadPrcFileData
+
+    loadPrcFileData("", f"multisamples {WINDOW_MULTISAMPLES}")
+    if getattr(engine_core.init, "fitted", False):
+        return
+    original = engine_core.init
+
+    def init(**kwargs):
+        try:
+            return original(**{**kwargs, "msaa_samples": WINDOW_MULTISAMPLES})
+        except AttributeError:  # simplepbr: the buffer was refused, so it has no quad to shade
+            return original(**{**kwargs, "msaa_samples": 0})
+
+    init.fitted = True
+    engine_core.init = init
+
+
 @dataclass(frozen=True)
 class TruthSpace:
     space_id: str
@@ -73,12 +100,7 @@ class MetaDriveLot:
         from metadrive.manager.pg_map_manager import PGMapManager
 
         if window:
-            from panda3d.core import loadPrcFileData
-
-            # MetaDrive asks for 8x multisampling when its module loads; this
-            # Mac's OpenGL refuses a window with that, and opens one with 4x
-            # (scripts/metadrive_window_check.py). Set after that import, so it wins.
-            loadPrcFileData("", f"multisamples {WINDOW_MULTISAMPLES}")
+            _fit_window_multisampling()
 
         map_config = dict(exit_length=20, lane_num=1, parking_space_num=2 * spaces_per_side, lane_width=SPACE_WIDTH_M)
 
