@@ -22,7 +22,7 @@ import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from ihateparking.metadrive_bridge import MetaDriveLot, MetaDrivePlant, TopDownRecorder, gaps_between_cars  # noqa: E402
+from ihateparking.metadrive_bridge import MetaDriveLot, MetaDrivePlant, Pacer, TopDownRecorder, gaps_between_cars  # noqa: E402
 from ihateparking.mission import MissionConfig, run_mission  # noqa: E402
 from ihateparking.occupancy_map import FREE, OCCUPIED  # noqa: E402
 
@@ -95,16 +95,19 @@ def main() -> int:
     parser.add_argument("--explore-margin", type=float, default=0.30, help="planner clearance while exploring and approaching, m")
     parser.add_argument("--window", action="store_true", help="watch live in MetaDrive's 3-D window")
     parser.add_argument("--video", action="store_true", help="record the top-down view to an MP4")
+    parser.add_argument("--speed", type=float, default=None, help="drive at this many times real time (default: 1 with --window, as fast as possible without)")
     args = parser.parse_args()
     failures = 0
     for seed in args.seeds:
         lot = MetaDriveLot(seed, spaces_per_side=args.spaces_per_side, window=args.window)
         recorder = TopDownRecorder(lot, with_stack_view=True) if args.video else None
         live = LiveStackWindow(lot) if args.window else None
+        speed = args.speed if args.speed is not None else (1.0 if args.window else None)
+        pacer = Pacer(speed) if speed is not None else None
         watchers = [w for w in (recorder.watch if recorder else None, live) if w is not None]
         try:
             config = MissionConfig(localization=args.localization, max_time_s=300.0, collision_margin_m=args.margin, explore_margin_m=args.explore_margin)
-            result = run_mission(None, config, seed=seed, plant=MetaDrivePlant(lot, recorder=recorder), watcher=(lambda snapshot: [w(snapshot) for w in watchers]) if watchers else None)
+            result = run_mission(None, config, seed=seed, plant=MetaDrivePlant(lot, recorder=recorder, pacer=pacer), watcher=(lambda snapshot: [w(snapshot) for w in watchers]) if watchers else None)
             free = sum(not s.occupied for s in lot.spaces)
             gaps = len(gaps_between_cars(lot.spaces))
             print(f"seed {seed}: {result.outcome:15s} success={result.success} {result.time_s:6.1f} s {result.distance_m:6.1f} m  free spaces {free}  gaps between cars {gaps}  {result.evaluation}")

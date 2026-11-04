@@ -7,7 +7,7 @@ import unittest
 import numpy as np
 
 from ihateparking.geometry import Pose
-from ihateparking.metadrive_bridge import METADRIVE_VEHICLE, TopDownRecorder, TruthSpace, gaps_between_cars, space_overlap
+from ihateparking.metadrive_bridge import METADRIVE_VEHICLE, Pacer, TopDownRecorder, TruthSpace, gaps_between_cars, space_overlap
 
 
 class MetaDriveBridgeTests(unittest.TestCase):
@@ -49,6 +49,37 @@ class MetaDriveBridgeTests(unittest.TestCase):
         recorder = TopDownRecorder(SimpleNamespace(spaces=(TruthSpace("P1", (0.0, 0.0), 0.0, 8.0, 2.7, False),), env=None))
         with tempfile.TemporaryDirectory() as folder, self.assertRaises(ValueError):
             recorder.save(Path(folder) / "empty.mp4")
+
+    def test_pacer_holds_simulated_time_to_the_clock(self) -> None:
+        clock = [0.0]
+        waits = []
+
+        def sleep(seconds):
+            waits.append(round(seconds, 6))
+            clock[0] += seconds
+
+        pacer = Pacer(speed=2.0, clock=lambda: clock[0], sleep=sleep)
+        for _ in range(4):
+            pacer.step(0.1)  # instant computing: each 0.1 s step takes 0.05 s
+        self.assertEqual(waits, [0.05] * 4)
+        self.assertAlmostEqual(clock[0], 0.2)
+
+    def test_pacer_does_not_hurry_after_falling_behind(self) -> None:
+        clock = [0.0]
+        waits = []
+
+        def sleep(seconds):
+            waits.append(round(seconds, 6))
+            clock[0] += seconds
+
+        pacer = Pacer(speed=1.0, clock=lambda: clock[0], sleep=sleep)
+        pacer.step(0.1)
+        clock[0] += 1.0  # a long planning search
+        pacer.step(0.1)  # behind: no wait
+        pacer.step(0.1)  # and from here on real time again, not faster
+        self.assertEqual(waits, [0.1, 0.1])
+        with self.assertRaises(ValueError):
+            Pacer(speed=0.0)
 
 
 if __name__ == "__main__":

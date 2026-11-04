@@ -307,12 +307,13 @@ class MetaDrivePlant:
     it happens, so any contact ends the mission as a collision.
     """
 
-    def __init__(self, lot: MetaDriveLot, lidar: LidarConfig = LidarConfig(range_noise_std=0.0, dropout=0.0), recorder: "TopDownRecorder | None" = None):
+    def __init__(self, lot: MetaDriveLot, lidar: LidarConfig = LidarConfig(range_noise_std=0.0, dropout=0.0), recorder: "TopDownRecorder | None" = None, pacer: "Pacer | None" = None):
         self.lot = lot
         self.vehicle = lot.vehicle
         self.dt = lot.step_s
         self.lidar = lidar
         self.recorder = recorder
+        self.pacer = pacer
         self._last = (0.0, 0.0, 0.0)
 
     def true_pose(self) -> Pose:
@@ -329,6 +330,8 @@ class MetaDrivePlant:
         self._last = (self.lot.signed_speed(), clipped, yaw_rate)
         if self.recorder is not None:
             self.recorder.step(self.dt)
+        if self.pacer is not None:
+            self.pacer.step(self.dt)
         return not self.lot.crashed()
 
     def odometry(self) -> tuple[float, float, float | None]:
@@ -358,6 +361,32 @@ class MetaDrivePlant:
             "along_error_m": round(float(abs(centre @ axis)), 3),
             "lateral_error_m": round(float(abs(centre @ np.array([-axis[1], axis[0]]))), 3),
         }
+
+
+class Pacer:
+    """Holds simulated time to the wall clock, for watching live.
+
+    Each step of ``dt`` simulated seconds takes at least ``dt / speed`` real
+    seconds (``speed`` 1 is real time). When the stack falls behind (a long
+    planning search) the pacer does not hurry to catch up: it waits only
+    while the simulation is ahead of the clock.
+    """
+
+    def __init__(self, speed: float = 1.0, clock=None, sleep=None):
+        import time
+
+        if speed <= 0:
+            raise ValueError("speed must be positive")
+        self.speed = speed
+        self.clock = clock or time.monotonic
+        self.sleep = sleep or time.sleep
+        self._due = None
+
+    def step(self, dt: float) -> None:
+        now = self.clock()
+        self._due = max(self._due if self._due is not None else now, now - dt / self.speed) + dt / self.speed
+        if self._due > now:
+            self.sleep(self._due - now)
 
 
 class TopDownRecorder:
