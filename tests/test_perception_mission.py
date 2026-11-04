@@ -72,13 +72,13 @@ class OccupancyGridTests(unittest.TestCase):
         self.assertLess(ys.max(), 6.2)
 
 
-def _aisle_sweep(seed: int, scenario: str = "mixed"):
-    """The lot and the map from driving straight along the start aisle."""
+def _aisle_sweep(seed: int, scenario: str = "mixed", half_m: float = 20.0):
+    """The lot and the map from driving straight along the start aisle, ``half_m`` each way."""
     lot = scenario_lot(seed, scenario)
     world = ParkingWorld(lot.bounds, list(lot.obstacles), lot.bays[0].slot, lot.start, lot.vehicle)
     grid = OccupancyGrid((lot.start.x, lot.start.y))
     rng = np.random.default_rng(seed)
-    for d in np.arange(-20.0, 20.1, 1.0):
+    for d in np.arange(-half_m, half_m + 0.1, 1.0):
         pose = Pose(lot.start.x + d * math.cos(lot.start.yaw), lot.start.y + d * math.sin(lot.start.yaw), lot.start.yaw)
         if not world.is_collision(pose):
             grid.integrate(scan(pose, lot.obstacles, lot.vehicle, rng=rng))
@@ -139,6 +139,21 @@ class SlotDetectorTests(unittest.TestCase):
                     self.assertTrue(verdict["in_bay"], verdict)
                 checked += 1
         self.assertGreater(checked, 0)
+
+    def test_no_false_bays_where_rows_mislead(self) -> None:
+        # Regressions, each a false detection (a wrong park) found on fresh
+        # lots, mapped as scripts/eval_detector.py maps them:
+        # 8061 wall-end gap beside a row's end car parked square to the lot wall;
+        # 11063 two rows' end cars along the aisle's end wall, read as a parallel gap;
+        # 12144 cars skewed in their bays, the row read 10 deg off, a run bay 0.86 m off;
+        # 12014 two cars seen as one outline closing a run, the lattice half a bay off;
+        # 13036 a neighbour beyond the flank search, the bay left snug to the other.
+        for seed in (8061, 11063, 12144, 12014, 13036):
+            lot, grid = _aisle_sweep(seed, half_m=30.0)
+            for candidate in detect_slots(grid, lot.vehicle):
+                verdicts = [evaluate_parking(lot, candidate.goal(heading, lot.vehicle)) for heading in candidate.headings()]
+                with self.subTest(seed=seed, center=candidate.center):
+                    self.assertTrue(any(v["in_bay"] for v in verdicts), verdicts[0])
 
 
 class RowLatticeTests(unittest.TestCase):

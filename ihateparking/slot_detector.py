@@ -169,6 +169,7 @@ NEAR_BACK_M = 0.6
 NEAR_BACK_COVERAGE = 0.25
 WALL_CONTINUATION = 0.3
 MAX_CENTERING_SHIFT_M = 0.8
+CENTERING_REACH_M = 2.5  # a neighbour further off than the flank search, still beside the bay
 PARALLEL_GAP_SEARCH_M = 6.0
 PARALLEL_END_GAP_M = 0.6
 KERB_GAP_M = 0.4  # leaves the planner its 0.15 m margin even along a slightly skewed kerb
@@ -182,6 +183,11 @@ AISLE_STRIP_M = 2.5
 AISLE_FREE_FRACTION = 0.8
 AISLE_ON_M = 2.0  # the aisle runs on past the closing car's far end
 END_CAR_STRIP_M = 4.0  # along each end car, from the bay's end
+KERB_FIT_SPAN_M = 3.0  # either side of the bay centre, along the row
+KERB_FIT_MIN_HITS = 0.6  # fraction of rays behind the bay that must reach the kerb
+KERB_FIT_OUTLIER_M = 0.3
+KERB_FIT_MAX_RMS_M = 0.12
+KERB_FIT_MAX_TILT = math.radians(15.0)
 KERB_MIN_LENGTH_M = 7.0  # a parked car's side is never this long (cars are 4.2-4.9 m)
 RUN_PROBE_SPACING_M = 1.0
 RUN_SCORE_PENALTY = 10.0
@@ -468,13 +474,30 @@ def _place_in_run(grid: OccupancyGrid, states: np.ndarray, edge_dir: np.ndarray,
     v = np.array([-u[1], u[0]])
     best = None
     # The row direction is the one along which the parked cars line up as
-    # whole, regular outlines.
-    for r in row_lattice.row_candidates(u, axes):
+    # whole, regular outlines. The kerb behind a run of free bays shows it
+    # directly, where the map's dominant edge directions can be a few
+    # degrees off (12144: cars skewed in their bays): try it first, and
+    # take it whenever it shows enough whole cars.
+    kerb = _kerb_row_direction(grid, states, center, u, half_l + SIDE_CLEARANCE_M)
+    if kerb is not None:
+        # A perpendicular bay is square to its kerb: take the bay axis from it too.
+        u = np.array([kerb[1], -kerb[0]])
+        u = u if u @ np.array([math.cos(yaw), math.sin(yaw)]) > 0 else -u
+        v = np.array([-u[1], u[0]])
+        kerb = kerb if kerb @ v > 0 else -kerb
+        yaw = math.atan2(u[1], u[0])
+    rows = row_lattice.row_candidates(u, axes)
+    if kerb is not None:
+        rows = [kerb] + rows
+    for index, r in enumerate(rows):
         cars = row_lattice.car_centres(grid, states, edge_dir, center, u, r, (-half_l - 0.8, half_l - 0.3), (-half_l - 4.0, -half_l - 3.2))
         if cars is None:
             continue
         across = abs(float(r @ v))
         count = len(row_lattice.whole_cars(cars, across))
+        if kerb is not None and index == 0 and count >= row_lattice.MIN_LATTICE_CARS:
+            best = (count, r, cars, across)
+            break
         if best is None or count > best[0]:
             best = (count, r, cars, across)
     if best is None:
@@ -493,6 +516,41 @@ def _place_in_run(grid: OccupancyGrid, states: np.ndarray, edge_dir: np.ndarray,
         return None
     placed = _pull_in(grid, states, placed, u, vehicle, max_unknown)
     return SlotCandidate((float(placed[0]), float(placed[1])), yaw, candidate.row, candidate.score)
+
+
+def _kerb_row_direction(grid: OccupancyGrid, states: np.ndarray, center: np.ndarray, u: np.ndarray, start: float) -> np.ndarray | None:
+    """Row direction from the kerb behind a bay (a unit vector, roughly square to ``u``), or None.
+
+    Rays along the bay axis, spread along the row, find the first occupied
+    cell behind the bay; the kerb is the straight line through them, once
+    the rays stopped short by parked cars' ends are left out.
+    """
+    v = np.array([-u[1], u[0]])
+    res = grid.config.resolution
+    steps = np.arange(0.0, PULL_SEARCH_M, res / 2.0)
+    offsets = np.arange(-KERB_FIT_SPAN_M, KERB_FIT_SPAN_M + 1e-9, 0.15)
+    points = center + offsets[:, None, None] * v + (start + steps)[None, :, None] * u
+    rows, cols = grid.to_cell(points[..., 0], points[..., 1])
+    inside = (rows >= 0) & (rows < grid.shape[0]) & (cols >= 0) & (cols < grid.shape[1])
+    occupied = np.zeros(rows.shape, dtype=bool)
+    occupied[inside] = states[rows[inside], cols[inside]] == OCCUPIED
+    hit = occupied.any(axis=1)
+    if hit.mean() < KERB_FIT_MIN_HITS:
+        return None
+    x, depth = offsets[hit], steps[np.argmax(occupied[hit], axis=1)]
+    keep = np.ones(x.shape, dtype=bool)
+    for _ in range(3):
+        if keep.sum() < KERB_FIT_MIN_HITS * len(offsets):
+            return None
+        slope, intercept = np.polyfit(x[keep], depth[keep], 1)
+        keep = np.abs(depth - (intercept + slope * x)) <= KERB_FIT_OUTLIER_M
+    residual = depth[keep] - (intercept + slope * x[keep])
+    if keep.sum() < KERB_FIT_MIN_HITS * len(offsets) or float(np.sqrt(np.mean(residual ** 2))) > KERB_FIT_MAX_RMS_M:
+        return None
+    if abs(math.atan(slope)) > KERB_FIT_MAX_TILT:
+        return None
+    direction = v + slope * u
+    return direction / np.linalg.norm(direction)
 
 
 def _back_close_behind(grid: OccupancyGrid, states: np.ndarray, center: np.ndarray, u: np.ndarray, start: float, half_w: float) -> bool:
@@ -548,6 +606,13 @@ def _refine(grid: OccupancyGrid, states: np.ndarray, edge_dir: np.ndarray, vehic
     v = np.array([-math.sin(refined), math.cos(refined)])
     left = _free_run(grid, states, center, v, u, vehicle.width / 2, FLANK_SEARCH_M + SIDE_CLEARANCE_M, half_l - SIDE_CLEARANCE_M)
     right = _free_run(grid, states, center, -v, u, vehicle.width / 2, FLANK_SEARCH_M + SIDE_CLEARANCE_M, half_l - SIDE_CLEARANCE_M)
+    # A neighbour parked off to the far side of its own bay is beyond the
+    # flank search; left uncentred, the car stays snug against the other
+    # neighbour, half over the line (13036). Look further for it.
+    if left is None and right is not None:
+        left = _free_run(grid, states, center, v, u, vehicle.width / 2, CENTERING_REACH_M, half_l - SIDE_CLEARANCE_M)
+    elif right is None and left is not None:
+        right = _free_run(grid, states, center, -v, u, vehicle.width / 2, CENTERING_REACH_M, half_l - SIDE_CLEARANCE_M)
     if left is not None and right is not None:
         center = center + v * float(np.clip((left - right) / 2.0, -MAX_CENTERING_SHIFT_M, MAX_CENTERING_SHIFT_M))
     if not _footprint_clear(grid, states, center, refined, half_l + SIDE_CLEARANCE_M, half_w, max_unknown):

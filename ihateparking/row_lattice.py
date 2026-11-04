@@ -155,6 +155,11 @@ def snap_to_row(cars: list[tuple[float, float, bool]], across: float, car_width:
     last_behind, first_ahead = max(behind), min(ahead)
     if not (last_behind[2] and first_ahead[2]):
         return None
+    # The cars closing the run anchor the lattice next to it: each must be
+    # seen across its whole width, not a merged outline (12014: two cars
+    # seen as one 3.3 m outline, the lattice half a bay off beside it).
+    if not all(WHOLE_CAR_WIDTH_M[0] <= (car[1] - car[0]) * across <= WHOLE_CAR_WIDTH_M[1] for car in (last_behind, first_ahead)):
+        return None
     whole = whole_cars(cars, across)
     lattice = fit_lattice(whole)
     if lattice is None:
