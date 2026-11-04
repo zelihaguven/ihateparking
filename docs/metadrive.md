@@ -100,10 +100,17 @@ Ground truth (free spaces) comes from the block's lanes, used for scoring only.
 
 ## Watching a mission
 
-- `--video` records MetaDrive's own top-down view: walls, kerbs, parked cars and the ego car, seen by a still camera over the lot. It writes `artifacts/metadrive/mission_<seed>.mp4` at 4× speed, one frame per 0.2 s of driving:
+- `--video` records MetaDrive's own top-down view: walls, kerbs, parked cars and the ego car, seen by a still camera over the lot. Beside it, at the same centre and scale, it shows what the car itself knows (`ihateparking/stack_view.py`):
+  - its LiDAR map: occupied black, seen free pale, unknown grey;
+  - where it believes it is (filled blue) and where it truly is (thin green outline);
+  - the bays it found (yellow), the bay it is parking in (green) and bays refused for want of a route (red cross);
+  - its plan: forward blue, reverse orange;
+  - the time, the mode and the latest events.
+
+  It writes `artifacts/metadrive/mission_<seed>.mp4` at 4× speed, one frame per 0.2 s of driving:
 
   ```bash
   .venv-metadrive/bin/python scripts/metadrive_mission.py --localization scan_matching --video 101
   ```
 
-- `--window` opens MetaDrive's 3-D window and follows the car live. Run it from your own Terminal, because a window needs a desktop session; from an agent's background shell Panda3D cannot open one. MetaDrive asks for 8x multisampling on the window and 16x on its lighting pass's offscreen buffer, and this Mac's OpenGL refuses both. The bridge asks for 4x instead (`WINDOW_MULTISAMPLES`), and for none if the buffer is still refused. `scripts/metadrive_window_check.py` shows which settings open a window on a machine.
+- `--window` opens MetaDrive's 3-D window and follows the car live, with a second window showing the same view of what the car knows. Run it from your own Terminal, because a window needs a desktop session; from an agent's background shell Panda3D cannot open one. MetaDrive asks for 8x multisampling on the window and 16x on its lighting pass's offscreen buffer, and this Mac's OpenGL refuses both. The bridge asks for 4x instead (`WINDOW_MULTISAMPLES`), and for none if the buffer is still refused. `scripts/metadrive_window_check.py` shows which settings open a window on a machine.

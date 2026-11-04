@@ -364,10 +364,12 @@ class TopDownRecorder:
     """Records MetaDrive's top-down view of the lot while the mission drives.
 
     One frame every ``frame_s`` of simulated time; ``save`` writes an MP4
-    that plays ``speedup`` times faster than the car drove.
+    that plays ``speedup`` times faster than the car drove. With
+    ``with_stack_view`` each frame also shows, on the right, what the car
+    itself knows (``StackView``; pass ``watch`` to the mission as its watcher).
     """
 
-    def __init__(self, lot: MetaDriveLot, frame_s: float = 0.2, speedup: float = 4.0, size: int = 800, scaling: float = 10.0):
+    def __init__(self, lot: MetaDriveLot, frame_s: float = 0.2, speedup: float = 4.0, size: int = 800, scaling: float = 10.0, with_stack_view: bool = False):
         self.lot = lot
         self.frame_s = frame_s
         self.speedup = speedup
@@ -376,15 +378,28 @@ class TopDownRecorder:
         self.frames: list[np.ndarray] = []
         # A still camera over the middle of the lot, so the car moves, not the lot.
         self.centre = tuple(float(v) for v in np.mean([space.center for space in lot.spaces], axis=0))
+        # Beside it, what the car itself knows, at the same centre and scale.
+        self.stack_view = None
+        if with_stack_view:
+            from .stack_view import StackView
+
+            self.stack_view = StackView(lot.vehicle, self.centre, scaling, (size, size))
+        self.snapshot = None
         self._since = frame_s  # the first step captures a frame
+
+    def watch(self, snapshot) -> None:
+        """Mission watcher: keep the latest ``MissionSnapshot`` for the next frame."""
+        self.snapshot = snapshot
 
     def step(self, dt: float) -> None:
         self._since += dt
         if self._since < self.frame_s:
             return
         self._since = 0.0
-        frame = self.lot.env.render(mode="topdown", window=False, screen_size=(self.size, self.size), film_size=(3000, 3000), scaling=self.scaling, target_agent_heading_up=False, draw_target_vehicle_trajectory=False, camera_position=self.centre)
-        self.frames.append(np.asarray(frame, dtype=np.uint8))
+        frame = np.asarray(self.lot.env.render(mode="topdown", window=False, screen_size=(self.size, self.size), film_size=(3000, 3000), scaling=self.scaling, target_agent_heading_up=False, draw_target_vehicle_trajectory=False, camera_position=self.centre), dtype=np.uint8)
+        if self.stack_view is not None and self.snapshot is not None:
+            frame = np.hstack([frame, self.stack_view.render(self.snapshot)])
+        self.frames.append(frame)
 
     def save(self, path: Path) -> None:
         import cv2

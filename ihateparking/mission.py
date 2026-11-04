@@ -20,7 +20,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 import math
-from typing import Optional
+from typing import Callable, Optional
 
 import numpy as np
 from scipy import ndimage
@@ -43,6 +43,7 @@ PARK_END_YAW = math.radians(5.0)
 STAGING_AHEAD_M = (5.5, 6.5)
 STAGING_LATERAL_M = (2.2, 2.6, 3.0)
 LOCALIZATION_MODES = ("truth", "odometry", "scan_matching")
+WATCHED_EVENTS = 4  # events a watcher is shown
 
 
 @dataclass(frozen=True)
@@ -106,6 +107,25 @@ class MissionEvent:
     time_s: float
     kind: str
     message: str
+
+
+@dataclass(frozen=True)
+class MissionSnapshot:
+    """What the stack knows right after a scan, for watching a mission.
+
+    Handed to a ``watcher`` and never read back by the stack. ``grid`` is
+    the live map, so a watcher draws it straight away rather than keeping it.
+    """
+    time_s: float
+    mode: str  # decide, explore, inspect, stage, park, or the outcome at the end
+    grid: OccupancyGrid
+    estimate: Pose  # where the car believes it is
+    true_pose: Pose
+    plan: Optional[PlanResult]
+    target: Optional[SlotCandidate]  # the bay it is parking in
+    candidates: tuple[SlotCandidate, ...]  # bays found at the last decision
+    rejected: tuple[tuple[float, float], ...]  # bays refused for want of a route, still refused
+    events: tuple[MissionEvent, ...]  # the latest few
 
 
 @dataclass
@@ -406,9 +426,10 @@ def evaluate_parking(lot: ProceduralLot, pose: Pose) -> dict:
     }
 
 
-def run_mission(lot: Optional[ProceduralLot], config: MissionConfig = MissionConfig(), seed: int = 0, plant: Optional[Plant] = None) -> MissionResult:
+def run_mission(lot: Optional[ProceduralLot], config: MissionConfig = MissionConfig(), seed: int = 0, plant: Optional[Plant] = None, watcher: Optional[Callable[[MissionSnapshot], None]] = None) -> MissionResult:
     """Park in a lot never seen before. ``plant`` is the world to drive in;
-    by default the built-in simulator on ``lot``."""
+    by default the built-in simulator on ``lot``. ``watcher``, if given, sees
+    a ``MissionSnapshot`` after every scan and at the end."""
     if config.localization not in LOCALIZATION_MODES:
         raise ValueError(f"unknown localization {config.localization!r}; expected one of {LOCALIZATION_MODES}")
     rng = np.random.default_rng(seed)
@@ -434,6 +455,7 @@ def run_mission(lot: Optional[ProceduralLot], config: MissionConfig = MissionCon
     # then, so each refusal expires and the bay is tried again later.
     rejections: list[tuple[tuple[float, float], float]] = []
     rejected: list[tuple[float, float]] = []
+    candidates: list[SlotCandidate] = []
     # Frontiers that could not be planned to from the current position. A
     # frontier being driven towards is not excluded: it stays the target
     # until it is seen. The list resets after every leg, as the car moved.
@@ -455,8 +477,14 @@ def run_mission(lot: Optional[ProceduralLot], config: MissionConfig = MissionCon
     def log(kind: str, message: str) -> None:
         events.append(MissionEvent(round(t, 2), kind, message))
 
+    def show(current_mode: str) -> None:
+        if watcher is not None:
+            active = [centre for centre, when in rejections if t - when < config.reject_retry_s]
+            watcher(MissionSnapshot(t, current_mode, grid, pose, true_pose, plan, target, tuple(candidates), tuple(active), tuple(events[-WATCHED_EVENTS:])))
+
     def finish(outcome: str, message: str, collisions: int = 0) -> MissionResult:
         log("end", message)
+        show(outcome)
         evaluation = plant.evaluate(true_pose) if outcome == "PARKED" else {}
         success = outcome == "PARKED" and evaluation.get("in_bay", False) and collisions == 0
         park_time = t - bay_found_t if outcome == "PARKED" and bay_found_t is not None else None
@@ -474,6 +502,7 @@ def run_mission(lot: Optional[ProceduralLot], config: MissionConfig = MissionCon
         return estimate
 
     pose = observe(pose)
+    show(mode)
     while t < config.max_time_s:
         if mode == "decide":
             world = MapWorld(grid, vehicle, pose, collision_margin=config.collision_margin_m)
@@ -631,6 +660,7 @@ def run_mission(lot: Optional[ProceduralLot], config: MissionConfig = MissionCon
             continue
         pose = observe(pose)
         estimate_trace[-1] = pose
+        show(mode)
         if mode == "explore" and travelled - leg_start >= config.explore_horizon_m:
             mode = "decide"
             continue

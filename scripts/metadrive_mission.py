@@ -7,8 +7,9 @@ MetaDrive environment:
     .venv-metadrive/bin/python scripts/metadrive_mission.py [--localization truth|odometry|scan_matching] seed ...
 
 To watch: ``--window`` opens MetaDrive's 3-D window and follows the car
-live; ``--video`` records MetaDrive's top-down view to
-artifacts/metadrive/mission_<seed>.mp4.
+live, with a second window showing what the car itself knows (its map,
+pose estimate, bays and plan); ``--video`` records MetaDrive's top-down
+view beside that view to artifacts/metadrive/mission_<seed>.mp4.
 """
 from __future__ import annotations
 
@@ -61,6 +62,30 @@ def draw(lot: MetaDriveLot, result, path: Path) -> None:
     plt.close(fig)
 
 
+class LiveStackWindow:
+    """Mission watcher: shows what the car knows in an OpenCV window, after every scan."""
+
+    TITLE = "ihateparking: what the car knows"
+
+    def __init__(self, lot: MetaDriveLot):
+        from ihateparking.stack_view import StackView
+
+        centre = tuple(float(v) for v in np.mean([space.center for space in lot.spaces], axis=0))
+        self.view = StackView(lot.vehicle, centre)
+
+    def __call__(self, snapshot) -> None:
+        import cv2
+
+        cv2.imshow(self.TITLE, cv2.cvtColor(self.view.render(snapshot), cv2.COLOR_RGB2BGR))
+        cv2.waitKey(1)
+
+    def close(self) -> None:
+        import cv2
+
+        cv2.destroyWindow(self.TITLE)
+        cv2.waitKey(1)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("seeds", type=int, nargs="+")
@@ -74,10 +99,12 @@ def main() -> int:
     failures = 0
     for seed in args.seeds:
         lot = MetaDriveLot(seed, spaces_per_side=args.spaces_per_side, window=args.window)
-        recorder = TopDownRecorder(lot) if args.video else None
+        recorder = TopDownRecorder(lot, with_stack_view=True) if args.video else None
+        live = LiveStackWindow(lot) if args.window else None
+        watchers = [w for w in (recorder.watch if recorder else None, live) if w is not None]
         try:
             config = MissionConfig(localization=args.localization, max_time_s=300.0, collision_margin_m=args.margin, explore_margin_m=args.explore_margin)
-            result = run_mission(None, config, seed=seed, plant=MetaDrivePlant(lot, recorder=recorder))
+            result = run_mission(None, config, seed=seed, plant=MetaDrivePlant(lot, recorder=recorder), watcher=(lambda snapshot: [w(snapshot) for w in watchers]) if watchers else None)
             free = sum(not s.occupied for s in lot.spaces)
             gaps = len(gaps_between_cars(lot.spaces))
             print(f"seed {seed}: {result.outcome:15s} success={result.success} {result.time_s:6.1f} s {result.distance_m:6.1f} m  free spaces {free}  gaps between cars {gaps}  {result.evaluation}")
@@ -90,6 +117,8 @@ def main() -> int:
                 print(f"    video {video} ({len(recorder.frames)} frames)")
             failures += not result.success
         finally:
+            if live is not None:
+                live.close()
             lot.close()
     return 1 if failures else 0
 
