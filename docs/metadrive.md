@@ -106,4 +106,4 @@ Ground truth (free spaces) comes from the block's lanes, used for scoring only.
   .venv-metadrive/bin/python scripts/metadrive_mission.py --localization scan_matching --video 101
   ```
 
-- `--window` opens MetaDrive's 3-D window and follows the car live. It needs an OpenGL window, so run it from your own Terminal. Panda3D cannot open a window, onscreen or offscreen, from a background process such as an agent's shell; there it fails with "Could not open window".
+- `--window` opens MetaDrive's 3-D window and follows the car live. Run it from your own Terminal, because a window needs a desktop session; from an agent's background shell Panda3D cannot open one. MetaDrive asks for 8x multisampling, and this Mac's OpenGL refuses a window with that. The bridge asks for 4x instead (`WINDOW_MULTISAMPLES`). `scripts/metadrive_window_check.py` shows which settings open a window on a machine.

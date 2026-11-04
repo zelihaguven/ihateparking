@@ -48,6 +48,7 @@ PERIMETER_START_M = 3.0  # ego start: this far in from the entrance wall
 SPEED_KP = 0.6
 SPEED_KI = 0.3
 SPEED_INTEGRAL_LIMIT = 2.0
+WINDOW_MULTISAMPLES = 4  # 3-D window antialiasing; macOS refuses MetaDrive's 8
 
 
 @dataclass(frozen=True)
@@ -70,6 +71,14 @@ class MetaDriveLot:
         from metadrive.envs.marl_envs.marl_parking_lot import MAParkingLotMap
         from metadrive.envs.metadrive_env import MetaDriveEnv
         from metadrive.manager.pg_map_manager import PGMapManager
+
+        if window:
+            from panda3d.core import loadPrcFileData
+
+            # MetaDrive asks for 8x multisampling when its module loads; this
+            # Mac's OpenGL refuses a window with that, and opens one with 4x
+            # (scripts/metadrive_window_check.py). Set after that import, so it wins.
+            loadPrcFileData("", f"multisamples {WINDOW_MULTISAMPLES}")
 
         map_config = dict(exit_length=20, lane_num=1, parking_space_num=2 * spaces_per_side, lane_width=SPACE_WIDTH_M)
 
