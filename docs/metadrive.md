@@ -97,3 +97,13 @@ An adapter that builds a parking lot from the `ParkingLot` block, parks static v
 spaces, feeds MetaDrive's LiDAR into `OccupancyGrid`, and drives the ego vehicle from
 `PlanTracker` commands (steering, target speed -> MetaDrive's normalised steer/throttle).
 Ground truth (free spaces) comes from the block's lanes, used for scoring only.
+
+## Watching a mission
+
+- `--video` records MetaDrive's own top-down view: walls, kerbs, parked cars and the ego car, seen by a still camera over the lot. It writes `artifacts/metadrive/mission_<seed>.mp4` at 4× speed, one frame per 0.2 s of driving:
+
+  ```bash
+  .venv-metadrive/bin/python scripts/metadrive_mission.py --localization scan_matching --video 101
+  ```
+
+- `--window` opens MetaDrive's 3-D window and follows the car live. It needs an OpenGL window, so run it from your own Terminal. Panda3D cannot open a window, onscreen or offscreen, from a background process such as an agent's shell; there it fails with "Could not open window".

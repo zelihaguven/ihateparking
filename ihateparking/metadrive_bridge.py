@@ -21,6 +21,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import math
+from pathlib import Path
 import random
 
 import numpy as np
@@ -62,7 +63,8 @@ class TruthSpace:
 class MetaDriveLot:
     """One MetaDrive parking lot with parked cars and kerbs, ego in the entrance road."""
 
-    def __init__(self, seed: int, occupancy: float = 0.5, spaces_per_side: int = 4, jitter: bool = True, decision_repeat: int = 5, enclose: bool = True):
+    def __init__(self, seed: int, occupancy: float = 0.5, spaces_per_side: int = 4, jitter: bool = True, decision_repeat: int = 5, enclose: bool = True, window: bool = False):
+        """``window``: open MetaDrive's 3-D window and follow the car live."""
         from metadrive.component.static_object.traffic_object import TrafficBarrier
         from metadrive.component.vehicle.vehicle_type import DefaultVehicle
         from metadrive.envs.marl_envs.marl_parking_lot import MAParkingLotMap
@@ -86,7 +88,7 @@ class MetaDriveLot:
 
         self.vehicle = METADRIVE_VEHICLE
         self._speed_integral = 0.0
-        self.env = _LotEnv(dict(use_render=False, num_scenarios=1, log_level=50, traffic_density=0.0, decision_repeat=decision_repeat, vehicle_config=dict(enable_reverse=True)))
+        self.env = _LotEnv(dict(use_render=window, num_scenarios=1, log_level=50, traffic_density=0.0, decision_repeat=decision_repeat, vehicle_config=dict(enable_reverse=True)))
         self.env.reset()
         rng = random.Random(seed)
         lot_map = self.env.current_map
@@ -274,11 +276,12 @@ class MetaDrivePlant:
     it happens, so any contact ends the mission as a collision.
     """
 
-    def __init__(self, lot: MetaDriveLot, lidar: LidarConfig = LidarConfig(range_noise_std=0.0, dropout=0.0)):
+    def __init__(self, lot: MetaDriveLot, lidar: LidarConfig = LidarConfig(range_noise_std=0.0, dropout=0.0), recorder: "TopDownRecorder | None" = None):
         self.lot = lot
         self.vehicle = lot.vehicle
         self.dt = lot.step_s
         self.lidar = lidar
+        self.recorder = recorder
         self._last = (0.0, 0.0, 0.0)
 
     def true_pose(self) -> Pose:
@@ -293,6 +296,8 @@ class MetaDrivePlant:
         clipped = float(np.clip(steering, -self.vehicle.max_steering, self.vehicle.max_steering))
         yaw_rate = wrap_angle(float(self.lot.env.agent.heading_theta) - before) / self.dt
         self._last = (self.lot.signed_speed(), clipped, yaw_rate)
+        if self.recorder is not None:
+            self.recorder.step(self.dt)
         return not self.lot.crashed()
 
     def odometry(self) -> tuple[float, float, float | None]:
@@ -322,3 +327,44 @@ class MetaDrivePlant:
             "along_error_m": round(float(abs(centre @ axis)), 3),
             "lateral_error_m": round(float(abs(centre @ np.array([-axis[1], axis[0]]))), 3),
         }
+
+
+class TopDownRecorder:
+    """Records MetaDrive's top-down view of the lot while the mission drives.
+
+    One frame every ``frame_s`` of simulated time; ``save`` writes an MP4
+    that plays ``speedup`` times faster than the car drove.
+    """
+
+    def __init__(self, lot: MetaDriveLot, frame_s: float = 0.2, speedup: float = 4.0, size: int = 800, scaling: float = 10.0):
+        self.lot = lot
+        self.frame_s = frame_s
+        self.speedup = speedup
+        self.size = size
+        self.scaling = scaling
+        self.frames: list[np.ndarray] = []
+        # A still camera over the middle of the lot, so the car moves, not the lot.
+        self.centre = tuple(float(v) for v in np.mean([space.center for space in lot.spaces], axis=0))
+        self._since = frame_s  # the first step captures a frame
+
+    def step(self, dt: float) -> None:
+        self._since += dt
+        if self._since < self.frame_s:
+            return
+        self._since = 0.0
+        frame = self.lot.env.render(mode="topdown", window=False, screen_size=(self.size, self.size), film_size=(3000, 3000), scaling=self.scaling, target_agent_heading_up=False, draw_target_vehicle_trajectory=False, camera_position=self.centre)
+        self.frames.append(np.asarray(frame, dtype=np.uint8))
+
+    def save(self, path: Path) -> None:
+        import cv2
+
+        if not self.frames:
+            raise ValueError("no frames recorded")
+        path.parent.mkdir(parents=True, exist_ok=True)
+        height, width = self.frames[0].shape[:2]
+        writer = cv2.VideoWriter(str(path), cv2.VideoWriter_fourcc(*"mp4v"), self.speedup / self.frame_s, (width, height))
+        try:
+            for frame in self.frames:
+                writer.write(cv2.cvtColor(frame, cv2.COLOR_RGB2BGR))
+        finally:
+            writer.release()

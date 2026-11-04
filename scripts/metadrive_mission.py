@@ -5,6 +5,10 @@ unchanged; MetaDrive is the world (``MetaDrivePlant``). Run in the
 MetaDrive environment:
 
     .venv-metadrive/bin/python scripts/metadrive_mission.py [--localization truth|odometry|scan_matching] seed ...
+
+To watch: ``--window`` opens MetaDrive's 3-D window and follows the car
+live; ``--video`` records MetaDrive's top-down view to
+artifacts/metadrive/mission_<seed>.mp4.
 """
 from __future__ import annotations
 
@@ -17,7 +21,7 @@ import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from ihateparking.metadrive_bridge import MetaDriveLot, MetaDrivePlant, gaps_between_cars  # noqa: E402
+from ihateparking.metadrive_bridge import MetaDriveLot, MetaDrivePlant, TopDownRecorder, gaps_between_cars  # noqa: E402
 from ihateparking.mission import MissionConfig, run_mission  # noqa: E402
 from ihateparking.occupancy_map import FREE, OCCUPIED  # noqa: E402
 
@@ -64,19 +68,26 @@ def main() -> int:
     parser.add_argument("--spaces-per-side", type=int, default=6)
     parser.add_argument("--margin", type=float, default=0.15, help="planner clearance in the park manoeuvre, m")
     parser.add_argument("--explore-margin", type=float, default=0.30, help="planner clearance while exploring and approaching, m")
+    parser.add_argument("--window", action="store_true", help="watch live in MetaDrive's 3-D window")
+    parser.add_argument("--video", action="store_true", help="record the top-down view to an MP4")
     args = parser.parse_args()
     failures = 0
     for seed in args.seeds:
-        lot = MetaDriveLot(seed, spaces_per_side=args.spaces_per_side)
+        lot = MetaDriveLot(seed, spaces_per_side=args.spaces_per_side, window=args.window)
+        recorder = TopDownRecorder(lot) if args.video else None
         try:
             config = MissionConfig(localization=args.localization, max_time_s=300.0, collision_margin_m=args.margin, explore_margin_m=args.explore_margin)
-            result = run_mission(None, config, seed=seed, plant=MetaDrivePlant(lot))
+            result = run_mission(None, config, seed=seed, plant=MetaDrivePlant(lot, recorder=recorder))
             free = sum(not s.occupied for s in lot.spaces)
             gaps = len(gaps_between_cars(lot.spaces))
             print(f"seed {seed}: {result.outcome:15s} success={result.success} {result.time_s:6.1f} s {result.distance_m:6.1f} m  free spaces {free}  gaps between cars {gaps}  {result.evaluation}")
             for event in result.events[-4:]:
                 print(f"    {event.time_s:7.1f} s  {event.kind:8s} {event.message}")
             draw(lot, result, Path(f"artifacts/metadrive/mission_{seed}.png"))
+            if recorder is not None:
+                video = Path(f"artifacts/metadrive/mission_{seed}.mp4")
+                recorder.save(video)
+                print(f"    video {video} ({len(recorder.frames)} frames)")
             failures += not result.success
         finally:
             lot.close()

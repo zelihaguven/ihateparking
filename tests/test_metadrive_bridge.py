@@ -1,8 +1,13 @@
 import math
+from pathlib import Path
+import tempfile
+from types import SimpleNamespace
 import unittest
 
+import numpy as np
+
 from ihateparking.geometry import Pose
-from ihateparking.metadrive_bridge import METADRIVE_VEHICLE, TruthSpace, gaps_between_cars, space_overlap
+from ihateparking.metadrive_bridge import METADRIVE_VEHICLE, TopDownRecorder, TruthSpace, gaps_between_cars, space_overlap
 
 
 class MetaDriveBridgeTests(unittest.TestCase):
@@ -24,6 +29,26 @@ class MetaDriveBridgeTests(unittest.TestCase):
     def test_gaps_between_cars_need_both_neighbours(self) -> None:
         row = tuple(TruthSpace(f"P{i}", (2.7 * i, 0.0), math.pi / 2, 8.0, 2.7, occupied) for i, occupied in enumerate([True, False, True, False, False, True]))
         self.assertEqual([s.space_id for s in gaps_between_cars(row)], ["P1"])
+
+    def test_recorder_takes_a_frame_every_frame_s_from_a_still_camera(self) -> None:
+        calls = []
+
+        def render(**kwargs):
+            calls.append(kwargs["camera_position"])
+            return np.zeros((kwargs["screen_size"][1], kwargs["screen_size"][0], 3), dtype=np.uint8)
+
+        spaces = (TruthSpace("P1", (0.0, 0.0), 0.0, 8.0, 2.7, False), TruthSpace("P2", (4.0, 2.0), 0.0, 8.0, 2.7, True))
+        lot = SimpleNamespace(spaces=spaces, env=SimpleNamespace(render=render))
+        recorder = TopDownRecorder(lot, frame_s=0.2, size=64)
+        for _ in range(10):
+            recorder.step(0.1)  # 1 s of driving
+        self.assertEqual(len(recorder.frames), 5)
+        self.assertEqual(set(calls), {(2.0, 1.0)})
+
+    def test_recorder_refuses_to_save_an_empty_video(self) -> None:
+        recorder = TopDownRecorder(SimpleNamespace(spaces=(TruthSpace("P1", (0.0, 0.0), 0.0, 8.0, 2.7, False),), env=None))
+        with tempfile.TemporaryDirectory() as folder, self.assertRaises(ValueError):
+            recorder.save(Path(folder) / "empty.mp4")
 
 
 if __name__ == "__main__":
